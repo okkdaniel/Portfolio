@@ -27,9 +27,9 @@
 }
 
 /* Pause the drift on hover so a visitor can read a logo. */
-.skills-viewport:hover .skills-track {
+/* .skills-viewport:hover .skills-track {
   animation-play-state: paused;
-}
+} */
 
 @keyframes skills-drift {
   from { transform: translateX(0); }

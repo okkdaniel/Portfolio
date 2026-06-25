@@ -1,0 +1,74 @@
+/* ---------------------------------------------------------------------------
+   Base — reset + canvas
+   ---
+   Minimal reset. The canvas (body) is warm gray. Images live on the page,
+   not inside containers — so img defaults are set up to extend naturally.
+--------------------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+html {
+  background: var(--bg-canvas);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font: var(--type-body);
+}
+
+/* Headings — kill default boldness, default margin. The serif gets its
+   weight from form, not from font-weight. */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: var(--fw-display);
+  letter-spacing: var(--tracking-display);
+}
+
+p { margin: 0; }
+p + p { margin-top: var(--para-gap); }
+
+/* Links — default treatment is the editorial link: same-color underline
+   that lives one ex below the baseline. */
+a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+  transition: var(--transition-hover);
+}
+
+a:hover { opacity: 0.55; }
+
+/* Buttons — strip the default chrome. Components define their own. */
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Images — assume they live on the page, no border, no shadow. */
+img, svg, video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Hr — an editorial rule, hairline, not gray. */
+hr {
+  border: 0;
+  border-top: var(--hairline);
+  margin: 0;
+}
+
+/* Focus — visible but quiet. No glow, no shadow. */
+:focus-visible {
+  outline: 1px solid var(--ink-900);
+  outline-offset: 4px;
+}

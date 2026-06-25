@@ -1,0 +1,71 @@
+/* ---------------------------------------------------------------------------
+   Skills marquee
+   ---
+   A single band of tool logos that drifts horizontally across the page and
+   fades at both edges. Motion is a slow linear drift (the brand's --ease-linear
+   reserved for drifts); the whole section fades in/out on scroll via JS.
+--------------------------------------------------------------------------- */
+
+.skills-viewport {
+  overflow: hidden;
+  /* Edge fade — logos dissolve into the canvas at left and right. */
+  -webkit-mask-image: linear-gradient(
+    to right, transparent 0%, #000 14%, #000 86%, transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right, transparent 0%, #000 14%, #000 86%, transparent 100%
+  );
+}
+
+.skills-track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: var(--space-10);
+  animation: skills-drift 42s linear infinite;
+  will-change: transform;
+}
+
+/* Pause the drift on hover so a visitor can read a logo. */
+.skills-viewport:hover .skills-track {
+  animation-play-state: paused;
+}
+
+@keyframes skills-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.skill-item {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.skill-item img {
+  height: 56px;
+  width: auto;
+  display: block;
+  /* Quiet by default; full ink when the band is hovered. */
+  opacity: 0.78;
+  transition: opacity var(--dur-quick) var(--ease-out-quiet);
+}
+
+.skills-viewport:hover .skill-item img {
+  opacity: 1;
+}
+
+.skill-item .skill-label {
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-body-md);
+  letter-spacing: var(--tracking-meta-wide);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skills-track { animation: none; }
+}

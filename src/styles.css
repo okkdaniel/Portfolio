@@ -1,0 +1,15 @@
+/* ---------------------------------------------------------------------------
+   Kaliko Portfolio — design system entry point
+   This file is import-only. Add a new concern by creating a file in tokens/
+   and @import'ing it below.
+
+   Order matters: fonts and colors first, then typography/spacing/motion that
+   reference them, then base which applies the canvas.
+--------------------------------------------------------------------------- */
+
+@import "./tokens/fonts.css";
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/spacing.css";
+@import "./tokens/motion.css";
+@import "./tokens/base.css";

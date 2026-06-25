@@ -1,0 +1,107 @@
+/* ---------------------------------------------------------------------------
+   Typography
+   ---
+   Two families only. A high-contrast editorial serif for display and project
+   titles; a neutral Swiss sans for everything else.
+
+   - Display serif: Cormorant Garamond  (Google Fonts substitute for Canela
+     / Ivy Presto. Flagged in readme — replace with licensed Canela for the
+     final build.)
+   - Text sans:     Inter                (explicit reference in brief)
+
+   Sizes are deliberately large for headings and small for body — the kind
+   of contrast you get in a printed editorial spread.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* Families ---------------------------------------------------------- */
+  --font-serif-display:
+    "Cormorant Garamond",
+    "Canela", "Ivy Presto", "GT Sectra",
+    "Hoefler Text", Georgia, serif;
+
+  --font-sans:
+    "Inter",
+    "Suisse Int'l", "Helvetica Neue",
+    -apple-system, BlinkMacSystemFont,
+    "Segoe UI", system-ui, sans-serif;
+
+  --font-mono:
+    "JetBrains Mono", "IBM Plex Mono",
+    ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Sizes — display (serif) ------------------------------------------- */
+  --fs-display-xl: clamp(72px, 11vw, 188px);
+  --fs-display-l:  clamp(56px, 7.5vw, 124px);
+  --fs-display-m:  clamp(40px, 4.6vw, 76px);
+  --fs-display-s:  clamp(28px, 2.8vw, 44px);
+
+  /* Sizes — sans ------------------------------------------------------ */
+  --fs-body-l:     19px;   /* hero lede, project description */
+  --fs-body:       16px;   /* default body */
+  --fs-body-s:     14px;   /* paragraph metadata */
+  --fs-meta:       12px;   /* captions, eyebrow, dates, categories */
+  --fs-meta-xs:    11px;   /* footnote, very small metadata */
+
+  /* Weights ----------------------------------------------------------- */
+  --fw-display:    400;
+  --fw-display-md: 500;
+  --fw-body:       400;
+  --fw-body-md:    500;
+  --fw-body-bold:  600;
+
+  /* Line-heights ------------------------------------------------------ */
+  --lh-display-tight: 0.95;
+  --lh-display:       1.04;
+  --lh-heading:       1.18;
+  --lh-body:          1.55;
+  --lh-meta:          1.45;
+
+  /* Tracking ---------------------------------------------------------- */
+  --tracking-display: -0.02em;
+  --tracking-display-tight: -0.035em;
+  --tracking-body:    0em;
+  --tracking-meta:    0.08em;
+  --tracking-meta-wide: 0.16em;
+
+  /* Semantic — text styles. Reach for these in components.            */
+  --type-name: var(--fw-display) var(--fs-display-xl)/var(--lh-display-tight) var(--font-serif-display);
+  --type-display: var(--fw-display) var(--fs-display-l)/var(--lh-display) var(--font-serif-display);
+  --type-section: var(--fw-display) var(--fs-display-m)/var(--lh-display) var(--font-serif-display);
+  --type-sub: var(--fw-display) var(--fs-display-s)/var(--lh-heading) var(--font-serif-display);
+
+  --type-body-lede: var(--fw-body) var(--fs-body-l)/var(--lh-body) var(--font-sans);
+  --type-body: var(--fw-body) var(--fs-body)/var(--lh-body) var(--font-sans);
+  --type-body-small: var(--fw-body) var(--fs-body-s)/var(--lh-body) var(--font-sans);
+  --type-meta: var(--fw-body) var(--fs-meta)/var(--lh-meta) var(--font-sans);
+  --type-eyebrow: var(--fw-body-md) var(--fs-meta)/var(--lh-meta) var(--font-sans);
+}
+
+/* Universal type defaults ------------------------------------------- */
+html {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Optical refinements — the serif loves a touch of ligature and proper
+   numerals; the sans gets tabular numbers in metadata. */
+.serif,
+[class*="display"] {
+  font-family: var(--font-serif-display);
+  font-feature-settings: "liga", "dlig", "onum";
+  letter-spacing: var(--tracking-display);
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+.eyebrow {
+  font: var(--type-eyebrow);
+  letter-spacing: var(--tracking-meta-wide);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}

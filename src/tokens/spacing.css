@@ -1,0 +1,54 @@
+/* ---------------------------------------------------------------------------
+   Spacing & layout
+   ---
+   The grid is for the engineer, the breathing room is for the reader.
+   Base unit is 8px. Page-level rhythm is intentionally generous: section
+   gutters of 160-240px are correct, not a mistake.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* Base scale — multiples of 8 -------------------------------------- */
+  --space-0:    0;
+  --space-1:    4px;
+  --space-2:    8px;
+  --space-3:    12px;
+  --space-4:    16px;
+  --space-5:    24px;
+  --space-6:    32px;
+  --space-7:    48px;
+  --space-8:    64px;
+  --space-9:    96px;
+  --space-10:   128px;
+  --space-11:   160px;
+  --space-12:   200px;
+  --space-13:   240px;
+  --space-14:   320px;
+
+  /* Page geometry ---------------------------------------------------- */
+  --page-max:        1680px;  /* canvas does not extend past this */
+  --page-gutter:     clamp(24px, 6vw, 96px);
+  --section-gap:     clamp(120px, 14vw, 240px); /* between major sections */
+  --row-gap:         var(--space-9);            /* between editorial rows */
+  --para-gap:        var(--space-5);
+
+  /* Grid — invisible. Engineers like 12, editorial likes 14.          */
+  --grid-cols: 14;
+  --grid-gap:  var(--space-5);
+
+  /* Borders — only ever hairline, only ever for editorial rules.     */
+  --hairline:        1px solid var(--rule-strong);
+  --hairline-soft:   1px solid var(--rule-soft);
+  --hairline-quiet:  1px solid var(--rule-quiet);
+
+  /* Corner radii — there are none. Nothing rounds. Tokens exist so
+     a consumer who needs e.g. a focus ring on an input has a defined
+     value, not to encourage radii. */
+  --radius-0:  0;
+  --radius-1:  1px;  /* the absolute most. inputs only. */
+
+  /* z layers --------------------------------------------------------- */
+  --z-pattern:   0;
+  --z-content:   10;
+  --z-nav:       50;
+  --z-overlay:   100;
+}

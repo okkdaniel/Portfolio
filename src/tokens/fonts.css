@@ -1,0 +1,11 @@
+/* ---------------------------------------------------------------------------
+   Webfonts
+   ---
+   Loaded via Google Fonts because the licensed faces (Canela, Suisse Int'l)
+   require account-level licensing. Substitutes are visually close enough for
+   prototype/portfolio work; swap to the licensed faces for production by
+   replacing the @import below with @font-face declarations pointing at the
+   licensed binaries.
+--------------------------------------------------------------------------- */
+
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");

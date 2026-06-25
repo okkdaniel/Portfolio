@@ -1,0 +1,41 @@
+/* ---------------------------------------------------------------------------
+   Colors
+   ---
+   The palette is intentionally restrained. Background is a warm light gray,
+   text is near-black. No accents. No semantic state colors. If something
+   needs emphasis, use scale or weight — never color.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* Base scale — warm grays, near-blacks */
+  --paper-100: #F4F4F2;   /* primary canvas — warm light gray */
+  --paper-200: #EFEFEC;   /* secondary surface (rarely used) */
+  --paper-300: #E7E7E3;   /* hairlines, dividers (use sparingly) */
+  --paper-400: #C9C9C4;   /* tertiary divider, very quiet */
+
+  --ink-900: #0A0A0A;     /* primary text — near-black, not pure */
+  --ink-700: #1E1E1C;     /* charcoal — for slightly softer headings */
+  --ink-500: #6B6B68;     /* metadata, captions */
+  --ink-400: #8A8A86;     /* placeholders, very quiet ui */
+  --ink-300: #B3B3AE;     /* disabled, ghost */
+
+  /* Semantic aliases — use these in components, not the scale */
+  --bg-canvas:        var(--paper-100);
+  --bg-recessed:      var(--paper-200);
+
+  --text-primary:     var(--ink-900);
+  --text-heading:     var(--ink-900);
+  --text-secondary:   var(--ink-500);
+  --text-quiet:       var(--ink-400);
+  --text-disabled:    var(--ink-300);
+  --text-inverse:     var(--paper-100);
+
+  --rule-strong:      var(--ink-900);   /* hairline under a title */
+  --rule-soft:        var(--paper-300); /* between editorial rows */
+  --rule-quiet:       var(--paper-400); /* metadata grids */
+
+  --selection-bg:     var(--ink-900);
+  --selection-fg:     var(--paper-100);
+}
+
+::selection { background: var(--selection-bg); color: var(--selection-fg); }

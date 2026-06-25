@@ -72,3 +72,10 @@ hr {
   outline: 1px solid var(--ink-900);
   outline-offset: 4px;
 }
+
+/* Scroll hint — a barely-there vertical drift on the home page cue. Slow and
+   soft, no bounce: it breathes downward and settles, in keeping with motion. */
+@keyframes scroll-hint-drift {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50%      { transform: translateY(6px); opacity: 1; }
+}

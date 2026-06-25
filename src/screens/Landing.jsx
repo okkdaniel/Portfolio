@@ -14,6 +14,11 @@ const softMask = "radial-gradient(ellipse at center, #000 28%, transparent 78%)"
 
 export function Landing({ onNavigate, onOpenProject }) {
   const [aboutRef, aboutInView] = useInView({ threshold: 0.18 });
+  const projectsRef = React.useRef(null);
+
+  const scrollToProjects = () => {
+    projectsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div style={{ position: "relative" }}>
@@ -61,21 +66,25 @@ export function Landing({ onNavigate, onOpenProject }) {
           <Nav active="#" onNavigate={onNavigate} />
         </div>
 
-        {/* Centered hero — name pulled up to make room for a side-by-side
-            sneak peek of work, all visible without scrolling. */}
+        {/* Hero — just the name, centered in the first viewport. The work
+            sneak peek now lives below the fold; the cue at the foot invites
+            the scroll down to it. */}
         <main style={{
           position: "relative",
           zIndex: 10,
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center",
           alignItems: "center",
-          gap: "var(--space-8)",
-          padding: "var(--space-6) 0",
           textAlign: "center",
         }}>
-          <div>
+          {/* Name occupies the centre of the screen */}
+          <div style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+          }}>
             <h1 style={{
               fontFamily: "var(--font-serif-display)",
               fontWeight: 400,
@@ -99,27 +108,71 @@ export function Landing({ onNavigate, onOpenProject }) {
             </div>
           </div>
 
-          {/* Disciplines line — the top of the sandwich */}
-          <div style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 11,
-            letterSpacing: "0.16em",
-            textTransform: "uppercase",
-            color: "var(--text-secondary)",
-          }}>
-            Mechanical · Robotics
-          </div>
-
-          {/* Selected work — three projects side by side, centered */}
-          <WorkPreview onNavigate={onNavigate} onOpenProject={onOpenProject} limit={3} />
+          {/* Scroll cue pinned to the foot of the first viewport. Click it —
+              or just scroll — to reach the sneak peek of projects below. */}
+          <button
+            type="button"
+            onClick={scrollToProjects}
+            aria-label="Explore my projects — scroll to the work below"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "var(--space-2)",
+              padding: "var(--space-6) 0",
+            }}
+          >
+            <span style={{
+              fontFamily: "var(--font-serif-display)",
+              fontSize: "clamp(20px, 2.2vw, 28px)",
+              fontWeight: "var(--fw-body-bold)",
+              letterSpacing: "-0.01em",
+              color: "var(--text-primary)",
+            }}>
+              Explore my projects
+            </span>
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              style={{
+                color: "var(--text-secondary)",
+                animation: "scroll-hint-drift var(--dur-drift) var(--ease-in-out-quiet) infinite",
+              }}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
         </main>
+      </section>
 
-        {/* Location pinned to the foot of the hero */}
-        <div style={{
+      {/* ---- Work sneak peek — below the fold, revealed on scroll ---- */}
+      <section
+        ref={projectsRef}
+        style={{
           position: "relative",
           zIndex: 10,
+          paddingTop: "var(--space-10)",
+          scrollMarginTop: "var(--space-6)",
+        }}
+      >
+        <WorkPreview
+          onNavigate={onNavigate}
+          onOpenProject={onOpenProject}
+          limit={3}
+          showHeading={false}
+        />
+
+        {/* Location, carried down beneath the work */}
+        <div style={{
           textAlign: "center",
-          padding: "var(--space-6) 0",
+          padding: "var(--space-8) 0 var(--space-6)",
           fontFamily: "var(--font-sans)",
           fontSize: 11,
           letterSpacing: "0.16em",

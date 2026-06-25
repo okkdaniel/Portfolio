@@ -87,23 +87,27 @@ function WorkPeekItem({ project, onOpenProject }) {
  * side and centered. Each column opens its project; the link below goes to
  * the full Work index.
  */
-export function WorkPreview({ onNavigate, onOpenProject, limit = 3 }) {
+export function WorkPreview({ onNavigate, onOpenProject, limit = 3, showHeading = true }) {
   const projects = SAMPLE_PROJECTS.slice(0, limit);
 
   return (
     <div style={{ width: "100%" }}>
-      {/* Clear, prominent label so the three columns read as projects */}
-      <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
-        <div style={{
-          fontFamily: "var(--font-serif-display)",
-          fontSize: "clamp(20px, 2.2vw, 28px)",
-          fontWeight: "var(--fw-body-bold)",
-          letterSpacing: "-0.01em",
-          color: "var(--text-primary)",
-        }}>
-          Explore my projects
+      {/* Clear, prominent label so the three columns read as projects. The
+          home page hides this and supplies its own "Explore my projects" cue
+          at the foot of the hero instead. */}
+      {showHeading && (
+        <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
+          <div style={{
+            fontFamily: "var(--font-serif-display)",
+            fontSize: "clamp(20px, 2.2vw, 28px)",
+            fontWeight: "var(--fw-body-bold)",
+            letterSpacing: "-0.01em",
+            color: "var(--text-primary)",
+          }}>
+            Explore my projects
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{
         display: "grid",

@@ -86,8 +86,8 @@ export const SKILLS = [
   { name: "Onshape",    slug: "onshape",    logo: "/assets/skills/onshape.png" },
   { name: "Markdown",   slug: "markdown",   logo: "/assets/skills/markdown.png" },
   { name: "C++",        slug: "cpp",        logo: "/assets/skills/cpp.png" },
+  { name: "GitHub",     slug: "github",    logo: "/assets/skills/github.png" },
   { name: "KiCad",      slug: "kicad",      logo: "/assets/skills/kicad.png" },
   { name: "Fusion 360", slug: "fusion-360", logo: "/assets/skills/fusion-360.png" },
   { name: "Inventor",   slug: "inventor",   logo: "/assets/skills/inventor.png" },
-  { name: "GitHub",     slug: "github",    logo: "/assets/skills/github.png" },
 ];

@@ -48,23 +48,3 @@ Garamond + Inter). The contour mark bleeds and fragments — it never frames
 content, tiles, or sits centered. Eyebrows/metadata are `UPPERCASE TRACKED`
 (0.16em) 12px Inter. Hover = opacity 0.55, 240ms fade. Full vocabulary lives in
 the design system's `readme.md`.
-
-## Caveats carried over from the design system
-
-1. **Hero image is a placeholder.** The original `Monitor Stand.png` CAD render
-   could not be retrieved (it exceeded the design tool's read cap). The current
-   `public/assets/projects/monitor-stand.svg` is an on-brand wireframe stand-in.
-   Drop the real render into `public/assets/projects/` and update the `hero`
-   path on the first project in `src/data.js`.
-
-2. **Contour mark is regenerated procedurally.** The two pattern SVGs are
-   iso-lines of a smooth Gaussian scalar field (a survey/CMM-scan motif), built
-   to the design system's brief. Regenerate or replace them freely — nothing
-   else depends on their internals, only the two file paths.
-
-3. **Cormorant Garamond substitutes for Canela / Ivy Presto.** Swap the
-   `@import` in `src/tokens/fonts.css` for `@font-face` rules pointing at the
-   licensed faces for production. Inter is the real reference — no swap needed.
-
-4. **About / Resume / Contact share one screen.** `#resume` and `#contact`
-   currently route to About. Give them their own screens when designed.

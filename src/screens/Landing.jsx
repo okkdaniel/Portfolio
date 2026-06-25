@@ -106,6 +106,43 @@ export function Landing({ onNavigate, onOpenProject }) {
             }}>
               Engineering Portfolio
             </div>
+
+            {/* Social links — subtle, sized to sit within the text above. */}
+            <div style={{
+              marginTop: "var(--space-5)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "var(--space-5)",
+            }}>
+              {[
+                { href: "https://www.instagram.com/ddanyuhl/", src: "/assets/links/instagram.png", label: "Instagram" },
+                { href: "https://github.com/okkdaniel", src: "/assets/links/github.png", label: "GitHub" },
+                { href: "https://www.linkedin.com/in/daniel-kaliko/", src: "/assets/links/linkedin.png", label: "LinkedIn" },
+              ].map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  style={{
+                    border: 0,
+                    display: "inline-flex",
+                    opacity: 0.7,
+                    transition: "var(--transition-hover)",
+                  }}
+                >
+                  <img
+                    src={s.src}
+                    alt={s.label}
+                    width={28}
+                    height={28}
+                    style={{ width: 28, height: 28, objectFit: "contain", objectPosition: "center" }}
+                  />
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* Scroll cue pinned to the foot of the first viewport. Click it —

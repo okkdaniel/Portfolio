@@ -30,8 +30,8 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
           width: "min(2000px, 120vw)",
           opacity: 0.10,
           mixBlendMode: "multiply",
-          WebkitMaskImage: "radial-gradient(ellipse at center, #000 28%, transparent 78%)",
-          maskImage: "radial-gradient(ellipse at center, #000 28%, transparent 78%)",
+          WebkitMaskImage: "radial-gradient(ellipse at center, #363636 28%, transparent 78%)",
+          maskImage: "radial-gradient(ellipse at center, #363636 28%, transparent 78%)",
           pointerEvents: "none",
           zIndex: 0,
         }}

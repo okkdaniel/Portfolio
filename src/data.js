@@ -96,16 +96,16 @@ export const SAMPLE_PROJECTS = [
   {
     slug: "low-profile-monitor-stand",
     index: 2,
-    title: "Low Profile Monitor Stand",
+    title: "Low Rise Monitor Stand",
     discipline: "Mechanical",
     year: "Personal",
     date: "Personal Project",
     tags: ["SolidWorks", "Sheet Metal", "Product Design"],
-    lede: "A low profile monitor stand designed in SolidWorks to clean up my desk and learn sheet metal.",
+    lede: "A low rise monitor stand designed in SolidWorks to clean up my desk and learn sheet metal.",
     preview: "/assets/projects/monitor-stand-wireframe.png",
     hero: "/assets/projects/monitor-stand-render.png",
     summary:
-      "A low profile monitor stand I designed to replace the bulky commercial stands I could never find a good version of. It cleared up my desk and improved my setup, and it gave me a reason to learn more advanced sheet metal and surfacing tools in SolidWorks while solving a real problem.",
+      "A low rise monitor stand I designed to replace the bulky commercial stands I could never find a good version of. It cleared up my desk and improved my setup, and it gave me a reason to learn more advanced sheet metal and surfacing tools in SolidWorks while solving a real problem.",
     facts: [
       { label: "Role",          value: "Designer" },
       { label: "Collaboration", value: "Solo Project" },
@@ -211,8 +211,7 @@ export const SAMPLE_PROJECTS = [
       "Build around the game objectives",
       "Use master sketches to organize the robot",
       "Improve scoring consistency",
-      "Reduce driver workload",
-      "Experiment with advanced vision systems",
+      "Experiment with vision systems",
     ],
     process: [
       {
@@ -242,7 +241,7 @@ export const SAMPLE_PROJECTS = [
       {
         label: "Competition",
         body: [
-          "We took the robot to the Orange County Maker Faire and competed against a field that was, honestly, stronger than us on hardware.",
+          "We took the robot to the Orange County Maker Faire and competed against teams stronger than us on hardware.",
           "I am less interested in where we placed than in what the event taught us. Running the robot against better competitors showed where our design held up and where it did not, and it made a strong case for experimentation, preparation, and iterating instead of trusting a design on paper.",
         ],
       },
@@ -272,7 +271,6 @@ export const SAMPLE_PROJECTS = [
       "AprilTags",
       "Master Sketch Workflow",
       "Robot Packaging",
-      "Driver Assistance Systems",
     ],
     outcome: [
       "This robot pushed both my mechanical and software skills, and it showed me how vision and thoughtful mechanical design can work together to make a hard task simpler for the driver.",

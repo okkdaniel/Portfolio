@@ -1,14 +1,12 @@
 import React from "react";
-import { ImageMagnifier } from "./ImageMagnifier.jsx";
 
 /**
  * PlateImage — the only image primitive. No border, no shadow, no rounding.
  * The image sits on the page. Pass `bleed` to extend past a gutter, `ratio`
  * to constrain aspect, `fit` to choose cover (default) vs contain (whole
  * drawing visible, for line-art schematics), `maxHeight` to cap the image so
- * the whole render stays in view (centered, aspect preserved), `magnify` to
- * add a hover zoom lens (for photographic renders, not schematics/wireframes),
- * and a caption to render a tracked metadata line.
+ * the whole render stays in view (centered, aspect preserved), and a caption
+ * to render a tracked metadata line.
  */
 export function PlateImage({
   src,
@@ -18,9 +16,6 @@ export function PlateImage({
   ratio,
   fit = "cover",
   maxHeight,
-  magnify = false,
-  zoom = 2.2,
-  lensSize = 180,
   style,
   ...rest
 }) {
@@ -49,11 +44,7 @@ export function PlateImage({
       }}
     >
       <div style={{ background: "transparent", aspectRatio: ratio || undefined }}>
-        {magnify && !ratio ? (
-          <ImageMagnifier src={src} alt={alt} imgStyle={imgStyle} zoom={zoom} lensSize={lensSize} />
-        ) : (
-          <img src={src} alt={alt} style={imgStyle} />
-        )}
+        <img src={src} alt={alt} style={imgStyle} />
       </div>
       {caption && (
         <figcaption

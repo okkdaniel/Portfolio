@@ -118,15 +118,14 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
           </div>
         )}
 
-        {/* Hero plate — the regular render. Slightly larger than the wireframe
-            and given a hover zoom lens; sized to stay fully in view. */}
+        {/* Hero plate — the regular render. Slightly larger than the
+            wireframe; sized to stay fully in view. */}
         {p.hero && (
           <PlateImage
             src={p.hero}
             alt={`${p.title} — render`}
             maxHeight="76vh"
-            magnify
-            caption={`Fig 01 · ${p.title} — hover to zoom`}
+            caption={`Fig 01 · ${p.title}`}
             style={{ marginBottom: "var(--space-9)" }}
           />
         )}

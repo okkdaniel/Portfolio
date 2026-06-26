@@ -7,27 +7,37 @@ import { Eyebrow } from "../components/text/Eyebrow.jsx";
 import { ProjectRow } from "../components/editorial/ProjectRow.jsx";
 import { SAMPLE_PROJECTS } from "../data.js";
 
-const softMask = "radial-gradient(ellipse at center, #000 28%, transparent 78%)";
+// Linear mask fades the tall edge band inward, so the contour stays dense at
+// the very edge of the page and dissolves toward the content — no hard cut.
+const edgeMaskRight = "linear-gradient(to left, #000 0%, #000 26%, transparent 92%)";
 
 export function WorkIndex({ onNavigate, onOpenProject }) {
   const projects = SAMPLE_PROJECTS;
   return (
     <div style={{ position: "relative", minHeight: "100vh" }}>
-      {/* Mid-right panel — sits to the right of the index rows, fades out
-          on all edges. Continues the topography from Landing's bottom-left. */}
+      {/* Right edge contour — a tall topographic band hugging the right edge,
+          starting down where the project list begins (clear of the nav) and
+          running to the foot of the page. Bled off-screen and masked so only a
+          subtle sliver shows; a lower object-position samples a different slice
+          of the mark than the home page. */}
       <img
         aria-hidden="true"
-        src="/assets/pattern/leopard-print.svg"
+        src="/assets/pattern/contour-tall.svg"
         alt=""
         style={{
           position: "absolute",
-          top: "30vh",
-          right: "-40vw",
-          width: "min(1700px, 110vw)",
-          opacity: 0.10,
+          top: "46vh",
+          bottom: 0,
+          right: 0,
+          width: "min(720px, 50vw)",
+          height: "auto",
+          objectFit: "cover",
+          objectPosition: "right 18%",
+          transform: "translateX(34%)",
+          opacity: 0.09,
           mixBlendMode: "multiply",
-          WebkitMaskImage: softMask,
-          maskImage: softMask,
+          WebkitMaskImage: edgeMaskRight,
+          maskImage: edgeMaskRight,
           pointerEvents: "none",
           zIndex: 0,
         }}

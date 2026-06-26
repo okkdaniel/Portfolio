@@ -11,6 +11,7 @@ export function Footer({
     { label: "Email",    value: "danielkaliko.edu@gmail.com", href: "mailto:danielkaliko.edu@gmail.com" },
     { label: "LinkedIn", value: "/in/daniel-kaliko",     href: "https://www.linkedin.com/in/daniel-kaliko/" },
     { label: "GitHub",   value: "@okkdaniel",        href: "https://github.com/okkdaniel" },
+    { label: "Instagram", value: "@ddanyuhl",        href: "https://www.instagram.com/ddanyuhl/" },
   ],
   colophon = "Set in Cormorant Garamond & Inter. Pattern by Daniel.",
   style,

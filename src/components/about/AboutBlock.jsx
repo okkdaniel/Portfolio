@@ -4,6 +4,33 @@ import { EditorialLink } from "../text/EditorialLink.jsx";
 import { MetaList } from "../text/MetaList.jsx";
 
 /**
+ * ExtLink — an inline external link rendered slightly bolder than body text so
+ * it reads as clickable without shouting. Opens in a new tab.
+ */
+function ExtLink({ href, children }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        fontWeight: "var(--fw-body-bold)",
+        color: "inherit",
+        borderBottom: 0,
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
+const LINKS = {
+  sloan: "https://www.instagram.com/sloancanyonrobotics/",
+  team987: "https://www.team987.com/",
+  unr: "https://www.unr.edu/",
+};
+
+/**
  * AboutBlock — the bio. Shared by the home page (so a visitor is hooked on a
  * quick scroll) and the standalone About route, so the two never diverge.
  * Pass `heading` to override the lede statement.
@@ -37,10 +64,10 @@ export function AboutBlock({
         <aside>
           <MetaList items={[
             { label: "Based",    value: "Las Vegas, Nevada" },
-            { label: "Studying", value: "Engineering · University of Nevada, Reno" },
+            { label: "Studying", value: <>Engineering · <ExtLink href={LINKS.unr}>University of Nevada, Reno</ExtLink></> },
             { label: "Focus",    value: "Robotics · Mechanical · PCB design" },
-            { label: "VEX", value: "Sloan Canyon Robotics — competitor & mentor" },
-            { label: "FRC",      value: "Team 987 (Hall of Fame) — CAD design" },
+            { label: "VEX", value: <><ExtLink href={LINKS.sloan}>Sloan Canyon Robotics</ExtLink> — competitor & mentor</> },
+            { label: "FRC",      value: <><ExtLink href={LINKS.team987}>Team 987</ExtLink> (Hall of Fame) — CAD design</> },
           ]} />
           <div style={{ marginTop: "var(--space-7)" }}>
             <EditorialLink href="mailto:danielkaliko.edu@gmail.com" arrow>
@@ -52,13 +79,13 @@ export function AboutBlock({
           <Eyebrow as="div" style={{ marginBottom: "var(--space-5)" }}>Bio</Eyebrow>
           <div style={{ maxWidth: "60ch" }}>
             <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-body-l)", lineHeight: "var(--lh-body)", margin: 0 }}>
-              I'm a future student at the University of Nevada, Reno, majoring in engineering. I build things end to end and learn by making them real.
+              I'm a future student at the <ExtLink href={LINKS.unr}>University of Nevada, Reno</ExtLink>, majoring in engineering. I build things end to end and learn by making them real.
             </p>
             <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-body)", lineHeight: "var(--lh-body)", marginTop: "var(--space-5)" }}>
-              I competed and mentored for Sloan Canyon Robotics, where I built the team's knowledge base and helped teach and inspire students, getting them interested in robotics.
+              I competed and mentored for <ExtLink href={LINKS.sloan}>Sloan Canyon Robotics</ExtLink>, where I built the team's knowledge base and helped teach and inspire students, getting them interested in robotics.
             </p>
             <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-body)", lineHeight: "var(--lh-body)", marginTop: "var(--space-5)" }}>
-              I also competed for FRC Hall of Fame team 987, where I planned and designed competition robots in CAD.
+              I also competed for <ExtLink href={LINKS.team987}>FRC Hall of Fame team 987</ExtLink>, where I planned and designed competition robots in CAD.
             </p>
             <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-body)", lineHeight: "var(--lh-body)", marginTop: "var(--space-5)" }}>
               I enjoy building projects of every kind, from full robots to PCB design to simple websites.

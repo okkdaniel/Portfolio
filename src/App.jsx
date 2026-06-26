@@ -21,6 +21,12 @@ export default function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
+  // Every route change starts at the top — otherwise a click made halfway down
+  // the home page lands you halfway down the next screen.
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [route]);
+
   const navigate = (href) => {
     if (href.startsWith("mailto:")) { window.location.href = href; return; }
     window.location.hash = href.replace(/^#?/, "#");

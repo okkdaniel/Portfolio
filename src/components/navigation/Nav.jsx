@@ -7,9 +7,9 @@ import { EditorialLink } from "../text/EditorialLink.jsx";
  */
 export function Nav({
   brand = "Daniel Kaliko",
-  logo = "/assets/brand/monogram.svg",
+  logo = "/assets/brand/anura.png",
   items = [
-    { label: "Work", href: "#work" },
+    { label: "Projects", href: "#work" },
     { label: "About", href: "#about" },
     { label: "Contact", href: "#contact" },
   ],

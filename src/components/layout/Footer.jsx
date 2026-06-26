@@ -6,7 +6,7 @@ import { EditorialLink } from "../text/EditorialLink.jsx";
  * contact list / colophon. No social-icon clutter.
  */
 export function Footer({
-  monogram = "dk",
+  monogram = "/assets/brand/anura.png",
   contactItems = [
     { label: "Email",    value: "danielkaliko.edu@gmail.com", href: "mailto:danielkaliko.edu@gmail.com" },
     { label: "LinkedIn", value: "/in/daniel-kaliko",     href: "https://www.linkedin.com/in/daniel-kaliko/" },
@@ -32,17 +32,11 @@ export function Footer({
         ...style,
       }}
     >
-      <div
-        style={{
-          fontFamily: "var(--font-serif-display)",
-          fontStyle: "italic",
-          fontSize: 56,
-          lineHeight: 1,
-          letterSpacing: "-0.05em",
-        }}
-      >
-        {monogram}
-      </div>
+      <img
+        src={monogram}
+        alt="Daniel Kaliko"
+        style={{ height: 56, width: "auto", display: "block" }}
+      />
       <dl
         style={{
           display: "grid",

@@ -2,8 +2,10 @@ import React from "react";
 
 /**
  * PlateImage — the only image primitive. No border, no shadow, no rounding.
- * The image sits on the page. Pass `bleed` to extend past a gutter, `tall`
- * to constrain aspect, and a caption to render a tracked metadata line.
+ * The image sits on the page. Pass `bleed` to extend past a gutter, `ratio`
+ * to constrain aspect, `fit` to choose cover (default) vs contain (whole
+ * drawing visible, for line-art schematics), and a caption to render a
+ * tracked metadata line.
  */
 export function PlateImage({
   src,
@@ -11,6 +13,7 @@ export function PlateImage({
   caption,
   bleed = "none",
   ratio,
+  fit = "cover",
   style,
   ...rest
 }) {
@@ -38,7 +41,7 @@ export function PlateImage({
             display: "block",
             width: "100%",
             height: ratio ? "100%" : "auto",
-            objectFit: ratio ? "cover" : "initial",
+            objectFit: ratio ? fit : "initial",
           }}
         />
       </div>

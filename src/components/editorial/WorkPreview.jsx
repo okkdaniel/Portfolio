@@ -1,11 +1,13 @@
 import React from "react";
 import { EditorialLink } from "../text/EditorialLink.jsx";
+import { PlateImage } from "../media/PlateImage.jsx";
 import { SAMPLE_PROJECTS } from "../../data.js";
 
 /**
- * WorkPeekItem — one project column in the home-page sneak peek. Centered,
- * no container (grouped by a hairline rule + alignment, per the brand).
- * Hover dims to the brand's 0.55.
+ * WorkPeekItem — one project column in the home-page sneak peek: a preview
+ * plate over a number, title, one-line brief, and discipline · year. No
+ * container (grouped by a hairline rule + alignment, per the brand). Hover
+ * dims to the brand's 0.55.
  */
 function WorkPeekItem({ project, onOpenProject }) {
   const [hover, setHover] = React.useState(false);
@@ -32,6 +34,14 @@ function WorkPeekItem({ project, onOpenProject }) {
         opacity: hover ? 0.55 : 1,
       }}
     >
+      <PlateImage
+        src={p.preview || p.hero}
+        alt={`${p.title} — preview`}
+        ratio="16 / 10"
+        fit="contain"
+        style={{ width: "100%", marginBottom: "var(--space-2)" }}
+      />
+
       <span style={{
         fontFamily: "var(--font-sans)",
         fontSize: "var(--fs-meta)",

@@ -1,8 +1,10 @@
-// Work index screen — vertical list of projects, hairline-separated rows.
+// Work index screen — a scannable list of projects: each row pairs a preview
+// plate with a brief so a visitor (or a hiring manager) gets the idea before
+// opening anything.
 import React from "react";
 import { Nav } from "../components/navigation/Nav.jsx";
 import { Eyebrow } from "../components/text/Eyebrow.jsx";
-import { ProjectIndexItem } from "../components/editorial/ProjectIndexItem.jsx";
+import { ProjectRow } from "../components/editorial/ProjectRow.jsx";
 import { SAMPLE_PROJECTS } from "../data.js";
 
 const softMask = "radial-gradient(ellipse at center, #000 28%, transparent 78%)";
@@ -37,7 +39,9 @@ export function WorkIndex({ onNavigate, onOpenProject }) {
         {/* Eyebrow + section title */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: "var(--space-9)" }}>
           <Eyebrow as="div">Selected · 2022 — 2024</Eyebrow>
-          <Eyebrow as="div" style={{ color: "var(--text-quiet)" }}>05 projects</Eyebrow>
+          <Eyebrow as="div" style={{ color: "var(--text-quiet)" }}>
+            {String(projects.length).padStart(2, "0")} projects
+          </Eyebrow>
         </div>
 
         <h2 style={{
@@ -46,26 +50,36 @@ export function WorkIndex({ onNavigate, onOpenProject }) {
           fontSize: "clamp(72px, 9vw, 156px)",
           lineHeight: 1.0,
           letterSpacing: "-0.035em",
-          margin: "var(--space-5) 0 var(--space-12)",
+          margin: "var(--space-5) 0 var(--space-7)",
         }}>
-          Work
+          Projects
         </h2>
 
-        {/* Project list */}
+        {/* A line of context so the list reads with intent, not just as a grid */}
+        <p style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-body-l)",
+          lineHeight: "var(--lh-body)",
+          color: "var(--text-secondary)",
+          maxWidth: "54ch",
+          margin: "0 0 var(--space-11)",
+        }}>
+          A selection of things I've designed and built end to end — mechanical,
+          robotics, and industrial work. Each one started as a problem and ended
+          as a real, made object.
+        </p>
+
+        {/* Project list — preview + brief per row */}
         <div>
           {projects.map((p, i) => (
-            <ProjectIndexItem
+            <ProjectRow
               key={p.slug}
-              index={p.index}
+              project={p}
               rule={i === 0 ? "strong" : "soft"}
-              discipline={p.discipline}
-              year={p.year}
-              title={p.title}
-              href={`#work/${p.slug}`}
-              onClick={(e) => { e.preventDefault(); onOpenProject(p.slug); }}
+              onOpen={onOpenProject}
             />
           ))}
-          <div style={{ borderTop: "1px solid var(--paper-300)" }}></div>
+          <div style={{ borderTop: "var(--hairline-soft)" }}></div>
         </div>
       </div>
     </div>

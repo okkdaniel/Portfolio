@@ -1,7 +1,8 @@
 // Project records that drive the Work index and Project detail screens.
 // Add a project by appending an object here; `index` controls ordering and
-// the "next project" link. `hero` is optional — only projects with a render
-// show a hero plate. Paths are absolute against /public.
+// the "next project" link. `preview` is the thumbnail shown on the Projects
+// index and home-page peek; `hero` (optional) is the full-bleed plate on the
+// detail page. Paths are absolute against /public.
 export const SAMPLE_PROJECTS = [
   {
     slug: "cantilever-mount",
@@ -12,6 +13,7 @@ export const SAMPLE_PROJECTS = [
     lede: "A monitor stand machined from a single billet of 6061 aluminium, finished by hand at the bench.",
     // Placeholder wireframe — drop the real render at /public/assets/projects/
     // and point this at it (e.g. "/assets/projects/monitor-stand.png").
+    preview: "/assets/projects/monitor-stand.svg",
     hero: "/assets/projects/monitor-stand.svg",
     meta: [
       { label: "Discipline", value: "Mechanical" },
@@ -33,6 +35,7 @@ export const SAMPLE_PROJECTS = [
     discipline: "Robotics",
     year: "2024",
     lede: "A compact differential wrist for a desktop manipulator arm. Two motors, three degrees of freedom, one printed gear train.",
+    preview: "/assets/projects/six-axis-wrist.svg",
     meta: [
       { label: "Discipline", value: "Robotics" },
       { label: "Year",       value: "2024" },
@@ -46,6 +49,7 @@ export const SAMPLE_PROJECTS = [
     discipline: "Industrial",
     year: "2023",
     lede: "A wall lamp from a single sheet of 1mm stainless. Cut flat, folded once.",
+    preview: "/assets/projects/folded-sconce.svg",
     meta: [
       { label: "Discipline", value: "Industrial" },
       { label: "Year",       value: "2023" },
@@ -59,6 +63,7 @@ export const SAMPLE_PROJECTS = [
     discipline: "Mechanical",
     year: "2022",
     lede: "A bench-top press for forming pewter blanks. 4-ton capacity, hand-cranked, no electronics.",
+    preview: "/assets/projects/rotary-press.svg",
     meta: [
       { label: "Discipline", value: "Mechanical" },
       { label: "Year",       value: "2022" },
@@ -71,6 +76,7 @@ export const SAMPLE_PROJECTS = [
     discipline: "Robotics",
     year: "2022",
     lede: "A pneumatic gripper cast in silicone. Three fingers, one chamber, four pounds of payload.",
+    preview: "/assets/projects/soft-gripper.svg",
     meta: [
       { label: "Discipline", value: "Robotics" },
       { label: "Year",       value: "2022" },

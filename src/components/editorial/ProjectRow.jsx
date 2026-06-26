@@ -1,14 +1,16 @@
 import React from "react";
 import { PlateImage } from "../media/PlateImage.jsx";
+import { useIsMobile } from "../../hooks/useMediaQuery.js";
 
 /**
  * ProjectRow — a single project on the index, sized to be scanned: a preview
  * plate on the left, a brief on the right (number, discipline · year, title,
  * one-line summary, and an open cue). The whole row is the link; hover dims it
- * to the brand's 0.55.
+ * to the brand's 0.55. On mobile the plate stacks above the brief.
  */
 export function ProjectRow({ project, onOpen, rule = "soft" }) {
   const [hover, setHover] = React.useState(false);
+  const isMobile = useIsMobile();
   const p = project;
 
   return (
@@ -19,8 +21,8 @@ export function ProjectRow({ project, onOpen, rule = "soft" }) {
       onMouseLeave={() => setHover(false)}
       style={{
         display: "grid",
-        gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 1fr)",
-        columnGap: "var(--space-9)",
+        gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.05fr) minmax(0, 1fr)",
+        gap: isMobile ? "var(--space-5)" : "var(--space-9)",
         alignItems: "center",
         padding: "var(--space-9) 0",
         borderTop: rule === "strong" ? "var(--hairline)" : "var(--hairline-soft)",

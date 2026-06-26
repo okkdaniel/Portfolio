@@ -7,12 +7,14 @@ import { MetaList } from "../components/text/MetaList.jsx";
 import { Eyebrow } from "../components/text/Eyebrow.jsx";
 import { EditorialLink } from "../components/text/EditorialLink.jsx";
 import { PlateImage } from "../components/media/PlateImage.jsx";
+import { useIsMobile } from "../hooks/useMediaQuery.js";
 import { SAMPLE_PROJECTS } from "../data.js";
 
 export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
   const projects = SAMPLE_PROJECTS;
   const p = projects.find((x) => x.slug === slug) || projects[0];
   const next = projects.find((x) => x.index === p.index + 1) || projects[0];
+  const isMobile = useIsMobile();
 
   return (
     <div style={{ position: "relative", minHeight: "100vh" }}>
@@ -65,7 +67,7 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
         {/* Body grid — metadata column + writeup column */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "minmax(220px, 1fr) minmax(0, 2.4fr)",
+          gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(0, 2.4fr)",
           gap: "var(--space-9)",
           marginBottom: "var(--space-13)",
         }}>
@@ -94,9 +96,10 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
           borderTop: "var(--hairline)",
           padding: "var(--space-9) 0 var(--space-12)",
           display: "grid",
-          gridTemplateColumns: "auto 1fr auto",
+          gridTemplateColumns: isMobile ? "1fr" : "auto 1fr auto",
           alignItems: "baseline",
           columnGap: "var(--space-7)",
+          rowGap: isMobile ? "var(--space-5)" : 0,
         }}>
           <Eyebrow as="div">Next · {String(next.index).padStart(2, "0")}</Eyebrow>
           <a

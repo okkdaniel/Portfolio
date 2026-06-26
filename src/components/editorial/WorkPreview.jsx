@@ -1,6 +1,7 @@
 import React from "react";
 import { EditorialLink } from "../text/EditorialLink.jsx";
 import { PlateImage } from "../media/PlateImage.jsx";
+import { useMediaQuery } from "../../hooks/useMediaQuery.js";
 import { SAMPLE_PROJECTS } from "../../data.js";
 
 /**
@@ -100,6 +101,16 @@ function WorkPeekItem({ project, onOpenProject }) {
 export function WorkPreview({ onNavigate, onOpenProject, limit = 3, showHeading = true }) {
   const projects = SAMPLE_PROJECTS.slice(0, limit);
 
+  // Three text columns squish on tablets well before phone width — step down
+  // 3 → 2 → 1 columns. Desktop (>1024px) keeps the original layout.
+  const narrow = useMediaQuery("(max-width: 1024px)");
+  const stack = useMediaQuery("(max-width: 600px)");
+  const cols = stack
+    ? "1fr"
+    : narrow
+      ? "repeat(2, minmax(0, 1fr))"
+      : `repeat(${projects.length}, minmax(0, 1fr))`;
+
   return (
     <div style={{ width: "100%" }}>
       {/* Clear, prominent label so the three columns read as projects. The
@@ -121,7 +132,7 @@ export function WorkPreview({ onNavigate, onOpenProject, limit = 3, showHeading 
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: `repeat(${projects.length}, minmax(0, 1fr))`,
+        gridTemplateColumns: cols,
         gap: "var(--space-7)",
         maxWidth: 1080,
         margin: "0 auto",

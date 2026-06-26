@@ -6,6 +6,7 @@ import { Nav } from "../components/navigation/Nav.jsx";
 import { Eyebrow } from "../components/text/Eyebrow.jsx";
 import { MetaList } from "../components/text/MetaList.jsx";
 import { EditorialLink } from "../components/text/EditorialLink.jsx";
+import { useIsMobile } from "../hooks/useMediaQuery.js";
 
 const softMask = "radial-gradient(ellipse at center, #000 28%, transparent 78%)";
 
@@ -19,6 +20,7 @@ const CHANNELS = [
 ];
 
 export function Contact({ onNavigate }) {
+  const isMobile = useIsMobile();
   return (
     <div style={{ position: "relative", minHeight: "100vh" }}>
       {/* Bottom-right panel — anchored below the heading, fading on all edges. */}
@@ -69,7 +71,7 @@ export function Contact({ onNavigate }) {
 
           <div style={{
             display: "grid",
-            gridTemplateColumns: "minmax(220px, 1fr) minmax(0, 1.8fr)",
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(0, 1.8fr)",
             gap: "var(--space-9)",
             marginTop: "var(--space-11)",
           }}>

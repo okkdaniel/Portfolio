@@ -1,6 +1,7 @@
 import React from "react";
 import { Eyebrow } from "../text/Eyebrow.jsx";
 import { MetaList } from "../text/MetaList.jsx";
+import { useIsMobile } from "../../hooks/useMediaQuery.js";
 
 /**
  * ExtLink — an inline external link rendered slightly bolder than body text so
@@ -38,6 +39,7 @@ export function AboutBlock({
   heading = "An engineering student who loves creating",
   style,
 }) {
+  const isMobile = useIsMobile();
   return (
     <div style={style}>
       <div style={{ marginBottom: "var(--space-9)" }}>
@@ -57,7 +59,7 @@ export function AboutBlock({
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: "minmax(220px, 1fr) minmax(0, 1.8fr)",
+        gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(0, 1.8fr)",
         gap: "var(--space-9)",
       }}>
         <aside>

@@ -1,5 +1,6 @@
 import React from "react";
 import { EditorialLink } from "../text/EditorialLink.jsx";
+import { useIsMobile } from "../../hooks/useMediaQuery.js";
 
 /**
  * Nav — the minimal portfolio navigation. Wordmark on the left, link list on
@@ -19,6 +20,7 @@ export function Nav({
   onNavigate,
   ...rest
 }) {
+  const isMobile = useIsMobile();
   return (
     <nav
       {...rest}
@@ -57,7 +59,7 @@ export function Nav({
       <ul
         style={{
           display: "flex",
-          gap: "var(--space-7)",
+          gap: isMobile ? "var(--space-5)" : "var(--space-7)",
           listStyle: "none",
           margin: 0,
           padding: 0,

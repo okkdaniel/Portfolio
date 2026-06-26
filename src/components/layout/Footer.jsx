@@ -1,9 +1,11 @@
 import React from "react";
 import { EditorialLink } from "../text/EditorialLink.jsx";
+import { useIsMobile } from "../../hooks/useMediaQuery.js";
 
 /**
  * Footer — minimal. Hairline rule above, three-column grid: monogram /
- * contact list / colophon. No social-icon clutter.
+ * contact list / colophon. No social-icon clutter. Stacks to one column on
+ * mobile.
  */
 export function Footer({
   monogram = "/assets/brand/anura.svg",
@@ -17,6 +19,7 @@ export function Footer({
   style,
   ...rest
 }) {
+  const isMobile = useIsMobile();
   return (
     <footer
       {...rest}
@@ -26,8 +29,9 @@ export function Footer({
         paddingBottom: "var(--space-9)",
         borderTop: "var(--hairline)",
         display: "grid",
-        gridTemplateColumns: "auto 1fr auto",
+        gridTemplateColumns: isMobile ? "1fr" : "auto 1fr auto",
         columnGap: "var(--space-9)",
+        rowGap: isMobile ? "var(--space-7)" : 0,
         alignItems: "start",
         ...style,
       }}
@@ -77,7 +81,7 @@ export function Footer({
           letterSpacing: "var(--tracking-meta)",
           color: "var(--text-secondary)",
           maxWidth: "26ch",
-          textAlign: "right",
+          textAlign: isMobile ? "left" : "right",
         }}
       >
         {colophon}

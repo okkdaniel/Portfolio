@@ -64,7 +64,7 @@ export function Contact({ onNavigate }) {
             margin: 0,
             maxWidth: "16ch",
           }}>
-            Let's make something real.
+            Let's get in touch.
           </h1>
 
           <div style={{

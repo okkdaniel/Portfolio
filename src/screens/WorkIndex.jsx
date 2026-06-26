@@ -74,9 +74,7 @@ export function WorkIndex({ onNavigate, onOpenProject }) {
           maxWidth: "54ch",
           margin: "0 0 var(--space-11)",
         }}>
-          A selection of things I've designed and built end to end — mechanical,
-          robotics, and industrial work. Each one started as a problem and ended
-          as a real, made object.
+          A collection of projects I've designed and built from start to finish.
         </p>
 
         {/* Project list — preview + brief per row */}

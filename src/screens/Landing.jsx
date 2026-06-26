@@ -12,6 +12,10 @@ import { useInView } from "../hooks/useInView.js";
 // the very edge of the page and dissolves toward the content — no hard cut.
 const edgeMaskLeft = "linear-gradient(to right, #000 0%, #000 26%, transparent 92%)";
 const edgeMaskRight = "linear-gradient(to left, #000 0%, #000 26%, transparent 92%)";
+// A second mask layer fades the band out toward its foot, so it dissolves
+// before the Skills marquee instead of cutting off. Composited with the edge
+// fade via intersect, both fades apply at once.
+const bottomFade = "linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%)";
 
 export function Landing({ onNavigate, onOpenProject }) {
   const [aboutRef, aboutInView] = useInView({ threshold: 0.18 });
@@ -21,11 +25,20 @@ export function Landing({ onNavigate, onOpenProject }) {
     projectsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const scrollToAbout = () => {
+    // Scroll to the foot of the page so the About section *and* the full
+    // Skills marquee below it come into view together.
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+  };
+
   return (
     <div style={{ position: "relative" }}>
+      {/* Everything above the Skills band shares this relative wrapper, so the
+          edge contours span only this region and end before the marquee. */}
+      <div style={{ position: "relative" }}>
       {/* ---- Edge contours — one tall topographic band per side, running the
-          full vertical length of the page. Bled mostly off-screen and masked
-          so only a subtle sliver hugs each edge. ---- */}
+          full vertical length of the content above the Skills band. Bled
+          mostly off-screen and masked so only a subtle sliver hugs each edge. ---- */}
       <img
         aria-hidden="true"
         src="/assets/pattern/contour-tall.svg"
@@ -42,8 +55,10 @@ export function Landing({ onNavigate, onOpenProject }) {
           transform: "translateX(-50%)",
           opacity: 0.06,
           mixBlendMode: "multiply",
-          WebkitMaskImage: edgeMaskLeft,
-          maskImage: edgeMaskLeft,
+          WebkitMaskImage: `${edgeMaskLeft}, ${bottomFade}`,
+          maskImage: `${edgeMaskLeft}, ${bottomFade}`,
+          WebkitMaskComposite: "source-in",
+          maskComposite: "intersect",
           pointerEvents: "none",
           zIndex: 0,
         }}
@@ -64,8 +79,10 @@ export function Landing({ onNavigate, onOpenProject }) {
           transform: "translateX(50%)",
           opacity: 0.06,
           mixBlendMode: "multiply",
-          WebkitMaskImage: edgeMaskRight,
-          maskImage: edgeMaskRight,
+          WebkitMaskImage: `${edgeMaskRight}, ${bottomFade}`,
+          maskImage: `${edgeMaskRight}, ${bottomFade}`,
+          WebkitMaskComposite: "source-in",
+          maskComposite: "intersect",
           pointerEvents: "none",
           zIndex: 0,
         }}
@@ -218,34 +235,85 @@ export function Landing({ onNavigate, onOpenProject }) {
         </main>
       </section>
 
-      {/* ---- Work sneak peek — below the fold, revealed on scroll ---- */}
+      {/* ---- Work sneak peek — a full viewport like the hero, so its "Learn
+          about me" cue lands in the same spot the hero's cue did. ---- */}
       <section
         ref={projectsRef}
         style={{
           position: "relative",
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
           paddingTop: "var(--space-10)",
-          scrollMarginTop: "var(--space-6)",
         }}
       >
-        <div style={{ position: "relative", zIndex: 10 }}>
-          <WorkPreview
-            onNavigate={onNavigate}
-            onOpenProject={onOpenProject}
-            limit={3}
-            showHeading={false}
-          />
+        <div style={{ position: "relative", zIndex: 10, flex: 1, display: "flex", flexDirection: "column" }}>
+          {/* Content sits at the top; the cue is pushed to the foot of the
+              viewport, mirroring the hero layout. */}
+          <div style={{ flex: 1 }}>
+            <WorkPreview
+              onNavigate={onNavigate}
+              onOpenProject={onOpenProject}
+              limit={3}
+              showHeading={false}
+            />
 
-          {/* Location, carried down beneath the work */}
-          <div style={{
-            textAlign: "center",
-            padding: "var(--space-8) 0 var(--space-6)",
-            fontFamily: "var(--font-sans)",
-            fontSize: 11,
-            letterSpacing: "0.16em",
-            textTransform: "uppercase",
-            color: "var(--text-secondary)",
-          }}>
-            Las Vegas, Nevada · Updated June 2026
+            {/* Location, carried down beneath the work */}
+            <div style={{
+              textAlign: "center",
+              padding: "var(--space-8) 0 var(--space-6)",
+              fontFamily: "var(--font-sans)",
+              fontSize: 11,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "var(--text-secondary)",
+            }}>
+              Las Vegas, Nevada · Updated June 2026
+            </div>
+          </div>
+
+          {/* Cue down to the About section — mirrors the hero's "Explore my
+              projects" indicator, pinned to the bottom of the viewport. */}
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <button
+              type="button"
+              onClick={scrollToAbout}
+              aria-label="Learn about me — scroll to the about section below"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "var(--space-2)",
+                padding: "var(--space-6) 0",
+              }}
+            >
+              <span style={{
+                fontFamily: "var(--font-serif-display)",
+                fontSize: "clamp(20px, 2.2vw, 28px)",
+                fontWeight: "var(--fw-body-bold)",
+                letterSpacing: "-0.01em",
+                color: "var(--text-primary)",
+              }}>
+                Learn about me
+              </span>
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                style={{
+                  color: "var(--text-secondary)",
+                  animation: "scroll-hint-drift var(--dur-drift) var(--ease-in-out-quiet) infinite",
+                }}
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
           </div>
         </div>
       </section>
@@ -256,6 +324,7 @@ export function Landing({ onNavigate, onOpenProject }) {
         style={{
           position: "relative",
           paddingTop: "var(--space-12)",
+          scrollMarginTop: "var(--space-6)",
           opacity: aboutInView ? 1 : 0,
           transform: aboutInView ? "none" : "translateY(28px)",
           transition: "var(--transition-reveal)",
@@ -265,6 +334,7 @@ export function Landing({ onNavigate, onOpenProject }) {
           <AboutBlock />
         </div>
       </section>
+      </div>{/* end contour wrapper — marquee sits below, clear of the contour */}
 
       {/* ---- Skills band ---- */}
       <SkillsMarquee />

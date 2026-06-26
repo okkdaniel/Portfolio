@@ -11,7 +11,7 @@ import "./skills.css";
  * swap the files under /public/assets/skills/ for the real marks.
  */
 export function SkillsMarquee({ items = SKILLS }) {
-  const [ref, inView] = useInView({ threshold: 0.25 });
+  const [ref, inView] = useInView({ threshold: 0.05, rootMargin: "0px 0px 0px 0px" });
   // Duplicate the list so the -50% drift loops seamlessly.
   const loop = [...items, ...items];
 
@@ -20,13 +20,13 @@ export function SkillsMarquee({ items = SKILLS }) {
       ref={ref}
       aria-label="Skills and tools"
       style={{
-        padding: "var(--space-12) 0 var(--space-13)",
+        padding: "var(--space-7) 0 var(--space-7)",
         opacity: inView ? 1 : 0,
         transform: inView ? "none" : "translateY(28px)",
         transition: "var(--transition-reveal)",
       }}
     >
-      <div style={{ marginBottom: "var(--space-9)" }}>
+      <div style={{ marginBottom: "var(--space-6)" }}>
         <Eyebrow as="div">Tools · Skills</Eyebrow>
       </div>
 

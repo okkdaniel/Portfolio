@@ -7,6 +7,11 @@ import React from "react";
  * Children are placed in a centered column with --page-max as the upper bound.
  * Use <LeopardPanel/> inside or outside the inner column to bleed the graphic
  * across or off the page.
+ *
+ * RULE: the decorative contour panels bleed off every edge with large negative
+ * offsets. `overflow: clip` here (both axes) means the page can never scroll
+ * past the last real content/margin — background graphics are clipped, never
+ * extend the scrollable area. Keep this; don't let panels drive page length.
  */
 export function PageFrame({ children, style, ...rest }) {
   return (
@@ -17,7 +22,7 @@ export function PageFrame({ children, style, ...rest }) {
         background: "var(--bg-canvas)",
         color: "var(--text-primary)",
         position: "relative",
-        overflowX: "clip",
+        overflow: "clip",
         ...style,
       }}
     >

@@ -4,13 +4,13 @@ import { Landing } from "./screens/Landing.jsx";
 import { WorkIndex } from "./screens/WorkIndex.jsx";
 import { ProjectDetail } from "./screens/ProjectDetail.jsx";
 import { About } from "./screens/About.jsx";
+import { Contact } from "./screens/Contact.jsx";
 
 /**
  * App — hash-based router for the four-screen portfolio. Hash routing keeps
  * deep links working and the back button correct without a server rewrite.
  *
- * Route shapes: '#', '#work', '#work/<slug>', '#about', '#contact', '#resume'.
- * Resume and Contact route to About for now — they are not yet designed.
+ * Route shapes: '#', '#work', '#work/<slug>', '#about', '#contact'.
  */
 export default function App() {
   const [route, setRoute] = React.useState(window.location.hash || "#");
@@ -41,8 +41,10 @@ export default function App() {
   } else if (route.startsWith("#work/")) {
     const slug = route.slice("#work/".length);
     screen = <ProjectDetail slug={slug} onNavigate={navigate} onOpenProject={openProject} />;
-  } else if (route === "#about" || route === "#resume" || route === "#contact") {
+  } else if (route === "#about") {
     screen = <About onNavigate={navigate} />;
+  } else if (route === "#contact") {
+    screen = <Contact onNavigate={navigate} />;
   } else {
     screen = <Landing onNavigate={navigate} onOpenProject={openProject} />;
   }

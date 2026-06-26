@@ -1,6 +1,5 @@
 import React from "react";
 import { Eyebrow } from "../text/Eyebrow.jsx";
-import { EditorialLink } from "../text/EditorialLink.jsx";
 import { MetaList } from "../text/MetaList.jsx";
 
 /**
@@ -70,9 +69,27 @@ export function AboutBlock({
             { label: "FRC",      value: <><ExtLink href={LINKS.team987}>Team 987</ExtLink> (Hall of Fame) — CAD design</> },
           ]} />
           <div style={{ marginTop: "var(--space-7)" }}>
-            <EditorialLink href="mailto:danielkaliko.edu@gmail.com" arrow>
-              danielkaliko.edu@gmail.com
-            </EditorialLink>
+            <a
+              href="/assets/resume/resume.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5em",
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-meta)",
+                letterSpacing: "var(--tracking-meta-wide)",
+                textTransform: "uppercase",
+                color: "var(--text-primary)",
+                border: "var(--hairline)",
+                padding: "var(--space-3) var(--space-5)",
+                transition: "var(--transition-hover)",
+              }}
+            >
+              View resume
+              <span aria-hidden="true">→</span>
+            </a>
           </div>
         </aside>
         <div>

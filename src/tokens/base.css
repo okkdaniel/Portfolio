@@ -13,6 +13,48 @@ html {
   background: var(--bg-canvas);
 }
 
+/* Scrollbar — quiet and minimal, in the palette: a hair-thin near-black thumb
+   on a transparent track, no arrows, and a gap so it never touches the very
+   top or bottom of the page.
+
+   WebKit/Blink (Chrome, Edge, Safari) reads the pseudo-elements below. NOTE:
+   modern Chrome ignores these the moment `scrollbar-width`/`scrollbar-color`
+   are set on the element — so those standard props are fed to Firefox only,
+   via the feature query further down. */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-button {
+  display: none;        /* no up/down arrows */
+  width: 0;
+  height: 0;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+  margin: var(--space-7) 0;  /* gap top & bottom — thumb never reaches the edge */
+}
+::-webkit-scrollbar-thumb {
+  /* A transparent border (painted via padding-box) insets the visible thumb
+     from the screen edge and shrinks it to a super-thin rounded pill. */
+  background: var(--ink-900);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox only (no ::-webkit-scrollbar support) — the standard properties.
+   Scoped here so they don't override the WebKit rules above in Chrome/Edge. */
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-900) transparent;
+  }
+}
+
 body {
   min-height: 100vh;
   background: var(--bg-canvas);

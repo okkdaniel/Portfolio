@@ -100,7 +100,7 @@ export function Landing({ onNavigate, onOpenProject }) {
             position: "absolute",
             top: "47%",
             left: "50%",
-            transform: "translate(-50%, -50%)",
+            transform: "translate(-54%, -50%)",
             width: "min(720px, 64vw)",
             opacity: 0.06,
             pointerEvents: "none",

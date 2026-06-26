@@ -2,6 +2,7 @@ import React from "react";
 import { EditorialLink } from "../text/EditorialLink.jsx";
 import { PlateImage } from "../media/PlateImage.jsx";
 import { useMediaQuery } from "../../hooks/useMediaQuery.js";
+import { usePreloadProject } from "../../hooks/usePreloadProject.js";
 import { SAMPLE_PROJECTS } from "../../data.js";
 
 /**
@@ -12,14 +13,16 @@ import { SAMPLE_PROJECTS } from "../../data.js";
  */
 function WorkPeekItem({ project, onOpenProject }) {
   const [hover, setHover] = React.useState(false);
+  const preload = usePreloadProject(project);
   const p = project;
 
   return (
     <a
       href={`#work/${p.slug}`}
       onClick={(e) => { e.preventDefault(); onOpenProject(p.slug); }}
-      onMouseEnter={() => setHover(true)}
+      onMouseEnter={() => { setHover(true); preload(); }}
       onMouseLeave={() => setHover(false)}
+      onFocus={preload}
       style={{
         display: "flex",
         flexDirection: "column",

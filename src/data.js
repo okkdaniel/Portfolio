@@ -87,10 +87,9 @@ export const SAMPLE_PROJECTS = [
     ],
     techStack: [
       { label: "Software",     value: "Onshape" },
-      { label: "Discipline",   value: "Mechanical Design" },
+      { label: "Discipline",   value: "Mechanical Design, Robotics" },
       { label: "Methods",      value: "Parametric Modeling, Master Sketch" },
-      { label: "Materials",    value: "Carbon Fiber" },
-      { label: "Transmission", value: "Belt Drive" },
+      { label: "Materials",    value: "6061 Aluminum, Polycarbonate, Carbon Fiber" },
     ],
   },
 

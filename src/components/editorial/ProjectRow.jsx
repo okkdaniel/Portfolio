@@ -1,6 +1,7 @@
 import React from "react";
 import { PlateImage } from "../media/PlateImage.jsx";
 import { useIsMobile } from "../../hooks/useMediaQuery.js";
+import { usePreloadProject } from "../../hooks/usePreloadProject.js";
 
 /**
  * ProjectRow — a single project on the index, sized to be scanned: a preview
@@ -11,14 +12,16 @@ import { useIsMobile } from "../../hooks/useMediaQuery.js";
 export function ProjectRow({ project, onOpen, rule = "soft" }) {
   const [hover, setHover] = React.useState(false);
   const isMobile = useIsMobile();
+  const preload = usePreloadProject(project);
   const p = project;
 
   return (
     <a
       href={`#work/${p.slug}`}
       onClick={(e) => { e.preventDefault(); onOpen(p.slug); }}
-      onMouseEnter={() => setHover(true)}
+      onMouseEnter={() => { setHover(true); preload(); }}
       onMouseLeave={() => setHover(false)}
+      onFocus={preload}
       style={{
         display: "grid",
         gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.05fr) minmax(0, 1fr)",

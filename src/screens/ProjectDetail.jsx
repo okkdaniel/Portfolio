@@ -231,37 +231,6 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
           </Section>
         ))}
 
-        {/* ---- Engineering Challenges ---- */}
-        {p.challenges && p.challenges.length > 0 && (
-          <Section label="Engineering Challenges">
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-9)" }}>
-              {p.challenges.map((c, i) => (
-                <div key={i} style={{ maxWidth: "64ch" }}>
-                  <h3 style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "var(--fs-body-l)",
-                    fontWeight: "var(--fw-body-bold)",
-                    lineHeight: "var(--lh-heading)",
-                    color: "var(--text-primary)",
-                    margin: "0 0 var(--space-3)",
-                  }}>
-                    {c.title}
-                  </h3>
-                  <p style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "var(--fs-body)",
-                    lineHeight: "var(--lh-body)",
-                    color: "var(--text-secondary)",
-                    margin: 0,
-                  }}>
-                    {c.body}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </Section>
-        )}
-
         {/* ---- Technical Highlights — responsive grid, no cards ---- */}
         {p.highlights && p.highlights.length > 0 && (
           <Section label="Technical Highlights">
@@ -289,11 +258,93 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
           </Section>
         )}
 
-        {/* ---- Outcome ---- */}
-        {p.outcome && p.outcome.length > 0 && (
-          <Section label="Outcome">
-            <Prose items={p.outcome} />
-          </Section>
+        {/* ---- Engineering Challenges, with the Outcome and Tech Stack held to
+            the right so the wrap-up reads together without a long scroll ---- */}
+        {((p.challenges && p.challenges.length) || (p.outcome && p.outcome.length) || (p.techStack && p.techStack.length)) && (
+          <section style={{ marginTop: "var(--space-13)" }}>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(0, 1fr)",
+              gap: "var(--space-11) var(--space-12)",
+              alignItems: "start",
+            }}>
+              {/* Left — the engineering challenges */}
+              {p.challenges && p.challenges.length > 0 && (
+                <div>
+                  <Eyebrow as="h2" style={{ marginBottom: "var(--space-7)" }}>Engineering Challenges</Eyebrow>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-9)" }}>
+                    {p.challenges.map((c, i) => (
+                      <div key={i}>
+                        <h3 style={{
+                          fontFamily: "var(--font-sans)",
+                          fontSize: "var(--fs-body-l)",
+                          fontWeight: "var(--fw-body-bold)",
+                          lineHeight: "var(--lh-heading)",
+                          color: "var(--text-primary)",
+                          margin: "0 0 var(--space-3)",
+                        }}>
+                          {c.title}
+                        </h3>
+                        <p style={{
+                          fontFamily: "var(--font-sans)",
+                          fontSize: "var(--fs-body)",
+                          lineHeight: "var(--lh-body)",
+                          color: "var(--text-secondary)",
+                          margin: 0,
+                        }}>
+                          {c.body}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Right — outcome and tech stack, kept beside the challenges */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-11)" }}>
+                {p.outcome && p.outcome.length > 0 && (
+                  <div>
+                    <Eyebrow as="h2" style={{ marginBottom: "var(--space-7)" }}>Outcome</Eyebrow>
+                    <Prose items={p.outcome} maxWidth="100%" />
+                  </div>
+                )}
+                {p.techStack && p.techStack.length > 0 && (
+                  <div>
+                    <Eyebrow as="h2" style={{ marginBottom: "var(--space-7)" }}>Tech Stack</Eyebrow>
+                    <div>
+                      {p.techStack.map((row, i) => (
+                        <div key={i} style={{
+                          display: "grid",
+                          gridTemplateColumns: "minmax(110px, 0.6fr) 1fr",
+                          columnGap: "var(--space-6)",
+                          padding: "var(--space-4) 0",
+                          borderTop: i === 0 ? "var(--hairline)" : "var(--hairline-soft)",
+                        }}>
+                          <span style={{
+                            fontFamily: "var(--font-sans)",
+                            fontSize: "var(--fs-meta)",
+                            letterSpacing: "var(--tracking-meta-wide)",
+                            textTransform: "uppercase",
+                            color: "var(--text-secondary)",
+                          }}>
+                            {row.label}
+                          </span>
+                          <span style={{
+                            fontFamily: "var(--font-sans)",
+                            fontSize: "var(--fs-body-s)",
+                            lineHeight: "var(--lh-body)",
+                            color: "var(--text-primary)",
+                          }}>
+                            {row.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
         )}
 
         {/* ---- Gallery ---- */}
@@ -302,41 +353,6 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-9)" }}>
               {p.gallery.map((g, i) => (
                 <PlateImage key={i} src={g.src} alt={g.caption || `${p.title} ${i + 1}`} caption={g.caption} />
-              ))}
-            </div>
-          </Section>
-        )}
-
-        {/* ---- Tech Stack ---- */}
-        {p.techStack && p.techStack.length > 0 && (
-          <Section label="Tech Stack">
-            <div style={{ maxWidth: "64ch" }}>
-              {p.techStack.map((row, i) => (
-                <div key={i} style={{
-                  display: "grid",
-                  gridTemplateColumns: "minmax(120px, 0.6fr) 1fr",
-                  columnGap: "var(--space-7)",
-                  padding: "var(--space-4) 0",
-                  borderTop: i === 0 ? "var(--hairline)" : "var(--hairline-soft)",
-                }}>
-                  <span style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "var(--fs-meta)",
-                    letterSpacing: "var(--tracking-meta-wide)",
-                    textTransform: "uppercase",
-                    color: "var(--text-secondary)",
-                  }}>
-                    {row.label}
-                  </span>
-                  <span style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "var(--fs-body-s)",
-                    lineHeight: "var(--lh-body)",
-                    color: "var(--text-primary)",
-                  }}>
-                    {row.value}
-                  </span>
-                </div>
               ))}
             </div>
           </Section>

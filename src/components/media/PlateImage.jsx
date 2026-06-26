@@ -1,11 +1,14 @@
 import React from "react";
+import { ImageMagnifier } from "./ImageMagnifier.jsx";
 
 /**
  * PlateImage — the only image primitive. No border, no shadow, no rounding.
  * The image sits on the page. Pass `bleed` to extend past a gutter, `ratio`
  * to constrain aspect, `fit` to choose cover (default) vs contain (whole
- * drawing visible, for line-art schematics), and a caption to render a
- * tracked metadata line.
+ * drawing visible, for line-art schematics), `maxHeight` to cap the image so
+ * the whole render stays in view (centered, aspect preserved), `magnify` to
+ * add a hover zoom lens (for photographic renders, not schematics/wireframes),
+ * and a caption to render a tracked metadata line.
  */
 export function PlateImage({
   src,
@@ -14,6 +17,10 @@ export function PlateImage({
   bleed = "none",
   ratio,
   fit = "cover",
+  maxHeight,
+  magnify = false,
+  zoom = 2.2,
+  lensSize = 180,
   style,
   ...rest
 }) {
@@ -23,6 +30,14 @@ export function PlateImage({
     right: { marginRight: "calc(var(--page-gutter) * -1)" },
     full:  { marginLeft: "calc(var(--page-gutter) * -1)", marginRight: "calc(var(--page-gutter) * -1)" },
   };
+
+  // Three modes: fixed aspect (ratio), height-capped (maxHeight, centered so
+  // the whole render is visible), or natural (default, full container width).
+  const imgStyle = ratio
+    ? { display: "block", width: "100%", height: "100%", objectFit: fit }
+    : maxHeight
+      ? { display: "block", width: "auto", maxWidth: "100%", height: "auto", maxHeight, margin: "0 auto" }
+      : { display: "block", width: "100%", height: "auto", objectFit: "initial" };
 
   return (
     <figure
@@ -34,16 +49,11 @@ export function PlateImage({
       }}
     >
       <div style={{ background: "transparent", aspectRatio: ratio || undefined }}>
-        <img
-          src={src}
-          alt={alt}
-          style={{
-            display: "block",
-            width: "100%",
-            height: ratio ? "100%" : "auto",
-            objectFit: ratio ? fit : "initial",
-          }}
-        />
+        {magnify && !ratio ? (
+          <ImageMagnifier src={src} alt={alt} imgStyle={imgStyle} zoom={zoom} lensSize={lensSize} />
+        ) : (
+          <img src={src} alt={alt} style={imgStyle} />
+        )}
       </div>
       {caption && (
         <figcaption

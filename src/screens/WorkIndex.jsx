@@ -17,7 +17,7 @@ export function WorkIndex({ onNavigate, onOpenProject }) {
 
         {/* Eyebrow + section title */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: "var(--space-9)" }}>
-          <Eyebrow as="div">Selected · 2022 — 2024</Eyebrow>
+          <Eyebrow as="div">Selected work</Eyebrow>
           <Eyebrow as="div" style={{ color: "var(--text-quiet)" }}>
             {String(projects.length).padStart(2, "0")} projects
           </Eyebrow>

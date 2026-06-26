@@ -7,7 +7,8 @@ import { EditorialLink } from "../text/EditorialLink.jsx";
  */
 export function Nav({
   brand = "Daniel Kaliko",
-  logo = "/assets/brand/anura.png",
+  logo = "/assets/brand/anura.svg",
+  showLogo = true,
   items = [
     { label: "Projects", href: "#work" },
     { label: "About", href: "#about" },
@@ -29,24 +30,30 @@ export function Nav({
         ...style,
       }}
     >
-      <a
-        href="#"
-        aria-label={brand}
-        onClick={onNavigate && ((e) => { e.preventDefault(); onNavigate("#"); })}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          textDecoration: "none",
-          borderBottom: 0,
-          lineHeight: 0,
-        }}
-      >
-        <img
-          src={logo}
-          alt={brand}
-          style={{ height: 40, width: "auto", display: "block" }}
-        />
-      </a>
+      {showLogo ? (
+        <a
+          href="#"
+          aria-label={brand}
+          onClick={onNavigate && ((e) => { e.preventDefault(); onNavigate("#"); })}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            textDecoration: "none",
+            borderBottom: 0,
+            lineHeight: 0,
+          }}
+        >
+          <img
+            src={logo}
+            alt={brand}
+            style={{ height: 40, width: "auto", display: "block" }}
+          />
+        </a>
+      ) : (
+        // Spacer keeps the link list right-aligned when the home button is
+        // hidden (the home page shows the mark as a background graphic instead).
+        <span aria-hidden="true" />
+      )}
       <ul
         style={{
           display: "flex",

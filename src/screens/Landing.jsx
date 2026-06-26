@@ -1,6 +1,6 @@
 // Landing screen — name centered in the first viewport, then a quick scroll
-// reveals who I am (About) and a drifting band of tools (Skills). Two
-// soft-masked contour panels bleed off opposite corners of the hero.
+// reveals who I am (About) and a drifting band of tools (Skills). Two tall
+// contour bands hug the page edges, running its full vertical length.
 import React from "react";
 import { Nav } from "../components/navigation/Nav.jsx";
 import { AboutBlock } from "../components/about/AboutBlock.jsx";
@@ -8,9 +8,10 @@ import { WorkPreview } from "../components/editorial/WorkPreview.jsx";
 import { SkillsMarquee } from "../components/skills/SkillsMarquee.jsx";
 import { useInView } from "../hooks/useInView.js";
 
-// A soft radial mask keeps the dense center of the contour mark intact and
-// fades its edges to transparent — no rectangular clip cut-offs.
-const softMask = "radial-gradient(ellipse at center, #000 28%, transparent 78%)";
+// Linear masks fade each tall edge band inward, so the contour stays dense at
+// the very edge of the page and dissolves toward the content — no hard cut.
+const edgeMaskLeft = "linear-gradient(to right, #000 0%, #000 26%, transparent 92%)";
+const edgeMaskRight = "linear-gradient(to left, #000 0%, #000 26%, transparent 92%)";
 
 export function Landing({ onNavigate, onOpenProject }) {
   const [aboutRef, aboutInView] = useInView({ threshold: 0.18 });
@@ -22,48 +23,76 @@ export function Landing({ onNavigate, onOpenProject }) {
 
   return (
     <div style={{ position: "relative" }}>
+      {/* ---- Edge contours — one tall topographic band per side, running the
+          full vertical length of the page. Bled mostly off-screen and masked
+          so only a subtle sliver hugs each edge. ---- */}
+      <img
+        aria-hidden="true"
+        src="/assets/pattern/contour-tall.svg"
+        alt=""
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: "min(560px, 40vw)",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "left center",
+          transform: "translateX(-34%)",
+          opacity: 0.09,
+          mixBlendMode: "multiply",
+          WebkitMaskImage: edgeMaskLeft,
+          maskImage: edgeMaskLeft,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      <img
+        aria-hidden="true"
+        src="/assets/pattern/contour-tall.svg"
+        alt=""
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          right: 0,
+          width: "min(560px, 40vw)",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "right center",
+          transform: "translateX(34%)",
+          opacity: 0.09,
+          mixBlendMode: "multiply",
+          WebkitMaskImage: edgeMaskRight,
+          maskImage: edgeMaskRight,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
       {/* ---- Hero ---- */}
       <section style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-        {/* Top-right panel — anchored well above the name. Mask fades its
-            edges so it dissolves into the canvas. */}
+        {/* Anura mark as a large, quiet background graphic — sits behind the
+            title (above the contour panels, below the text). */}
         <img
           aria-hidden="true"
-          src="/assets/pattern/leopard-print.svg"
+          src="/assets/brand/anura.svg"
           alt=""
           style={{
             position: "absolute",
-            top: "-35vh",
-            right: "-30vw",
-            width: "min(2400px, 160vw)",
-            opacity: 0.1,
-            mixBlendMode: "multiply",
-            WebkitMaskImage: softMask,
-            maskImage: softMask,
+            top: "47%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "min(720px, 64vw)",
+            opacity: 0.06,
             pointerEvents: "none",
-            zIndex: 0,
-          }}
-        />
-        {/* Bottom-left wide panel — echoes the top-right, opposite corner. */}
-        <img
-          aria-hidden="true"
-          src="/assets/pattern/leopard-print-wide.svg"
-          alt=""
-          style={{
-            position: "absolute",
-            bottom: "-12vh",
-            left: "-34vw",
-            width: "min(2600px, 170vw)",
-            opacity: 0.09,
-            mixBlendMode: "multiply",
-            WebkitMaskImage: softMask,
-            maskImage: softMask,
-            pointerEvents: "none",
-            zIndex: 0,
+            zIndex: 1,
           }}
         />
 
         <div style={{ position: "relative", zIndex: 10 }}>
-          <Nav active="#" onNavigate={onNavigate} />
+          <Nav active="#" onNavigate={onNavigate} showLogo={false} />
         </div>
 
         {/* Hero — just the name, centered in the first viewport. The work
@@ -194,29 +223,30 @@ export function Landing({ onNavigate, onOpenProject }) {
         ref={projectsRef}
         style={{
           position: "relative",
-          zIndex: 10,
           paddingTop: "var(--space-10)",
           scrollMarginTop: "var(--space-6)",
         }}
       >
-        <WorkPreview
-          onNavigate={onNavigate}
-          onOpenProject={onOpenProject}
-          limit={3}
-          showHeading={false}
-        />
+        <div style={{ position: "relative", zIndex: 10 }}>
+          <WorkPreview
+            onNavigate={onNavigate}
+            onOpenProject={onOpenProject}
+            limit={3}
+            showHeading={false}
+          />
 
-        {/* Location, carried down beneath the work */}
-        <div style={{
-          textAlign: "center",
-          padding: "var(--space-8) 0 var(--space-6)",
-          fontFamily: "var(--font-sans)",
-          fontSize: 11,
-          letterSpacing: "0.16em",
-          textTransform: "uppercase",
-          color: "var(--text-secondary)",
-        }}>
-          Las Vegas, Nevada · Updated June 2026
+          {/* Location, carried down beneath the work */}
+          <div style={{
+            textAlign: "center",
+            padding: "var(--space-8) 0 var(--space-6)",
+            fontFamily: "var(--font-sans)",
+            fontSize: 11,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            color: "var(--text-secondary)",
+          }}>
+            Las Vegas, Nevada · Updated June 2026
+          </div>
         </div>
       </section>
 
@@ -231,24 +261,6 @@ export function Landing({ onNavigate, onOpenProject }) {
           transition: "var(--transition-reveal)",
         }}
       >
-        {/* One quiet fragment, low-left, continuing the topography. */}
-        <img
-          aria-hidden="true"
-          src="/assets/pattern/leopard-print-wide.svg"
-          alt=""
-          style={{
-            position: "absolute",
-            top: "30%",
-            right: "-40vw",
-            width: "min(1900px, 115vw)",
-            opacity: 0.08,
-            mixBlendMode: "multiply",
-            WebkitMaskImage: softMask,
-            maskImage: softMask,
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
-        />
         <div style={{ position: "relative", zIndex: 10 }}>
           <AboutBlock />
         </div>

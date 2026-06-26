@@ -6,7 +6,7 @@ import { EditorialLink } from "../text/EditorialLink.jsx";
  * contact list / colophon. No social-icon clutter.
  */
 export function Footer({
-  monogram = "/assets/brand/anura.png",
+  monogram = "/assets/brand/anura.svg",
   contactItems = [
     { label: "Email",    value: "danielkaliko.edu@gmail.com", href: "mailto:danielkaliko.edu@gmail.com" },
     { label: "LinkedIn", value: "/in/daniel-kaliko",     href: "https://www.linkedin.com/in/daniel-kaliko/" },

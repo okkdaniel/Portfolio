@@ -14,7 +14,7 @@
 export const SAMPLE_PROJECTS = [
   {
     slug: "frc-987-offseason",
-    index: 1,
+    index: 2,
     title: "FRC Team 987 Offseason Robot",
     discipline: "Robotics",
     year: "Offseason",
@@ -95,7 +95,7 @@ export const SAMPLE_PROJECTS = [
 
   {
     slug: "low-profile-monitor-stand",
-    index: 2,
+    index: 3,
     title: "Low Rise Monitor Stand",
     discipline: "Mechanical",
     year: "Personal",
@@ -187,7 +187,7 @@ export const SAMPLE_PROJECTS = [
 
   {
     slug: "rival-robotics-2024",
-    index: 3,
+    index: 1,
     title: "Rival Robotics 2024 Competition Robot",
     discipline: "Robotics",
     year: "2024",

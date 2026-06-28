@@ -8,7 +8,7 @@ import { ProjectRow } from "../components/editorial/ProjectRow.jsx";
 import { SAMPLE_PROJECTS } from "../data.js";
 
 export function WorkIndex({ onNavigate, onOpenProject }) {
-  const projects = SAMPLE_PROJECTS;
+  const projects = [...SAMPLE_PROJECTS].sort((a, b) => a.index - b.index);
   return (
     <div style={{ position: "relative", minHeight: "100vh" }}>
 

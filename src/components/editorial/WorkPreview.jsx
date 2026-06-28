@@ -102,7 +102,7 @@ function WorkPeekItem({ project, onOpenProject }) {
  * the full Work index.
  */
 export function WorkPreview({ onNavigate, onOpenProject, limit = 3, showHeading = true }) {
-  const projects = SAMPLE_PROJECTS.slice(0, limit);
+  const projects = [...SAMPLE_PROJECTS].sort((a, b) => a.index - b.index).slice(0, limit);
 
   // Three text columns squish on tablets well before phone width — step down
   // 3 → 2 → 1 columns. Desktop (>1024px) keeps the original layout.

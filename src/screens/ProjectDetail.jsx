@@ -59,7 +59,9 @@ function SubHeading({ children, style }) {
 export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
   const projects = SAMPLE_PROJECTS;
   const p = projects.find((x) => x.slug === slug) || projects[0];
-  const next = projects.find((x) => x.index === p.index + 1) || projects[0];
+  const next = projects.find((x) => x.index === p.index + 1)
+    || projects.find((x) => x.index === 1)
+    || projects[0];
   const isMobile = useIsMobile();
 
   const twoCol = isMobile ? "1fr" : "minmax(220px, 1fr) minmax(0, 2.4fr)";

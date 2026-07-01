@@ -1,19 +1,19 @@
 import React from "react";
 import { EditorialLink } from "../text/EditorialLink.jsx";
 import { useIsMobile } from "../../hooks/useMediaQuery.js";
+import { getEmail, getMailtoHref } from "../../utils/email.js";
 
 /**
  * Footer — minimal. Hairline rule above, three-column grid: monogram /
  * contact list / colophon. No social-icon clutter. Stacks to one column on
- * mobile.
+ * mobile. The email is decoded from an obfuscated form at render time.
  */
 export function Footer({
   monogram = "/assets/brand/anura.svg",
   contactItems = [
-    { label: "Email",    value: "danielkaliko.edu@gmail.com", href: "mailto:danielkaliko.edu@gmail.com" },
+    { label: "Email",    value: getEmail(), href: getMailtoHref() },
     { label: "LinkedIn", value: "/in/daniel-kaliko",     href: "https://www.linkedin.com/in/daniel-kaliko/" },
     { label: "GitHub",   value: "@okkdaniel",        href: "https://github.com/okkdaniel" },
-    { label: "Instagram", value: "@ddanyuhl",        href: "https://www.instagram.com/ddanyuhl/" },
   ],
   colophon = "Set in Cormorant Garamond & Inter. Pattern by Daniel.",
   style,

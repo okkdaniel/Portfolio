@@ -171,7 +171,6 @@ export function Landing({ onNavigate, onOpenProject }) {
               gap: "var(--space-5)",
             }}>
               {[
-                { href: "https://www.instagram.com/ddanyuhl/", src: "/assets/links/instagram.png", label: "Instagram" },
                 { href: "https://github.com/okkdaniel", src: "/assets/links/github.png", label: "GitHub" },
                 { href: "https://www.linkedin.com/in/daniel-kaliko/", src: "/assets/links/linkedin.png", label: "LinkedIn" },
               ].map((s) => (

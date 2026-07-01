@@ -7,16 +7,16 @@ import { Eyebrow } from "../components/text/Eyebrow.jsx";
 import { MetaList } from "../components/text/MetaList.jsx";
 import { EditorialLink } from "../components/text/EditorialLink.jsx";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
+import { getEmail, getMailtoHref } from "../utils/email.js";
 
 const softMask = "radial-gradient(ellipse at center, #000 28%, transparent 78%)";
 
 // Channels live here so the page reads in one glance; values render as
 // editorial links. Mirrors the contacts the footer used to carry.
 const CHANNELS = [
-  { label: "Email",     value: "danielkaliko.edu@gmail.com", href: "mailto:danielkaliko.edu@gmail.com" },
+  { label: "Email",     value: getEmail(), href: getMailtoHref() },
   { label: "LinkedIn",  value: "/in/daniel-kaliko",          href: "https://www.linkedin.com/in/daniel-kaliko/" },
   { label: "GitHub",    value: "@okkdaniel",                 href: "https://github.com/okkdaniel" },
-  { label: "Instagram", value: "@ddanyuhl",                  href: "https://www.instagram.com/ddanyuhl/" },
 ];
 
 export function Contact({ onNavigate }) {

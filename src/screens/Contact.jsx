@@ -110,21 +110,7 @@ export function Contact({ onNavigate }) {
                 lineHeight: "var(--lh-body)",
                 margin: 0,
               }}>
-                I'm always up for a good conversation. Maybe you have a project in
-                mind, want to build something together, or just feel like talking
-                about robots and CAD. Whatever it is, I would genuinely love to
-                hear from you.
-              </p>
-              <p style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "var(--fs-body)",
-                lineHeight: "var(--lh-body)",
-                color: "var(--text-secondary)",
-                marginTop: "var(--space-5)",
-              }}>
-                Email is the quickest way to reach me and I read every message
-                that comes in. Don't be a stranger, and I'll get back to you as
-                soon as I can.
+                Feel free to reach out. I'd be happy to hear from you.
               </p>
             </div>
           </div>

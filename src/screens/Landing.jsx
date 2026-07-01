@@ -6,6 +6,7 @@ import { Nav } from "../components/navigation/Nav.jsx";
 import { AboutBlock } from "../components/about/AboutBlock.jsx";
 import { WorkPreview } from "../components/editorial/WorkPreview.jsx";
 import { SkillsMarquee } from "../components/skills/SkillsMarquee.jsx";
+import { Footer } from "../components/layout/Footer.jsx";
 import { useInView } from "../hooks/useInView.js";
 
 // Linear masks fade each tall edge band inward, so the contour stays dense at
@@ -17,6 +18,11 @@ const edgeMaskRight = "linear-gradient(to left, #000 0%, #000 26%, transparent 9
 // fade via intersect, both fades apply at once.
 const bottomFade = "linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%)";
 
+// How far past the top of the About section the "Learn about me" button scrolls,
+// in pixels. A larger value stops lower on the page and reveals more of the
+// Skills marquee below. Tweak to taste.
+const ABOUT_SCROLL_OFFSET = 145;
+
 export function Landing({ onNavigate, onOpenProject }) {
   const [aboutRef, aboutInView] = useInView({ threshold: 0.18 });
   const projectsRef = React.useRef(null);
@@ -26,9 +32,12 @@ export function Landing({ onNavigate, onOpenProject }) {
   };
 
   const scrollToAbout = () => {
-    // Scroll to the foot of the page so the About section *and* the full
-    // Skills marquee below it come into view together.
-    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+    const el = aboutRef.current;
+    if (!el) return;
+    // Scroll to the About section's top, then a little further so the Skills
+    // marquee below peeks into view. Offset is ABOUT_SCROLL_OFFSET above.
+    const top = el.getBoundingClientRect().top + window.scrollY + ABOUT_SCROLL_OFFSET;
+    window.scrollTo({ top, behavior: "smooth" });
   };
 
   return (
@@ -338,6 +347,8 @@ export function Landing({ onNavigate, onOpenProject }) {
 
       {/* ---- Skills band ---- */}
       <SkillsMarquee />
+
+      <Footer />
     </div>
   );
 }

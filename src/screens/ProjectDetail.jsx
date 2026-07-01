@@ -8,6 +8,7 @@ import { MetaList } from "../components/text/MetaList.jsx";
 import { Eyebrow } from "../components/text/Eyebrow.jsx";
 import { EditorialLink } from "../components/text/EditorialLink.jsx";
 import { PlateImage } from "../components/media/PlateImage.jsx";
+import { Footer } from "../components/layout/Footer.jsx";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
 import { SAMPLE_PROJECTS } from "../data.js";
 
@@ -396,6 +397,8 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
             Open
           </EditorialLink>
         </div>
+
+        <Footer />
       </div>
     </div>
   );

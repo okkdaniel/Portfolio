@@ -42,6 +42,25 @@ export function Contact({ onNavigate }) {
         }}
       />
 
+      {/* Anura brand mark — matched to the home page's mark in size and
+          position so moving between the two pages feels seamless. The home
+          mark sits at 47% of a 100vh hero; this page's container can be taller,
+          so anchor to the viewport height (47vh) to land in the same spot. */}
+      {/* <img
+        aria-hidden="true"
+        src="/assets/brand/anura.svg"
+        alt=""
+        style={{
+          position: "absolute",
+          top: "47vh",
+          left: "50%",
+          transform: "translate(-54%, -50%)",
+          width: "min(720px, 64vw)",
+          opacity: 0.06,
+          pointerEvents: "none",
+          zIndex: 1,
+        }}/> */}
+
       <div style={{ position: "relative", zIndex: 10, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         <Nav active="contact" onNavigate={onNavigate} />
 
@@ -91,9 +110,21 @@ export function Contact({ onNavigate }) {
                 lineHeight: "var(--lh-body)",
                 margin: 0,
               }}>
-                Whether it's engineering work, a collaboration, or just to talk
-                robotics — I'd love to hear from you. Email is the fastest way to
-                reach me, and I'm on the channels at left.
+                I'm always up for a good conversation. Maybe you have a project in
+                mind, want to build something together, or just feel like talking
+                about robots and CAD. Whatever it is, I would genuinely love to
+                hear from you.
+              </p>
+              <p style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-body)",
+                lineHeight: "var(--lh-body)",
+                color: "var(--text-secondary)",
+                marginTop: "var(--space-5)",
+              }}>
+                Email is the quickest way to reach me and I read every message
+                that comes in. Don't be a stranger, and I'll get back to you as
+                soon as I can.
               </p>
             </div>
           </div>

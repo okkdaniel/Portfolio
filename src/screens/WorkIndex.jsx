@@ -5,6 +5,7 @@ import React from "react";
 import { Nav } from "../components/navigation/Nav.jsx";
 import { Eyebrow } from "../components/text/Eyebrow.jsx";
 import { ProjectRow } from "../components/editorial/ProjectRow.jsx";
+import { Footer } from "../components/layout/Footer.jsx";
 import { SAMPLE_PROJECTS } from "../data.js";
 
 export function WorkIndex({ onNavigate, onOpenProject }) {
@@ -58,6 +59,8 @@ export function WorkIndex({ onNavigate, onOpenProject }) {
           ))}
           <div style={{ borderTop: "var(--hairline-soft)" }}></div>
         </div>
+
+        <Footer />
       </div>
     </div>
   );

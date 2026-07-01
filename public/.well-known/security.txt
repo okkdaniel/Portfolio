@@ -1,0 +1,6 @@
+# Security contact information for Daniel Kaliko's portfolio.
+# Format: RFC 9116 (https://www.rfc-editor.org/rfc/rfc9116)
+
+Contact: mailto:contact@danielkaliko.com
+Expires: 2027-06-30T00:00:00.000Z
+Preferred-Languages: en

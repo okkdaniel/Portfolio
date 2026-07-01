@@ -1,17 +1,17 @@
 import React from "react";
 import { EditorialLink } from "../text/EditorialLink.jsx";
+import { EmailLink } from "../text/EmailLink.jsx";
 import { useIsMobile } from "../../hooks/useMediaQuery.js";
-import { getEmail, getMailtoHref } from "../../utils/email.js";
 
 /**
  * Footer — minimal. Hairline rule above, three-column grid: monogram /
  * contact list / colophon. No social-icon clutter. Stacks to one column on
- * mobile. The email is decoded from an obfuscated form at render time.
+ * mobile. The email is decrypted at render time (see EmailLink).
  */
 export function Footer({
   monogram = "/assets/brand/anura.svg",
   contactItems = [
-    { label: "Email",    value: getEmail(), href: getMailtoHref() },
+    { label: "Email",    value: <EmailLink /> },
     { label: "LinkedIn", value: "/in/daniel-kaliko",     href: "https://www.linkedin.com/in/daniel-kaliko/" },
     { label: "GitHub",   value: "@okkdaniel",        href: "https://github.com/okkdaniel" },
   ],

@@ -6,15 +6,15 @@ import { Nav } from "../components/navigation/Nav.jsx";
 import { Eyebrow } from "../components/text/Eyebrow.jsx";
 import { MetaList } from "../components/text/MetaList.jsx";
 import { EditorialLink } from "../components/text/EditorialLink.jsx";
+import { EmailLink } from "../components/text/EmailLink.jsx";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
-import { getEmail, getMailtoHref } from "../utils/email.js";
 
 const softMask = "radial-gradient(ellipse at center, #000 28%, transparent 78%)";
 
 // Channels live here so the page reads in one glance; values render as
-// editorial links. Mirrors the contacts the footer used to carry.
+// editorial links. The email is decrypted at render time (see EmailLink).
 const CHANNELS = [
-  { label: "Email",     value: getEmail(), href: getMailtoHref() },
+  { label: "Email",     email: true },
   { label: "LinkedIn",  value: "/in/daniel-kaliko",          href: "https://www.linkedin.com/in/daniel-kaliko/" },
   { label: "GitHub",    value: "@okkdaniel",                 href: "https://github.com/okkdaniel" },
 ];
@@ -96,9 +96,11 @@ export function Contact({ onNavigate }) {
           }}>
             <aside>
               <Eyebrow as="div" style={{ marginBottom: "var(--space-5)" }}>Channels</Eyebrow>
-              <MetaList items={CHANNELS.map(({ label, value, href }) => ({
+              <MetaList items={CHANNELS.map(({ label, value, href, email }) => ({
                 label,
-                value: <EditorialLink href={href}>{value}</EditorialLink>,
+                value: email
+                  ? <EmailLink />
+                  : <EditorialLink href={href}>{value}</EditorialLink>,
               }))} />
             </aside>
 

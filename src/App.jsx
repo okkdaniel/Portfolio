@@ -5,12 +5,15 @@ import { WorkIndex } from "./screens/WorkIndex.jsx";
 import { ProjectDetail } from "./screens/ProjectDetail.jsx";
 import { About } from "./screens/About.jsx";
 import { Contact } from "./screens/Contact.jsx";
+import { NotFound } from "./screens/NotFound.jsx";
+import { SAMPLE_PROJECTS } from "./data.js";
 
 /**
- * App — hash-based router for the four-screen portfolio. Hash routing keeps
- * deep links working and the back button correct without a server rewrite.
+ * App — hash-based router for the portfolio. Hash routing keeps deep links
+ * working and the back button correct without a server rewrite.
  *
  * Route shapes: '#', '#work', '#work/<slug>', '#about', '#contact'.
+ * Unknown routes (and unknown project slugs) render the 404 screen.
  */
 export default function App() {
   const [route, setRoute] = React.useState(window.location.hash || "#");
@@ -40,13 +43,15 @@ export default function App() {
     screen = <WorkIndex onNavigate={navigate} onOpenProject={openProject} />;
   } else if (route.startsWith("#work/")) {
     const slug = route.slice("#work/".length);
-    screen = <ProjectDetail slug={slug} onNavigate={navigate} onOpenProject={openProject} />;
+    screen = SAMPLE_PROJECTS.some((p) => p.slug === slug)
+      ? <ProjectDetail slug={slug} onNavigate={navigate} onOpenProject={openProject} />
+      : <NotFound onNavigate={navigate} />;
   } else if (route === "#about") {
     screen = <About onNavigate={navigate} />;
   } else if (route === "#contact") {
     screen = <Contact onNavigate={navigate} />;
   } else {
-    screen = <Landing onNavigate={navigate} onOpenProject={openProject} />;
+    screen = <NotFound onNavigate={navigate} />;
   }
 
   return <PageFrame>{screen}</PageFrame>;

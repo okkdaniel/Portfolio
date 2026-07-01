@@ -1,0 +1,5 @@
+# robots.txt for Daniel Kaliko's portfolio
+# Allow all well-behaved crawlers to index the whole site.
+
+User-agent: *
+Allow: /

@@ -10,7 +10,7 @@ import { useIsMobile } from "../../hooks/useMediaQuery.js";
 export function Footer({
   monogram = "/assets/brand/anura.svg",
   contactItems = [
-    { label: "Email",    value: "danielkaliko.edu@gmail.com", href: "mailto:danielkaliko.edu@gmail.com" },
+    { label: "Email",    value: "contact@danielkaliko.com", href: "mailto:contact@danielkaliko.com" },
     { label: "LinkedIn", value: "/in/daniel-kaliko",     href: "https://www.linkedin.com/in/daniel-kaliko/" },
     { label: "GitHub",   value: "@okkdaniel",        href: "https://github.com/okkdaniel" },
     { label: "Instagram", value: "@ddanyuhl",        href: "https://www.instagram.com/ddanyuhl/" },

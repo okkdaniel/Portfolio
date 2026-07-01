@@ -13,7 +13,7 @@ const softMask = "radial-gradient(ellipse at center, #000 28%, transparent 78%)"
 // Channels live here so the page reads in one glance; values render as
 // editorial links. Mirrors the contacts the footer used to carry.
 const CHANNELS = [
-  { label: "Email",     value: "danielkaliko.edu@gmail.com", href: "mailto:danielkaliko.edu@gmail.com" },
+  { label: "Email",     value: "contact@danielkaliko.com", href: "mailto:contact@danielkaliko.com" },
   { label: "LinkedIn",  value: "/in/daniel-kaliko",          href: "https://www.linkedin.com/in/daniel-kaliko/" },
   { label: "GitHub",    value: "@okkdaniel",                 href: "https://github.com/okkdaniel" },
   { label: "Instagram", value: "@ddanyuhl",                  href: "https://www.instagram.com/ddanyuhl/" },

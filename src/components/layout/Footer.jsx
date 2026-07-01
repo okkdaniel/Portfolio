@@ -36,11 +36,18 @@ export function Footer({
         ...style,
       }}
     >
-      <img
-        src={monogram}
-        alt="Daniel Kaliko"
-        style={{ height: 56, width: "auto", display: "block" }}
-      />
+      <button
+        type="button"
+        aria-label="Back to top"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        style={{ lineHeight: 0, cursor: "pointer" }}
+      >
+        <img
+          src={monogram}
+          alt="Daniel Kaliko"
+          style={{ height: 56, width: "auto", display: "block" }}
+        />
+      </button>
       <dl
         style={{
           display: "grid",

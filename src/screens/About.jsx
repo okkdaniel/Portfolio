@@ -19,11 +19,14 @@ export function About({ onNavigate }) {
           right: "-38vw",
           width: "min(2000px, 115vw)",
           opacity: 0.10,
-          mixBlendMode: "multiply",
           WebkitMaskImage: "radial-gradient(ellipse at center, #000 28%, transparent 78%)",
           maskImage: "radial-gradient(ellipse at center, #000 28%, transparent 78%)",
           pointerEvents: "none",
           zIndex: 0,
+          // Promote to its own GPU layer so smooth-scrolling just translates a
+          // cached layer instead of repainting the masked panel each frame.
+          transform: "translateZ(0)",
+          willChange: "transform",
         }}
       />
 

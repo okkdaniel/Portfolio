@@ -348,7 +348,9 @@ export function Landing({ onNavigate, onOpenProject }) {
       {/* ---- Skills band ---- */}
       <SkillsMarquee />
 
-      <Footer />
+      {/* Tighter than the default footer gap — the marquee already provides
+          breathing room above it. */}
+      <Footer style={{ marginTop: "var(--space-9)" }} />
     </div>
   );
 }

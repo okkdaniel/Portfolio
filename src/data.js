@@ -10,7 +10,8 @@
 // section only when present: `summary`, `facts`, `overview`, `goals`,
 // `process` ([{ heading, body[] }]), `extraSections` ([{ label, body[] }]),
 // `challenges` ([{ title, body }]), `highlights` [], `outcome` [], `gallery`
-// ([{ src, caption }]), and `techStack` ([{ label, value }]).
+// ([{ src, caption }]), `techStack` ([{ label, value }]), and `links`
+// ([{ label, href }]) for external resources shown in the Overview column.
 export const SAMPLE_PROJECTS = [
   {
     slug: "frc-987-offseason",
@@ -202,6 +203,9 @@ export const SAMPLE_PROJECTS = [
       { label: "Role",          value: "Mechanical Design / Software" },
       { label: "Collaboration", value: "Team Project" },
       { label: "Software",      value: "SolidWorks, C++" },
+    ],
+    links: [
+      { label: "Photo album", href: "https://photos.app.goo.gl/J9TURkYtmPBWnjT66" },
     ],
     overview: [
       "This was a team project for a soccer-style robotics competition. We put a lot of weight on planning the robot from a master sketch and packaging the subsystems before any detailed CAD.",

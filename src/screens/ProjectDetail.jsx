@@ -143,6 +143,22 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
             }}>
               <aside>
                 {p.facts && <MetaList items={p.facts} />}
+                {p.links && p.links.length > 0 && (
+                  <div style={{ marginTop: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                    {p.links.map((l) => (
+                      <EditorialLink
+                        key={l.href}
+                        href={l.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        arrow
+                        style={{ fontSize: "var(--fs-body-s)" }}
+                      >
+                        {l.label}
+                      </EditorialLink>
+                    ))}
+                  </div>
+                )}
               </aside>
               <div>
                 {p.overview && <Prose items={p.overview} />}

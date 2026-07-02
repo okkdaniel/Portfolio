@@ -122,13 +122,15 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
         )}
 
         {/* Hero plate — the regular render. Slightly larger than the
-            wireframe; sized to stay fully in view. */}
+            wireframe; sized to stay fully in view. Click to open a zoom/pan
+            lightbox. */}
         {p.hero && (
           <PlateImage
             src={p.hero}
             alt={`${p.title} — render`}
             maxHeight="76vh"
-            caption={`Fig 01 · ${p.title}`}
+            zoomable
+            caption={`Fig 01 · ${p.title} — click to expand`}
             style={{ marginBottom: "var(--space-9)" }}
           />
         )}
@@ -377,44 +379,35 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
         )}
 
         {/* ---- Next project close ---- */}
+        {/* Bottom nav — matching-size links on one line: back to the index on
+            the left, next project (named) on the right. */}
         <div style={{
-          marginTop: "var(--space-13)",
-          borderTop: "var(--hairline)",
-          padding: "var(--space-9) 0 var(--space-12)",
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "auto 1fr auto",
+          marginTop: "var(--space-9)",
+          padding: "var(--space-6) 0 var(--space-7)",
+          display: "flex",
+          justifyContent: "space-between",
           alignItems: "baseline",
-          columnGap: "var(--space-7)",
-          rowGap: isMobile ? "var(--space-5)" : 0,
+          gap: "var(--space-7)",
         }}>
-          <Eyebrow as="div">Next · {String(next.index).padStart(2, "0")}</Eyebrow>
-          <a
-            href={`#work/${next.slug}`}
-            onClick={(e) => { e.preventDefault(); onOpenProject(next.slug); window.scrollTo(0, 0); }}
-            style={{
-              fontFamily: "var(--font-serif-display)",
-              fontSize: "clamp(32px, 5.4vw, 84px)",
-              lineHeight: 1.04,
-              letterSpacing: "-0.025em",
-              color: "var(--text-primary)",
-              textDecoration: "none",
-              borderBottom: 0,
-              justifySelf: "start",
-            }}
+          <EditorialLink
+            href="#work"
+            onClick={(e) => { e.preventDefault(); onNavigate("#work"); }}
+            style={{ fontSize: "var(--fs-meta)", letterSpacing: "var(--tracking-meta-wide)", textTransform: "uppercase" }}
           >
-            {next.title}
-          </a>
+            <span aria-hidden="true" style={{ marginRight: "0.4em" }}>&larr;</span>
+            All projects
+          </EditorialLink>
           <EditorialLink
             href={`#work/${next.slug}`}
             arrow
             onClick={(e) => { e.preventDefault(); onOpenProject(next.slug); window.scrollTo(0, 0); }}
-            style={{ fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase" }}
+            style={{ fontSize: "var(--fs-meta)", letterSpacing: "var(--tracking-meta-wide)", textTransform: "uppercase", textAlign: "right" }}
           >
-            Open
+            Next · {next.title}
           </EditorialLink>
         </div>
 
-        <Footer />
+        <Footer style={{ marginTop: "var(--space-6)" }} />
       </div>
     </div>
   );

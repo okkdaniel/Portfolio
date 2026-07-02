@@ -1,12 +1,14 @@
 import React from "react";
+import { ImageLightbox } from "./ImageLightbox.jsx";
 
 /**
  * PlateImage — the only image primitive. No border, no shadow, no rounding.
  * The image sits on the page. Pass `bleed` to extend past a gutter, `ratio`
  * to constrain aspect, `fit` to choose cover (default) vs contain (whole
  * drawing visible, for line-art schematics), `maxHeight` to cap the image so
- * the whole render stays in view (centered, aspect preserved), and a caption
- * to render a tracked metadata line.
+ * the whole render stays in view (centered, aspect preserved), `zoomable` to
+ * open a full-screen zoom/pan lightbox on click, and a caption to render a
+ * tracked metadata line.
  */
 export function PlateImage({
   src,
@@ -16,9 +18,11 @@ export function PlateImage({
   ratio,
   fit = "cover",
   maxHeight,
+  zoomable = false,
   style,
   ...rest
 }) {
+  const [zoomOpen, setZoomOpen] = React.useState(false);
   const bleedStyles = {
     none:  { marginLeft: 0, marginRight: 0 },
     left:  { marginLeft: "calc(var(--page-gutter) * -1)" },
@@ -44,8 +48,16 @@ export function PlateImage({
       }}
     >
       <div style={{ background: "transparent", aspectRatio: ratio || undefined }}>
-        <img src={src} alt={alt} style={imgStyle} />
+        <img
+          src={src}
+          alt={alt}
+          onClick={zoomable ? () => setZoomOpen(true) : undefined}
+          style={zoomable ? { ...imgStyle, cursor: "zoom-in" } : imgStyle}
+        />
       </div>
+      {zoomable && zoomOpen && (
+        <ImageLightbox src={src} alt={alt} onClose={() => setZoomOpen(false)} />
+      )}
       {caption && (
         <figcaption
           style={{

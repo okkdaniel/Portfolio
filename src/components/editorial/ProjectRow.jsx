@@ -59,7 +59,7 @@ export function ProjectRow({ project, onOpen, rule = "soft" }) {
           color: "var(--text-secondary)",
           fontVariantNumeric: "tabular-nums",
         }}>
-          <span>{String(p.index).padStart(2, "0")}</span>
+          <span style={{ color: "var(--accent)" }}>{String(p.index).padStart(2, "0")}</span>
           <span>{p.discipline} · {p.year}</span>
         </div>
 

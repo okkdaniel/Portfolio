@@ -65,7 +65,7 @@ export function Footer({
                 fontSize: "var(--fs-meta)",
                 letterSpacing: "var(--tracking-meta-wide)",
                 textTransform: "uppercase",
-                color: "var(--text-secondary)",
+                color: "var(--accent)",
                 marginBottom: "var(--space-1)",
               }}
             >

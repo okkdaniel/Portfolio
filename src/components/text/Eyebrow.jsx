@@ -14,7 +14,7 @@ export function Eyebrow({ children, as: As = "div", style, ...rest }) {
         fontWeight: "var(--fw-body-md)",
         letterSpacing: "var(--tracking-meta-wide)",
         textTransform: "uppercase",
-        color: "var(--text-secondary)",
+        color: "var(--accent)",
         fontVariantNumeric: "tabular-nums",
         ...style,
       }}

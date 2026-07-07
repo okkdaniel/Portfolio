@@ -26,7 +26,7 @@ export function MetaList({ items = [], style, ...rest }) {
               fontWeight: "var(--fw-body-md)",
               letterSpacing: "var(--tracking-meta-wide)",
               textTransform: "uppercase",
-              color: "var(--accent)",
+              color: "var(--text-secondary)",
               fontVariantNumeric: "tabular-nums",
               paddingTop: 3,
             }}

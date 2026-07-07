@@ -233,7 +233,7 @@ export function Landing({ onNavigate, onOpenProject }) {
               strokeLinejoin="round"
               aria-hidden="true"
               style={{
-                color: "var(--accent)",
+                color: "var(--text-secondary)",
                 animation: "scroll-hint-drift var(--dur-drift) var(--ease-in-out-quiet) infinite",
               }}
             >
@@ -315,7 +315,7 @@ export function Landing({ onNavigate, onOpenProject }) {
                 strokeLinejoin="round"
                 aria-hidden="true"
                 style={{
-                  color: "var(--accent)",
+                  color: "var(--text-secondary)",
                   animation: "scroll-hint-drift var(--dur-drift) var(--ease-in-out-quiet) infinite",
                 }}
               >

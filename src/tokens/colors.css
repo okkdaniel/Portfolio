@@ -34,16 +34,7 @@
   --rule-soft:        var(--paper-300); /* between editorial rows */
   --rule-quiet:       var(--paper-400); /* metadata grids */
 
-  /* Accent — maroon, in a few shades and translucencies. Centralized so the
-     whole accent scheme is trivial to recolor or remove: change these values,
-     or point the usages back at the ink/paper scale. */
-  --accent:           #800000;                 /* solid maroon */
-  --accent-strong:    #660000;                 /* deeper, for emphasis */
-  --accent-line:      rgba(128, 0, 0, 0.45);   /* colored hairlines */
-  --accent-soft:      rgba(128, 0, 0, 0.10);   /* subtle tint fills */
-  --accent-veil:      rgba(128, 0, 0, 0.05);   /* barely-there wash */
-
-  --selection-bg:     var(--accent);
+  --selection-bg:     var(--ink-900);
   --selection-fg:     var(--paper-100);
 }
 

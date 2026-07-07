@@ -31,7 +31,7 @@ export function EditorialLink({
       }}
     >
       {children}
-      {arrow && <span aria-hidden="true" style={{ marginLeft: "0.4em", color: "var(--accent)" }}>→</span>}
+      {arrow && <span aria-hidden="true" style={{ marginLeft: "0.4em" }}>→</span>}
     </As>
   );
 }

@@ -116,7 +116,7 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
             color: "var(--text-secondary)",
           }}>
             {p.tags.map((t) => (
-              <span key={t} style={{ borderTop: "2px solid var(--accent)", paddingTop: "var(--space-2)" }}>{t}</span>
+              <span key={t} style={{ borderTop: "var(--hairline)", paddingTop: "var(--space-2)" }}>{t}</span>
             ))}
           </div>
         )}
@@ -188,7 +188,7 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
                     <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                       {p.goals.map((g, i) => (
                         <li key={i} style={{
-                          borderTop: i === 0 ? "1px solid var(--accent)" : "1px solid var(--accent-line)",
+                          borderTop: i === 0 ? "var(--hairline)" : "var(--hairline-soft)",
                           padding: "var(--space-4) 0",
                           display: "grid",
                           gridTemplateColumns: "auto 1fr",
@@ -202,7 +202,7 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
                           <span style={{
                             fontSize: "var(--fs-meta)",
                             letterSpacing: "var(--tracking-meta-wide)",
-                            color: "var(--accent)",
+                            color: "var(--text-quiet)",
                             fontVariantNumeric: "tabular-nums",
                           }}>
                             {String(i + 1).padStart(2, "0")}
@@ -263,7 +263,7 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
             }}>
               {p.highlights.map((h, i) => (
                 <div key={i} style={{
-                  borderTop: "2px solid var(--accent)",
+                  borderTop: "var(--hairline)",
                   paddingTop: "var(--space-4)",
                   fontFamily: "var(--font-sans)",
                   fontSize: "var(--fs-body-s)",
@@ -338,7 +338,7 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
                           gridTemplateColumns: "minmax(110px, 0.6fr) 1fr",
                           columnGap: "var(--space-6)",
                           padding: "var(--space-4) 0",
-                          borderTop: i === 0 ? "1px solid var(--accent)" : "1px solid var(--accent-line)",
+                          borderTop: i === 0 ? "var(--hairline)" : "var(--hairline-soft)",
                         }}>
                           <span style={{
                             fontFamily: "var(--font-sans)",
@@ -394,7 +394,7 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
             onClick={(e) => { e.preventDefault(); onNavigate("#work"); }}
             style={{ fontSize: "var(--fs-meta)", letterSpacing: "var(--tracking-meta-wide)", textTransform: "uppercase" }}
           >
-            <span aria-hidden="true" style={{ marginRight: "0.4em", color: "var(--accent)" }}>&larr;</span>
+            <span aria-hidden="true" style={{ marginRight: "0.4em" }}>&larr;</span>
             All projects
           </EditorialLink>
           <EditorialLink

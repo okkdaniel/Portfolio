@@ -78,7 +78,7 @@ export function Nav({
                   fontSize: "var(--fs-meta)",
                   letterSpacing: "var(--tracking-meta-wide)",
                   textTransform: "uppercase",
-                  color: isActive ? "var(--accent)" : "var(--text-secondary)",
+                  color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
                 {label}

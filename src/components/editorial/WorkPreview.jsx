@@ -51,7 +51,7 @@ function WorkPeekItem({ project, onOpenProject }) {
         fontSize: "var(--fs-meta)",
         letterSpacing: "var(--tracking-meta-wide)",
         textTransform: "uppercase",
-        color: "var(--accent)",
+        color: "var(--text-secondary)",
         fontVariantNumeric: "tabular-nums",
       }}>
         {String(p.index).padStart(2, "0")}

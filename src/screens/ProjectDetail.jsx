@@ -72,7 +72,7 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
   // otherwise the static wireframe render. Same content on desktop and mobile.
   const hasPreview = p.preview || p.model;
   const previewSlot = p.model
-    ? <ModelPlate src={p.model} poster={p.preview} alt={`${p.title} — interactive 3D model`} orientation={p.modelOrientation} />
+    ? <ModelPlate src={p.model} poster={p.preview} alt={`${p.title} — interactive 3D model`} orientation={p.modelOrientation} zoom={p.modelZoom} lift={p.modelLift} />
     : p.preview
       ? <PlateImage src={p.preview} alt={`${p.title} — wireframe`} caption="Wireframe view" />
       : null;

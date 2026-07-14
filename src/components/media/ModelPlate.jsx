@@ -34,6 +34,13 @@ export function ModelPlate({
   // their side. This roll/pitch/yaw rights them. Override per project via
   // `modelOrientation` in data.js if a model needs a different correction.
   orientation = "0deg -90deg 0deg",
+  // Default camera distance as a % of model-viewer's auto framing. Lower =
+  // closer = larger. Override per project via `modelZoom` in data.js.
+  zoom = "90%",
+  // At a 3/4 view the base spreads toward the bottom of the frame, so the model
+  // is raised by this fraction of its own height (via the camera target) to open
+  // room beneath it. Override per project via `modelLift` in data.js.
+  lift = 0.11,
   style,
   ...rest
 }) {
@@ -58,7 +65,18 @@ export function ModelPlate({
   React.useEffect(() => {
     const el = mvRef.current;
     if (!el) return;
-    const onLoad = () => setLoaded(true);
+    const onLoad = () => {
+      setLoaded(true);
+      // Raise the model in frame so its base isn't clipped at the bottom. Done
+      // here (not via an attribute) because it needs the loaded model's bounds.
+      try {
+        const size = el.getDimensions();
+        const c = el.getBoundingBoxCenter();
+        el.cameraTarget = `${c.x}m ${(c.y - size.y * lift).toFixed(4)}m ${c.z}m`;
+      } catch {
+        /* bounds unavailable — leave default framing */
+      }
+    };
     const onError = () => setErrored(true);
     el.addEventListener("load", onLoad);
     el.addEventListener("error", onError);
@@ -66,7 +84,7 @@ export function ModelPlate({
       el.removeEventListener("load", onLoad);
       el.removeEventListener("error", onError);
     };
-  }, [ready]);
+  }, [ready, lift]);
 
   return (
     <figure ref={inViewRef} {...rest} style={{ margin: 0, ...style }}>
@@ -88,6 +106,7 @@ export function ModelPlate({
             environment-image="neutral"
             tone-mapping="neutral"
             exposure="0.5"
+            camera-orbit={`auto auto ${zoom}`}
             min-camera-orbit="auto auto auto"
             max-camera-orbit="auto auto 200%"
             style={{ width: "100%", height: "100%", backgroundColor: "transparent" }}

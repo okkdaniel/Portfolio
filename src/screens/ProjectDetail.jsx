@@ -8,6 +8,7 @@ import { MetaList } from "../components/text/MetaList.jsx";
 import { Eyebrow } from "../components/text/Eyebrow.jsx";
 import { EditorialLink } from "../components/text/EditorialLink.jsx";
 import { PlateImage } from "../components/media/PlateImage.jsx";
+import { ModelPlate } from "../components/media/ModelPlate.jsx";
 import { Footer } from "../components/layout/Footer.jsx";
 import { useIsMobile } from "../hooks/useMediaQuery.js";
 import { SAMPLE_PROJECTS } from "../data.js";
@@ -66,6 +67,15 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
   const isMobile = useIsMobile();
 
   const twoCol = isMobile ? "1fr" : "minmax(220px, 1fr) minmax(0, 2.4fr)";
+
+  // The "wireframe" slot: an interactive 3D model when the project ships one,
+  // otherwise the static wireframe render. Same content on desktop and mobile.
+  const hasPreview = p.preview || p.model;
+  const previewSlot = p.model
+    ? <ModelPlate src={p.model} poster={p.preview} alt={`${p.title} — interactive 3D model`} orientation={p.modelOrientation} />
+    : p.preview
+      ? <PlateImage src={p.preview} alt={`${p.title} — wireframe`} caption="Wireframe view" />
+      : null;
 
   return (
     <div style={{ position: "relative", minHeight: "100vh" }}>
@@ -176,7 +186,7 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
           <section style={{ marginTop: "var(--space-13)" }}>
             <div style={{
               display: "grid",
-              gridTemplateColumns: isMobile || !p.preview ? "1fr" : "minmax(0, 1.4fr) minmax(0, 1fr)",
+              gridTemplateColumns: isMobile || !hasPreview ? "1fr" : "minmax(0, 1.4fr) minmax(0, 1fr)",
               gap: "var(--space-9)",
               alignItems: "start",
             }}>
@@ -214,10 +224,8 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
                   </div>
                 )}
 
-                {/* On mobile the wireframe sits right after the goals */}
-                {isMobile && p.preview && (
-                  <PlateImage src={p.preview} alt={`${p.title} — wireframe`} caption="Wireframe view" />
-                )}
+                {/* On mobile the preview sits right after the goals */}
+                {isMobile && hasPreview && previewSlot}
 
                 {p.process && p.process.length > 0 && (
                   <div>
@@ -234,10 +242,10 @@ export function ProjectDetail({ slug, onNavigate, onOpenProject }) {
                 )}
               </div>
 
-              {/* Right — wireframe, follows along on desktop */}
-              {!isMobile && p.preview && (
+              {/* Right — preview, follows along on desktop */}
+              {!isMobile && hasPreview && (
                 <div style={{ position: "sticky", top: "var(--space-9)" }}>
-                  <PlateImage src={p.preview} alt={`${p.title} — wireframe`} caption="Wireframe view" />
+                  {previewSlot}
                 </div>
               )}
             </div>

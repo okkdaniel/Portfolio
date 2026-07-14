@@ -1,0 +1,61 @@
+/* Loading state for the interactive 3D plate. An editorial stand-in while the
+   model streams in: a single near-black segment drifting back and forth along a
+   hairline track, under a tracked-uppercase label. No spinner, no chrome — just
+   the design system's hairline + tracked type + slow drift. Replaces
+   model-viewer's default progress bar, which is hidden via an empty slot. */
+
+.mp-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  pointer-events: none;
+  /* Quiet fade-out once the model is ready. */
+  transition: opacity var(--dur-slow, 600ms) var(--ease-out-quiet, ease);
+}
+
+.mp-loader__label {
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta, 12px);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-quiet);
+  animation: mp-pulse 2.6s var(--ease-in-out-quiet, ease-in-out) infinite;
+}
+
+.mp-loader__track {
+  position: relative;
+  width: min(168px, 55%);
+  height: 1px;
+  overflow: hidden;
+  background: var(--rule-quiet);
+}
+
+.mp-loader__seg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 1px;
+  width: 34%;
+  background: var(--text-primary);
+  animation: mp-sweep 1.5s var(--ease-in-out-quiet, ease-in-out) infinite;
+}
+
+@keyframes mp-sweep {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(400%); }
+}
+
+@keyframes mp-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+/* Honour reduced motion: hold a static hairline instead of drifting/pulsing. */
+@media (prefers-reduced-motion: reduce) {
+  .mp-loader__seg { animation: none; transform: none; width: 100%; opacity: 0.45; }
+  .mp-loader__label { animation: none; }
+}

@@ -4,7 +4,9 @@
 //
 // Image rule: `preview` (the wireframe render) is the card/index thumbnail;
 // `hero` (the regular render) is the full-bleed plate on the detail page.
-// Paths are absolute against /public.
+// Optional `model` (an optimized .glb) turns the detail page's wireframe slot
+// into an interactive, orbitable 3D viewer; `preview` is still required as its
+// instant poster/fallback. Paths are absolute against /public.
 //
 // The detail page is an engineering case study. Optional fields render their
 // section only when present: `summary`, `facts`, `overview`, `goals`,
@@ -24,6 +26,7 @@ export const SAMPLE_PROJECTS = [
     lede: "An offseason FRC robot built to learn parametric design and master sketch workflows in Onshape.",
     preview: "/assets/projects/frc-987-offseason-wireframe.png",
     hero: "/assets/projects/frc-987-offseason.png",
+    model: "/assets/projects/frc-987-offseason.glb",
     summary:
       "A collaborative offseason FRC robot I designed as a learning project to sharpen my CAD workflow. The point was less about the robot itself and more about learning parametric design and master sketch techniques in Onshape while taking a full competition robot from a concept to a finished assembly.",
     facts: [
@@ -105,6 +108,7 @@ export const SAMPLE_PROJECTS = [
     lede: "A low rise monitor stand designed in SolidWorks to clean up my desk and learn sheet metal.",
     preview: "/assets/projects/monitor-stand-wireframe.png",
     hero: "/assets/projects/monitor-stand-render.png",
+    model: "/assets/projects/monitor-stand.glb",
     summary:
       "A low rise monitor stand I designed to replace the bulky commercial stands I could never find a good version of. It cleared up my desk and improved my setup, and it gave me a reason to learn more advanced sheet metal and surfacing tools in SolidWorks while solving a real problem.",
     facts: [

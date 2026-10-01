@@ -49,11 +49,8 @@ export function Bloom() {
       const fw = img.width * s, fh = img.height * s;
       ctx.globalCompositeOperation = "destination-out";
       ctx.globalAlpha = 1;
-      // Cut a few times with small offsets: thickens the frog's thin legs
-      // by about a pixel so the carving holds up at this size.
-      for (const [ox, oy] of [[0, 0], [-0.8, 0], [0.8, 0], [0, -0.8], [0, 0.8], [-0.6, -0.6], [0.6, 0.6], [-0.6, 0.6], [0.6, -0.6]]) {
-        ctx.drawImage(img, c - fw / 2 + ox, c - fh / 2 + oy, fw, fh);
-      }
+      // The frog exactly as drawn: one clean cut, no reshaping.
+      ctx.drawImage(img, c - fw / 2, c - fh / 2, fw, fh);
 
       // Confetti thrown around it, the way spores scatter in the field:
       // mixed sizes and colors. Kept to the top and right, in a flattened

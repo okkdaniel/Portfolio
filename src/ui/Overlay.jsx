@@ -21,7 +21,7 @@ export function Overlay({ open, setOpen, onReset, projects }) {
       <header className="ov-head" data-keepout>
         <div className="ov-top">
           <h1 className="ov-name">Daniel Kaliko</h1>
-          <p className="ov-line">Engineering student. Robotics, mechanical, and PCB design.</p>
+          <p className="ov-line">builds robots, thinks about trees.</p>
         </div>
 
         <Fold id="works" label="Works" open={open === "works"} onToggle={toggle}>

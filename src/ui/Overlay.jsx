@@ -20,11 +20,11 @@ export function Overlay({ open, setOpen, onReset, projects }) {
     <div className="overlay">
       <header className="ov-head" data-keepout>
         <div className="ov-top">
-          <div>
+          <span className="ov-mark" role="img" aria-label="Daniel Kaliko's frog mark" />
+          <div className="ov-id">
             <h1 className="ov-name">Daniel Kaliko</h1>
             <p className="ov-line">builds robots, thinks about trees.</p>
           </div>
-          <span className="ov-mark" role="img" aria-label="Daniel Kaliko's frog mark" />
         </div>
 
         <Fold id="works" label="Works" open={open === "works"} onToggle={toggle}>

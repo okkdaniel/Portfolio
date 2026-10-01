@@ -115,36 +115,72 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       drawVeil();
     };
 
-    // Run every growing thing a few steps; adopt anything it spawns.
-    const step = () => {
-      const next = [];
-      const spawned = [];
-      for (const g of growing) {
-        let alive = true;
-        for (let k = 0; k < g.speed && alive; k++) {
-          const r = g.it.next();
-          if (r.done) alive = false;
-          else if (r.value && r.value.spawn) spawned.push(r.value.spawn);
-        }
-        if (alive) next.push(g);
-      }
-      growing = next.concat(spawned);
+    // ---- easing ----
+    // A form's generator is run to the end the moment it's planted, against a
+    // recorder instead of the real ink, so its full length is known. Playback
+    // then lays its steps down along an ease-in-out curve: slow to start,
+    // quick through the middle, settling at the end. Every form, and every
+    // runner it spawns, gets its own curve. Ink decisions (keep-out fades)
+    // still happen at draw time, against the real ink.
+    const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+    const SLOWER = 2.5; // longer than the old linear pace, so the easing reads
+
+    const recorder = {
+      cur: null,
+      wash(...a) { this.cur.push(["wash", a]); },
+      seed(...a) { this.cur.push(["seed", a]); },
+      blocked: (x, y) => ink.blocked(x, y),
     };
 
-    const frame = () => {
-      step();
+    const record = ({ it, speed }) => {
+      const steps = [];
+      const prev = recorder.cur;
+      let cur = [];
+      for (;;) {
+        recorder.cur = cur; // a nested record() moves it; take it back
+        const r = it.next();
+        if (r.done) break;
+        if (r.value && r.value.spawn) cur.push(["spawn", record(r.value.spawn)]);
+        else { steps.push(cur); cur = []; }
+      }
+      if (cur.length) steps.push(cur);
+      recorder.cur = prev;
+      return { steps, duration: Math.max(0.3, (steps.length / (speed * 60)) * SLOWER) };
+    };
+
+    const run = (op, now) => {
+      if (op[0] === "wash") ink.wash(...op[1]);
+      else if (op[0] === "seed") ink.seed(...op[1]);
+      else if (now === null) runAll(op[1]);
+      else growing.push({ rec: op[1], t0: now, i: 0 });
+    };
+    const runAll = (rec) => rec.steps.forEach((s) => s.forEach((op) => run(op, null)));
+
+    const frame = (ms) => {
+      const now = ms / 1000;
+      // Iterate over a snapshot: spawns started this frame begin next frame.
+      const playing = growing;
+      growing = [];
+      for (const g of playing) {
+        if (g.t0 === null) g.t0 = now;
+        const n = g.rec.steps.length;
+        const target = Math.ceil(n * ease(Math.min(1, (now - g.t0) / g.rec.duration)));
+        for (; g.i < target; g.i++) g.rec.steps[g.i].forEach((op) => run(op, now));
+        if (g.i < n) growing.push(g);
+      }
       raf = growing.length ? requestAnimationFrame(frame) : 0;
     };
 
     const scale = () => Math.min(1.4, Math.max(0.85, Math.min(w, h) / 700));
 
     const growAt = (x, y, s = scale() * (0.75 + Math.random() * 0.5)) => {
-      growing.push(...grow(ink, x, y, s, { w, h }));
+      const recs = grow(recorder, x, y, s, { w, h }).map(record);
       if (reducedMotion) {
-        while (growing.length) step();
-      } else if (!raf) {
-        raf = requestAnimationFrame(frame);
+        recs.forEach(runAll);
+        return;
       }
+      for (const rec of recs) growing.push({ rec, t0: null, i: 0 });
+      if (!raf) raf = requestAnimationFrame(frame);
     };
 
     api.current.reset = () => {

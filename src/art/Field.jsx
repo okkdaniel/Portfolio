@@ -69,7 +69,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     const applyKeepouts = () => {
       ink.keepouts = [...document.querySelectorAll("[data-keepout]")].map((el) => {
         const r = el.getBoundingClientRect();
-        return { x: r.left - 18, y: r.top - 18, w: r.width + 36, h: r.height + 36 };
+        return { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 };
       });
     };
 

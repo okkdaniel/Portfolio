@@ -12,6 +12,9 @@
 export const PAPER = "#f3f0e8";
 export const PITCH = 3; // halftone screen, CSS px (finer on phones)
 
+const FEATHER = 70; // px over which ink thins out approaching a keep-out
+const WOBBLE = 36;  // how far that edge wanders, so it never reads as a line
+
 // Pacific Northwest, a bit brighter than life.
 export const C = {
   moss:     [124, 150, 40],
@@ -38,11 +41,32 @@ export class Ink {
     this.keepouts = [];
   }
 
-  blocked(x, y) {
+  /**
+   * How much ink may land at (x, y), 0..1. Keep-outs aren't hard walls:
+   * approaching one, ink thins out over FEATHER px along an uneven edge (a
+   * fixed wobble, so the edge is the same for every plant), the way paint
+   * gives out at the edge of a dry patch. Inside one, nothing lands.
+   */
+  fade(x, y) {
+    let k = 1;
     for (const r of this.keepouts) {
-      if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true;
+      const dx = Math.max(r.x - x, 0, x - (r.x + r.w));
+      const dy = Math.max(r.y - y, 0, y - (r.y + r.h));
+      let d = Math.hypot(dx, dy);
+      if (d === 0) return 0;
+      if (d > FEATHER + WOBBLE) continue;
+      d += (Math.sin(x * 0.045 + Math.sin(y * 0.031) * 2) + Math.sin(y * 0.052 + x * 0.013)) * (WOBBLE / 2);
+      if (d <= 0) return 0;
+      if (d < FEATHER) {
+        const t = d / FEATHER;
+        k = Math.min(k, t * t * (3 - 2 * t));
+      }
     }
-    return false;
+    return k;
+  }
+
+  blocked(x, y) {
+    return this.fade(x, y) <= 0;
   }
 
   /** Halftone wash: a soft disc of screen dots. */
@@ -65,7 +89,7 @@ export class Ink {
         const f = density * (1 - d2) * (1 - d2);
         // Dense in the middle, breaking up raggedly toward the edge.
         if (Math.random() > Math.pow(f, 0.55)) continue;
-        if (this.blocked(px, py)) continue;
+        if (this.keepouts.length && Math.random() > this.fade(px, py)) continue;
         const s = (0.3 + 0.7 * Math.pow(f, 0.7) * (0.75 + Math.random() * 0.25)) * P;
         ctx.fillRect(px - s / 2, py - s / 2, s, s);
       }
@@ -74,7 +98,7 @@ export class Ink {
 
   /** One crisp round dot. */
   seed(x, y, r, rgb, alpha = 0.85) {
-    if (this.blocked(x, y)) return;
+    if (this.keepouts.length && Math.random() > this.fade(x, y)) return;
     const ctx = this.ctx;
     ctx.globalAlpha = alpha;
     ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;

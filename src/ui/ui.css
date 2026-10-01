@@ -35,24 +35,22 @@
 }
 .ov-head::-webkit-scrollbar { display: none; }
 
-/* The frog mark flush left; name and bio set flush right with the folds. */
+/* A lockup: the frog and the name read as one signature, the frog's
+   diagonal leaning the same way as the italic. */
 .ov-top {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 14px;
   margin-bottom: 30px;
 }
-
-.ov-id { text-align: right; }
 
 /* The anura mark, solid black ink. A sliver of left margin is given back
    because the drawing doesn't quite reach the edge of its own box. */
 .ov-mark {
   display: block;
   flex: none;
-  width: 72px;
-  height: 72px;
+  width: 62px;
+  height: 62px;
   margin-left: -4px;
   background: var(--ink);
   -webkit-mask: url("/assets/brand/anura.svg") center / contain no-repeat;
@@ -70,7 +68,7 @@
 }
 
 .ov-line {
-  margin: 0 0 0 auto;
+  margin: 0;
   max-width: 26ch;
   color: var(--dim);
 }
@@ -171,7 +169,7 @@
 @media (max-width: 768px) {
   .ov-name { font-size: 30px; }
   .ov-top { margin-bottom: 22px; }
-  .ov-mark { width: 58px; height: 58px; }
+  .ov-mark { width: 54px; height: 54px; }
   .ov-foot { bottom: var(--gutter); }
   .clock__place { display: none; }
 }

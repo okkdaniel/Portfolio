@@ -1,0 +1,356 @@
+/* The text layer: name, folds, footer labels, project sheet. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.overlay a,
+.overlay button,
+.ov-head {
+  pointer-events: auto;
+}
+
+.link {
+  color: var(--fog);
+  border-bottom: 1px solid var(--hair);
+  transition: color 0.25s, border-color 0.25s;
+}
+.link:hover { color: var(--copper-hi); border-color: var(--copper); }
+
+.quiet { color: var(--faint); }
+
+/* ---- head --------------------------------------------------------------- */
+
+.ov-head {
+  position: absolute;
+  top: var(--gutter);
+  left: var(--gutter);
+  width: min(330px, calc(100vw - var(--gutter) * 2));
+  max-height: calc(100dvh - var(--gutter) - 84px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  /* A soft pool of shadow so traces that grew before a fold opened don't
+     fight the text. Invisible over empty board. */
+  background: rgba(7, 10, 8, 0.6);
+  box-shadow: 0 0 48px 30px rgba(7, 10, 8, 0.6);
+  text-shadow: 0 0 8px var(--night);
+}
+.ov-head::-webkit-scrollbar { display: none; }
+
+.ov-name {
+  margin: 0 0 6px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--fog);
+}
+
+.ov-line {
+  margin: 0 0 30px;
+  max-width: 30ch;
+  color: var(--dim);
+}
+
+/* ---- folds -------------------------------------------------------------- */
+
+.fold { border-top: 1px solid var(--hair); }
+.fold:last-of-type { border-bottom: 1px solid var(--hair); }
+
+.fold__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+  letter-spacing: 0.04em;
+  transition: color 0.25s;
+}
+.fold__head:hover { color: var(--copper-hi); }
+
+.fold__icon {
+  font-size: 15px;
+  line-height: 1;
+  transition: transform 0.45s var(--ease);
+}
+.fold--open .fold__icon { transform: rotate(45deg); }
+
+.fold__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.5s var(--ease);
+}
+.fold--open .fold__panel { grid-template-rows: 1fr; }
+
+.fold__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.fold__inner > * { padding: 2px 0 14px; }
+
+.works { list-style: none; margin: 0; padding: 0; }
+.works a {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 8px;
+  padding: 3px 0;
+  color: var(--dim);
+  transition: color 0.25s;
+}
+.works a:hover, .works a:focus-visible { color: var(--fog); }
+.works a:hover .works__n { color: var(--copper-hi); }
+.works__n, .works__y { color: var(--faint); transition: color 0.25s; }
+
+.about p { margin: 0 0 9px; color: var(--dim); max-width: 34ch; }
+.about p:last-child { margin-bottom: 0; }
+
+.contact { list-style: none; margin: 0; padding: 0; }
+.contact li {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  padding: 2px 0;
+}
+.contact li > span:first-child { color: var(--faint); }
+.contact a { justify-self: start; }
+
+/* ---- footer labels ------------------------------------------------------ */
+
+.ov-foot {
+  position: absolute;
+  bottom: calc(var(--gutter) - 6px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--faint);
+}
+.ov-foot--left { left: var(--gutter); }
+.ov-foot--right { right: var(--gutter); }
+
+.reset {
+  font-size: 15px;
+  line-height: 1;
+  color: var(--dim);
+  transition: color 0.25s, transform 0.6s var(--ease);
+}
+.reset:hover { color: var(--copper-hi); transform: rotate(-180deg); }
+
+.clock {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.clock__place {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.clock__time {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--copper-hi);
+  text-shadow: 0 0 10px rgba(232, 160, 106, 0.45);
+}
+
+@media (max-width: 768px) {
+  .ov-name { font-size: 30px; }
+  .ov-line { margin-bottom: 22px; }
+  .ov-foot { bottom: var(--gutter); }
+  .hint { display: none; }
+  .clock__place { display: none; }
+}
+
+/* ---- project sheet ------------------------------------------------------ */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(3, 5, 4, 0.35);
+  animation: fade-in 0.5s var(--ease);
+}
+
+.sheet {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 11;
+  width: min(700px, 100vw);
+  overflow-y: auto;
+  padding: 0 44px 96px;
+  background: rgba(8, 12, 10, 0.94);
+  border-left: 1px solid var(--hair);
+  animation: slide-in 0.6s var(--ease);
+  scrollbar-width: thin;
+  scrollbar-color: var(--faint) transparent;
+}
+
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes slide-in { from { transform: translateX(40px); opacity: 0; } }
+
+.sheet__bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 0 14px;
+  margin-bottom: 22px;
+  background: linear-gradient(rgba(8, 12, 10, 0.98) 70%, rgba(8, 12, 10, 0));
+}
+
+.sheet__meta {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.sheet__close { color: var(--dim); transition: color 0.25s; }
+.sheet__close:hover { color: var(--copper-hi); }
+
+.sheet__title {
+  margin: 0 0 14px;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+
+.sheet__lede {
+  margin: 0 0 30px;
+  max-width: 46ch;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 20px;
+  line-height: 1.4;
+  color: var(--dim);
+}
+
+.sheet__object {
+  margin: 0 -12px 34px;
+  background: radial-gradient(ellipse at 50% 55%, rgba(95, 150, 128, 0.09), transparent 70%);
+}
+
+/* Wireframes are black-on-white; inverted and screened they glow like chalk. */
+.drawing {
+  display: block;
+  width: 100%;
+  cursor: zoom-in;
+}
+.drawing img {
+  display: block;
+  width: 100%;
+  filter: invert(1) sepia(0.35) hue-rotate(80deg) saturate(0.6) brightness(0.95);
+  mix-blend-mode: screen;
+}
+.drawing--still { cursor: default; margin-top: 40px; opacity: 0.6; }
+
+/* Renders sit on the board like a photo print. */
+.print {
+  display: block;
+  width: min(78%, 440px);
+  margin: 0 0 40px auto;
+  padding: 10px 10px 34px;
+  background: #e9ebe4;
+  transform: rotate(1.6deg);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  cursor: zoom-in;
+  transition: transform 0.5s var(--ease);
+}
+.print:hover { transform: rotate(0deg) translateY(-4px); }
+.print img { display: block; width: 100%; }
+
+.sheet__facts {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 30px;
+}
+.sheet__facts > div {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--hair);
+}
+.sheet__facts dt {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding-top: 2px;
+}
+.sheet__facts dd { margin: 0; color: var(--fog); }
+.sheet__facts--tight { margin: 0; }
+
+.sheet__notes-toggle {
+  color: var(--dim);
+  letter-spacing: 0.04em;
+  transition: color 0.25s;
+}
+.sheet__notes-toggle:hover { color: var(--copper-hi); }
+
+.notes {
+  margin-top: 26px;
+  max-width: 60ch;
+  color: #b4c0b6;
+  font-size: 12.5px;
+  line-height: 1.8;
+  animation: fade-in 0.6s var(--ease);
+}
+.notes p { margin: 0 0 12px; }
+.notes ul { margin: 0; padding-left: 16px; }
+.notes__summary {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--fog);
+}
+.notes__block { margin-top: 30px; }
+.notes__block h3 {
+  margin: 0 0 10px;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--copper);
+}
+.notes__challenge h4 { margin: 0 0 4px; font-weight: 500; color: var(--fog); }
+
+.sheet__next {
+  display: block;
+  margin-top: 60px;
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+  font-family: var(--font-serif);
+  font-size: 22px;
+  transition: color 0.25s;
+}
+.sheet__next span {
+  margin-right: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.sheet__next:hover { color: var(--copper-hi); }
+
+@media (max-width: 768px) {
+  .sheet { padding: 0 var(--gutter) 80px; border-left: 0; background: var(--night-2); }
+  .sheet__facts > div { grid-template-columns: 100px 1fr; }
+  .print { width: 88%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .sheet-backdrop, .notes { animation: none; }
+}

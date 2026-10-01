@@ -1,58 +1,60 @@
 import React from "react";
-import { PageFrame } from "./components/layout/PageFrame.jsx";
-import { Landing } from "./screens/Landing.jsx";
-import { WorkIndex } from "./screens/WorkIndex.jsx";
-import { ProjectDetail } from "./screens/ProjectDetail.jsx";
-import { About } from "./screens/About.jsx";
-import { Contact } from "./screens/Contact.jsx";
-import { NotFound } from "./screens/NotFound.jsx";
+import { Board } from "./art/Board.jsx";
+import { Atmosphere } from "./art/Atmosphere.jsx";
+import { Frog } from "./art/Frog.jsx";
+import { Overlay } from "./ui/Overlay.jsx";
+import { ProjectSheet } from "./ui/ProjectSheet.jsx";
 import { SAMPLE_PROJECTS } from "./data.js";
 
+const PROJECTS = [...SAMPLE_PROJECTS].sort((a, b) => a.index - b.index);
+
 /**
- * App — hash-based router for the portfolio. Hash routing keeps deep links
- * working and the back button correct without a server rewrite.
- *
- * Route shapes: '#', '#work', '#work/<slug>', '#about', '#contact'.
- * Unknown routes (and unknown project slugs) render the 404 screen.
+ * App — one living board with text over it. The only route is '#work/<slug>',
+ * which opens that project's sheet; anything else is the board alone. The
+ * board stays mounted throughout, so navigating never resets what has grown.
  */
 export default function App() {
-  const [route, setRoute] = React.useState(window.location.hash || "#");
+  const [hash, setHash] = React.useState(window.location.hash);
+  const [open, setOpen] = React.useState(null);
+  const boardRef = React.useRef(null);
+  const headRef = React.useRef(null);
 
   React.useEffect(() => {
-    const onHash = () => setRoute(window.location.hash || "#");
+    const onHash = () => setHash(window.location.hash);
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  // Every route change starts at the top — otherwise a click made halfway down
-  // the home page lands you halfway down the next screen.
+  const slug = hash.startsWith("#work/") ? hash.slice("#work/".length) : null;
+  const at = PROJECTS.findIndex((p) => p.slug === slug);
+  const project = at >= 0 ? PROJECTS[at] : null;
+  const next = project ? PROJECTS[(at + 1) % PROJECTS.length] : null;
+
   React.useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [route]);
+    if (slug && !project) window.location.hash = "";
+  }, [slug, project]);
 
-  const navigate = (href) => {
-    if (href.startsWith("mailto:")) { window.location.href = href; return; }
-    window.location.hash = href.replace(/^#?/, "#");
-  };
-  const openProject = (slug) => navigate(`#work/${slug}`);
+  React.useEffect(() => {
+    document.title = project ? `${project.title} · Daniel Kaliko` : "Daniel Kaliko";
+  }, [project]);
 
-  let screen;
-  if (route === "#" || route === "") {
-    screen = <Landing onNavigate={navigate} onOpenProject={openProject} />;
-  } else if (route === "#work") {
-    screen = <WorkIndex onNavigate={navigate} onOpenProject={openProject} />;
-  } else if (route.startsWith("#work/")) {
-    const slug = route.slice("#work/".length);
-    screen = SAMPLE_PROJECTS.some((p) => p.slug === slug)
-      ? <ProjectDetail slug={slug} onNavigate={navigate} onOpenProject={openProject} />
-      : <NotFound onNavigate={navigate} />;
-  } else if (route === "#about") {
-    screen = <About onNavigate={navigate} />;
-  } else if (route === "#contact") {
-    screen = <Contact onNavigate={navigate} />;
-  } else {
-    screen = <NotFound onNavigate={navigate} />;
-  }
+  const close = React.useCallback(() => { window.location.hash = ""; }, []);
+  const reset = React.useCallback(() => boardRef.current?.reset(), []);
+  const openAbout = React.useCallback(() => setOpen("about"), []);
 
-  return <PageFrame>{screen}</PageFrame>;
+  // Where the frog may not land: under the text column, plus a margin.
+  const avoid = React.useCallback(() => {
+    const r = headRef.current?.getBoundingClientRect();
+    return r ? { x: r.left - 40, y: r.top - 40, w: r.width + 80, h: r.height + 80 } : null;
+  }, []);
+
+  return (
+    <>
+      <Board ref={boardRef} dimmed={!!project} />
+      <Atmosphere />
+      <Frog board={boardRef} avoid={avoid} onClick={openAbout} />
+      <Overlay open={open} setOpen={setOpen} onReset={reset} projects={PROJECTS} headRef={headRef} />
+      {project && <ProjectSheet project={project} next={next !== project ? next : null} onClose={close} />}
+    </>
+  );
 }

@@ -1,15 +1,89 @@
 /* ---------------------------------------------------------------------------
-   Kaliko Portfolio — design system entry point
-   This file is import-only. Add a new concern by creating a file in tokens/
-   and @import'ing it below.
-
-   Order matters: fonts and colors first, then typography/spacing/motion that
-   reference them, then base which applies the canvas.
+   Undergrowth: a circuit board that is also a forest floor at night.
+   Tokens and base live here; the piece itself is styled in art/art.css and
+   the text layer in ui/ui.css.
 --------------------------------------------------------------------------- */
 
-@import "./tokens/fonts.css";
-@import "./tokens/colors.css";
-@import "./tokens/typography.css";
-@import "./tokens/spacing.css";
-@import "./tokens/motion.css";
-@import "./tokens/base.css";
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&display=swap");
+@import "./art/art.css";
+@import "./ui/ui.css";
+
+:root {
+  color-scheme: dark;
+
+  --night:      #070a08;
+  --night-2:    #0b100d;
+  --copper:     #c27a45;
+  --copper-hi:  #e8a06a;
+  --verdigris:  #5f9680;
+  --moss:       #3f5a3c;
+  --fog:        #d3dbd2;
+  --dim:        #8a978c;
+  --faint:      #56635a;
+  --hair:       rgba(211, 219, 210, 0.12);
+
+  --font-mono:  "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+
+  --gutter: 28px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Names read by the reused media components (ModelPlate, ImageLightbox). */
+  --font-sans:          var(--font-mono);
+  --fs-meta:            11px;
+  --fs-meta-xs:         10px;
+  --tracking-meta:      0.08em;
+  --tracking-meta-wide: 0.14em;
+  --space-4:            12px;
+  --space-6:            24px;
+  --page-gutter:        var(--gutter);
+  --paper-100:          var(--fog);
+  --text-primary:       var(--fog);
+  --text-secondary:     var(--dim);
+  --text-quiet:         var(--faint);
+  --rule-quiet:         var(--hair);
+  --dur-slow:           600ms;
+  --ease-out-quiet:     var(--ease);
+  --ease-in-out-quiet:  cubic-bezier(0.6, 0, 0.4, 1);
+}
+
+@media (max-width: 768px) {
+  :root { --gutter: 20px; }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--night);
+  color: var(--fog);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+a { color: inherit; text-decoration: none; }
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+::selection { background: var(--copper); color: var(--night); }
+
+:focus-visible {
+  outline: 1px dashed var(--copper-hi);
+  outline-offset: 3px;
+}

@@ -1,11 +1,15 @@
-# Daniel Kaliko — Engineering Portfolio
+# Daniel Kaliko — Undergrowth
 
-A single-surface editorial portfolio, implemented from the **Kaliko Portfolio
-design system**. Warm-gray canvas, near-black ink, two typefaces, hairlines,
-oversized imagery, and one defining brand graphic — a topographic contour mark.
+A circuit board that is also a Pacific Northwest forest floor at night.
+Copper traces grow like firs and roots, routed only at PCB angles; as they
+age they oxidize through verdigris into moss, then fade, so the board slowly
+regrows and is never the same twice. Fog drifts, fireflies pulse, and the
+anura frog hops between solder pads.
 
-Built with **Vite + React**. Routing is hash-based so deep links work and the
-browser back button behaves, with no server-side rewrite required.
+Move to grow. Click to solder. The frog knows things.
+
+> The previous, editorial portfolio lives on `main` (and is tagged
+> `v1-original`). This `redesign` branch deploys to its own Vercel preview.
 
 ## Run it
 
@@ -19,32 +23,24 @@ npm run preview  # serve the production build
 ## Structure
 
 ```
-index.html              entry; mounts src/main.jsx
 src/
-  main.jsx              React root
-  App.jsx              hash router (#, #work, #work/<slug>, #about, …)
-  styles.css           design-system entry — @imports the tokens
-  data.js              project records (Work index + Project detail)
-  tokens/              CSS custom properties: fonts, colors, type, spacing, motion, base
-  components/
-    brand/             LeopardPanel (the contour mark placement)
-    editorial/         ProjectIndexItem (one Work row)
-    layout/            PageFrame, Footer
-    media/             PlateImage (the only image primitive)
-    navigation/        Nav
-    text/              EditorialLink, Eyebrow, MetaList, ProjectTitle
-  screens/             Landing, WorkIndex, ProjectDetail, About
-public/assets/
-  brand/               wordmark.svg, monogram.svg
-  pattern/             leopard-print.svg, leopard-print-wide.svg (contour mark)
-  projects/            monitor-stand.svg (placeholder hero — see Caveats)
+  App.jsx              board + overlay; '#work/<slug>' opens a project sheet
+  styles.css           tokens + base (imports art/art.css, ui/ui.css)
+  data.js              project records (drive Works and the project sheets)
+  art/
+    growth.js          growth engine: lattice, tips, branching, ring buffers
+    Board.jsx          canvas renderer, patina, fireflies, pointer input
+    Atmosphere.jsx     fog, vignette, grain (pure CSS)
+    Frog.jsx           the anura mark, hopping between pads
+  ui/
+    Overlay.jsx        name, Works / About / Contact folds, hint, clock
+    Clock.jsx          live Las Vegas time
+    ProjectSheet.jsx   one project: 3D model, print, facts, full notes
+  components/media/    ModelPlate (3D viewer), ImageLightbox
+  hooks/, utils/       media queries, preload, encrypted email
 ```
 
-## Design rules (do not violate)
+Any element marked `data-keepout` becomes a keep-out zone: traces route
+around it, the way they would around a component on a real board.
 
-No cards, no buttons, no colored accents, no drop shadows, no rounded corners,
-no emoji, no gradients, no backdrop blur. Two typefaces only (Cormorant
-Garamond + Inter). The contour mark bleeds and fragments — it never frames
-content, tiles, or sits centered. Eyebrows/metadata are `UPPERCASE TRACKED`
-(0.16em) 12px Inter. Hover = opacity 0.55, 240ms fade. Full vocabulary lives in
-the design system's `readme.md`.
+Reduced motion: the board is pre-grown and drawn still; clicks still solder.

@@ -28,8 +28,8 @@
   position: absolute;
   /* Headroom so the seal beside the name isn't clipped by the scroll box;
      the text itself still starts one gutter from the top. */
-  top: max(0px, calc(var(--gutter) - 30px));
-  padding-top: 30px;
+  top: max(0px, calc(var(--gutter) - 36px));
+  padding-top: 36px;
   left: var(--gutter);
   width: min(320px, calc(100vw - var(--gutter) * 2));
   max-height: calc(100dvh - var(--gutter) - 58px);
@@ -47,7 +47,7 @@
   display: inline-block;
   position: relative;
   top: -15px;
-  margin: -26px 0 -26px 0;
+  margin: -56px -30px -56px -30px;
   vertical-align: middle;
 }
 

@@ -1,9 +1,9 @@
 import React from "react";
 import { Ink, C } from "../art/ink.js";
-import { lichen } from "../art/forms.js";
+import { lichen, SPORE_COLORS } from "../art/forms.js";
 
-const SIZE = 72; // canvas, CSS px: the rosette plus room for its spores
-const R = 26;    // rosette radius
+const SIZE = 132; // canvas, CSS px: the rosette plus room for its confetti
+const R = 26;     // rosette radius
 const SRC = "/assets/brand/anura.svg";
 
 /**
@@ -50,6 +50,24 @@ export function Bloom() {
       ctx.globalCompositeOperation = "destination-out";
       ctx.globalAlpha = 1;
       ctx.drawImage(img, c - fw / 2, c - fh / 2, fw, fh);
+
+      // Confetti thrown around it, the way spores scatter in the field:
+      // mixed sizes and colors. Kept to the top and right, in a flattened
+      // spread, so none land on the name or the bio line.
+      ctx.globalCompositeOperation = "multiply";
+      const n = 18 + Math.floor(Math.random() * 7);
+      for (let i = 0; i < n; i++) {
+        const ang = (-170 + Math.random() * 195) * (Math.PI / 180);
+        const d = R * (1.05 + Math.random() * 0.95);
+        const big = Math.random() < 0.14;
+        ink.seed(
+          c + Math.cos(ang) * d * 1.15,
+          c + Math.sin(ang) * d * 0.62,
+          big ? 2.4 + Math.random() * 1.8 : 0.7 + Math.random() * 1.5,
+          SPORE_COLORS[Math.floor(Math.random() * SPORE_COLORS.length)],
+          0.45 + Math.random() * 0.5
+        );
+      }
     }).catch(() => {});
     return () => { alive = false; };
   }, []);

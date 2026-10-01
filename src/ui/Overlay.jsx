@@ -1,5 +1,6 @@
 import React from "react";
 import { Clock } from "./Clock.jsx";
+import { Bloom } from "./Bloom.jsx";
 import { decryptEmail } from "../utils/email.js";
 import { usePreloadProject } from "../hooks/usePreloadProject.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -20,12 +21,11 @@ export function Overlay({ open, setOpen, onReset, projects }) {
     <div className="overlay">
       <header className="ov-head" data-keepout>
         <div className="ov-top">
-          {/* The name is the signature; the frog is the seal stamped beside it. */}
+          {/* The name is the signature; the frog, carved into a lichen from
+              the field, is the seal beside it. */}
           <h1 className="ov-name">
             Daniel Kaliko
-            <span className="seal" role="img" aria-label="frog seal">
-              <span className="seal__ink" />
-            </span>
+            <Bloom />
           </h1>
           <p className="ov-line">builds robots, thinks about trees.</p>
         </div>

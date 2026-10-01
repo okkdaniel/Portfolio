@@ -26,10 +26,13 @@
 
 .ov-head {
   position: absolute;
-  top: var(--gutter);
+  /* Headroom so the seal beside the name isn't clipped by the scroll box;
+     the text itself still starts one gutter from the top. */
+  top: max(0px, calc(var(--gutter) - 30px));
+  padding-top: 30px;
   left: var(--gutter);
   width: min(320px, calc(100vw - var(--gutter) * 2));
-  max-height: calc(100dvh - var(--gutter) - 84px);
+  max-height: calc(100dvh - var(--gutter) - 58px);
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -37,38 +40,15 @@
 
 .ov-top { margin-bottom: 30px; }
 
-/* The seal. Like the chop an artist presses beside their signature on a
-   print: a square of cedar-red ink with the frog carved out of it, so the
-   frog is bare paper. Stamped by hand a little off true, and printed through
-   the same halftone screen as the plants so it shares their texture instead
-   of sitting on top as a flat logo. */
-.seal {
+/* The lichen seal (Bloom.jsx) sits after the name like a chop beside a
+   signature, lifted so it rides up beside the name rather than down into the
+   bio. Negative margins keep it from stretching the line. */
+.bloom {
   display: inline-block;
-  width: 34px;
-  height: 34px;
-  margin-left: 12px;
-  vertical-align: -3px;
-  transform: rotate(-6deg);
-  /* The screen: ink only lands on a grid of dots, a little denser than the
-     plants' so the block still reads as solid red. */
-  -webkit-mask: radial-gradient(circle, #000 1.05px, transparent 1.3px) 0 0 / 2.2px 2.2px;
-  mask: radial-gradient(circle, #000 1.05px, transparent 1.3px) 0 0 / 2.2px 2.2px;
-}
-
-.seal__ink {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 3px;
-  background: var(--accent);
-  /* Full block, minus the frog. */
-  -webkit-mask:
-    url("/assets/brand/anura.svg") center / 76% no-repeat,
-    linear-gradient(#000, #000);
-  -webkit-mask-composite: xor;
-  mask:
-    url("/assets/brand/anura.svg") center / 76% no-repeat exclude,
-    linear-gradient(#000, #000);
+  position: relative;
+  top: -15px;
+  margin: -26px 0 -26px 0;
+  vertical-align: middle;
 }
 
 .ov-name {
@@ -183,7 +163,6 @@
 @media (max-width: 768px) {
   .ov-name { font-size: 30px; }
   .ov-top { margin-bottom: 22px; }
-  .seal { width: 30px; height: 30px; margin-left: 10px; }
   .ov-foot { bottom: var(--gutter); }
   .clock__place { display: none; }
 }

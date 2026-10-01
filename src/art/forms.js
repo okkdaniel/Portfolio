@@ -186,10 +186,12 @@ export function* moss(ink, x, y, s, sc = pick(SCHEMES.moss)) {
   }
 }
 
-export function* lichen(ink, x, y, s, sc = pick(SCHEMES.lichen)) {
-  const R = rand(40, 90) * s;
+// `opts` pins the radius, lobe count, spore count and ring ink (the seal by the name
+// uses this to draw a lichen of a fixed size); the field leaves them random.
+export function* lichen(ink, x, y, s, sc = pick(SCHEMES.lichen), opts = {}) {
+  const R = opts.R ?? rand(40, 90) * s;
   const ph = rand(0, TAU);
-  const lobes = randInt(5, 9);
+  const lobes = opts.lobes ?? randInt(5, 9);
   const edge = (th) => R * (1 + 0.13 * Math.sin(lobes * th + ph) + 0.05 * Math.sin(13 * th + ph));
 
   ink.wash(x, y, R * 0.55, sc[1], 0.26, 0.6);
@@ -209,12 +211,12 @@ export function* lichen(ink, x, y, s, sc = pick(SCHEMES.lichen)) {
     marks.sort(() => Math.random() - 0.5);
     ink.open();
     for (let i = 0; i < marks.length; i++) {
-      ink.wash(marks[i].x, marks[i].y, rr * s, col, 0.42, 0.9);
+      ink.wash(marks[i].x, marks[i].y, rr * s, col, opts.ringAlpha ?? 0.42, 0.9);
       if (i % 3 === 0) yield;
     }
     ink.close();
   }
-  yield* spores(ink, x, y, R * 1.3, randInt(8, 18), [sc[0], sc[1], C.rust, C.sun]);
+  yield* spores(ink, x, y, R * 1.3, opts.spores ?? randInt(8, 18), [sc[0], sc[1], C.rust, C.sun]);
 }
 
 export function* conifer(ink, x, y, s, sc = pick(SCHEMES.conifer)) {

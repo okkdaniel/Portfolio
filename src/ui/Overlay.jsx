@@ -1,6 +1,5 @@
 import React from "react";
 import { Clock } from "./Clock.jsx";
-import { Mark } from "./Mark.jsx";
 import { decryptEmail } from "../utils/email.js";
 import { usePreloadProject } from "../hooks/usePreloadProject.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -25,7 +24,7 @@ export function Overlay({ open, setOpen, onReset, projects }) {
             <h1 className="ov-name">Daniel Kaliko</h1>
             <p className="ov-line">builds robots, thinks about trees.</p>
           </div>
-          <Mark />
+          <span className="ov-mark" role="img" aria-label="Daniel Kaliko's frog mark" />
         </div>
 
         <Fold id="works" label="Works" open={open === "works"} onToggle={toggle}>

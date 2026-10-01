@@ -3,9 +3,9 @@ import { ModelPlate } from "../components/media/ModelPlate.jsx";
 import { ImageLightbox } from "../components/media/ImageLightbox.jsx";
 
 /**
- * ProjectSheet — one project, on a dark sheet that slides over the (still
+ * ProjectSheet — one project, on a sheet of paper that slides over the (still
  * growing) board. Short by default: title, one line, the object itself (3D
- * model or glowing wireframe), the render as a print, a few facts. The whole
+ * model or wireframe drawing), the render, a few facts. The whole
  * case study is folded under "full notes".
  *
  * Closes with the close control, a click outside, or Escape.
@@ -61,7 +61,7 @@ export function ProjectSheet({ project: p, next, onClose }) {
         </div>
 
         {p.hero && (
-          <button type="button" className="print" onClick={() => setZoom(p.hero)} aria-label="Enlarge the render">
+          <button type="button" className="render" onClick={() => setZoom(p.hero)} aria-label="Enlarge the render">
             <img src={p.hero} alt={`${p.title}, render`} loading="lazy" />
           </button>
         )}

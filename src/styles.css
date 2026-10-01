@@ -1,7 +1,7 @@
 /* ---------------------------------------------------------------------------
-   Undergrowth: a circuit board that is also a forest floor at night.
-   Tokens and base live here; the piece itself is styled in art/art.css and
-   the text layer in ui/ui.css.
+   A sheet of paper that things grow on. Flat paper, dark ink, no gradients.
+   Tokens and base live here; the field is styled in art/art.css and the text
+   layer in ui/ui.css.
 --------------------------------------------------------------------------- */
 
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&display=swap");
@@ -9,18 +9,14 @@
 @import "./ui/ui.css";
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --night:      #070a08;
-  --night-2:    #0b100d;
-  --copper:     #c27a45;
-  --copper-hi:  #e8a06a;
-  --verdigris:  #5f9680;
-  --moss:       #3f5a3c;
-  --fog:        #d3dbd2;
-  --dim:        #8a978c;
-  --faint:      #56635a;
-  --hair:       rgba(211, 219, 210, 0.12);
+  --paper:   #f3f0e8;
+  --ink:     #1f231e;
+  --dim:     #666b62;
+  --faint:   #9a9d93;
+  --hair:    rgba(31, 35, 30, 0.14);
+  --accent:  #b8542f; /* cedar */
 
   --font-mono:  "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --font-serif: "Cormorant Garamond", Georgia, serif;
@@ -37,8 +33,8 @@
   --space-4:            12px;
   --space-6:            24px;
   --page-gutter:        var(--gutter);
-  --paper-100:          var(--fog);
-  --text-primary:       var(--fog);
+  --paper-100:          var(--paper);
+  --text-primary:       var(--ink);
   --text-secondary:     var(--dim);
   --text-quiet:         var(--faint);
   --rule-quiet:         var(--hair);
@@ -59,8 +55,8 @@ html, body, #root {
 }
 
 body {
-  background: var(--night);
-  color: var(--fog);
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.6;
@@ -81,9 +77,9 @@ button {
   cursor: pointer;
 }
 
-::selection { background: var(--copper); color: var(--night); }
+::selection { background: var(--ink); color: var(--paper); }
 
 :focus-visible {
-  outline: 1px dashed var(--copper-hi);
+  outline: 1px dashed var(--accent);
   outline-offset: 3px;
 }

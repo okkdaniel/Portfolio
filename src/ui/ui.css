@@ -14,11 +14,11 @@
 }
 
 .link {
-  color: var(--fog);
+  color: var(--ink);
   border-bottom: 1px solid var(--hair);
   transition: color 0.25s, border-color 0.25s;
 }
-.link:hover { color: var(--copper-hi); border-color: var(--copper); }
+.link:hover { color: var(--accent); border-color: var(--accent); }
 
 .quiet { color: var(--faint); }
 
@@ -28,15 +28,10 @@
   position: absolute;
   top: var(--gutter);
   left: var(--gutter);
-  width: min(330px, calc(100vw - var(--gutter) * 2));
+  width: min(320px, calc(100vw - var(--gutter) * 2));
   max-height: calc(100dvh - var(--gutter) - 84px);
   overflow-y: auto;
   scrollbar-width: none;
-  /* A soft pool of shadow so traces that grew before a fold opened don't
-     fight the text. Invisible over empty board. */
-  background: rgba(7, 10, 8, 0.6);
-  box-shadow: 0 0 48px 30px rgba(7, 10, 8, 0.6);
-  text-shadow: 0 0 8px var(--night);
 }
 .ov-head::-webkit-scrollbar { display: none; }
 
@@ -48,7 +43,6 @@
   font-size: 36px;
   line-height: 1;
   letter-spacing: -0.01em;
-  color: var(--fog);
 }
 
 .ov-line {
@@ -71,7 +65,7 @@
   letter-spacing: 0.04em;
   transition: color 0.25s;
 }
-.fold__head:hover { color: var(--copper-hi); }
+.fold__head:hover { color: var(--accent); }
 
 .fold__icon {
   font-size: 15px;
@@ -102,8 +96,8 @@
   color: var(--dim);
   transition: color 0.25s;
 }
-.works a:hover, .works a:focus-visible { color: var(--fog); }
-.works a:hover .works__n { color: var(--copper-hi); }
+.works a:hover, .works a:focus-visible { color: var(--ink); }
+.works a:hover .works__n { color: var(--accent); }
 .works__n, .works__y { color: var(--faint); transition: color 0.25s; }
 
 .about p { margin: 0 0 9px; color: var(--dim); max-width: 34ch; }
@@ -137,7 +131,9 @@
   color: var(--dim);
   transition: color 0.25s, transform 0.6s var(--ease);
 }
-.reset:hover { color: var(--copper-hi); transform: rotate(-180deg); }
+.reset:hover { color: var(--accent); transform: rotate(-180deg); }
+
+.hint { letter-spacing: 0.06em; }
 
 .clock {
   display: flex;
@@ -145,24 +141,13 @@
   gap: 12px;
   font-variant-numeric: tabular-nums;
 }
-.clock__place {
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.clock__time {
-  font-size: 13px;
-  letter-spacing: 0.14em;
-  color: var(--copper-hi);
-  text-shadow: 0 0 10px rgba(232, 160, 106, 0.45);
-}
+.clock__place { color: var(--faint); }
+.clock__time { color: var(--ink); letter-spacing: 0.06em; }
 
 @media (max-width: 768px) {
   .ov-name { font-size: 30px; }
   .ov-line { margin-bottom: 22px; }
   .ov-foot { bottom: var(--gutter); }
-  .hint { display: none; }
   .clock__place { display: none; }
 }
 
@@ -172,8 +157,6 @@
   position: fixed;
   inset: 0;
   z-index: 10;
-  background: rgba(3, 5, 4, 0.35);
-  animation: fade-in 0.5s var(--ease);
 }
 
 .sheet {
@@ -185,7 +168,7 @@
   width: min(700px, 100vw);
   overflow-y: auto;
   padding: 0 44px 96px;
-  background: rgba(8, 12, 10, 0.94);
+  background: var(--paper);
   border-left: 1px solid var(--hair);
   animation: slide-in 0.6s var(--ease);
   scrollbar-width: thin;
@@ -204,7 +187,7 @@
   align-items: center;
   padding: 22px 0 14px;
   margin-bottom: 22px;
-  background: linear-gradient(rgba(8, 12, 10, 0.98) 70%, rgba(8, 12, 10, 0));
+  background: var(--paper);
 }
 
 .sheet__meta {
@@ -215,7 +198,7 @@
 }
 
 .sheet__close { color: var(--dim); transition: color 0.25s; }
-.sheet__close:hover { color: var(--copper-hi); }
+.sheet__close:hover { color: var(--accent); }
 
 .sheet__title {
   margin: 0 0 14px;
@@ -236,12 +219,9 @@
   color: var(--dim);
 }
 
-.sheet__object {
-  margin: 0 -12px 34px;
-  background: radial-gradient(ellipse at 50% 55%, rgba(95, 150, 128, 0.09), transparent 70%);
-}
+.sheet__object { margin: 0 -12px 34px; }
 
-/* Wireframes are black-on-white; inverted and screened they glow like chalk. */
+/* Wireframes are dark lines on transparency: they sit on the paper as ink. */
 .drawing {
   display: block;
   width: 100%;
@@ -250,25 +230,20 @@
 .drawing img {
   display: block;
   width: 100%;
-  filter: invert(1) sepia(0.35) hue-rotate(80deg) saturate(0.6) brightness(0.95);
-  mix-blend-mode: screen;
+  opacity: 0.85;
 }
-.drawing--still { cursor: default; margin-top: 40px; opacity: 0.6; }
+.drawing--still { cursor: default; margin-top: 40px; opacity: 0.5; }
 
-/* Renders sit on the board like a photo print. */
-.print {
+/* Renders are cut out, so they sit straight on the paper. */
+.render {
   display: block;
-  width: min(78%, 440px);
+  width: min(80%, 460px);
   margin: 0 0 40px auto;
-  padding: 10px 10px 34px;
-  background: #e9ebe4;
-  transform: rotate(1.6deg);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
   cursor: zoom-in;
   transition: transform 0.5s var(--ease);
 }
-.print:hover { transform: rotate(0deg) translateY(-4px); }
-.print img { display: block; width: 100%; }
+.render:hover { transform: translateY(-4px); }
+.render img { display: block; width: 100%; }
 
 .sheet__facts {
   display: grid;
@@ -289,7 +264,7 @@
   color: var(--faint);
   padding-top: 2px;
 }
-.sheet__facts dd { margin: 0; color: var(--fog); }
+.sheet__facts dd { margin: 0; color: var(--ink); }
 .sheet__facts--tight { margin: 0; }
 
 .sheet__notes-toggle {
@@ -297,12 +272,12 @@
   letter-spacing: 0.04em;
   transition: color 0.25s;
 }
-.sheet__notes-toggle:hover { color: var(--copper-hi); }
+.sheet__notes-toggle:hover { color: var(--accent); }
 
 .notes {
   margin-top: 26px;
   max-width: 60ch;
-  color: #b4c0b6;
+  color: #3d423b;
   font-size: 12.5px;
   line-height: 1.8;
   animation: fade-in 0.6s var(--ease);
@@ -313,7 +288,7 @@
   font-family: var(--font-serif);
   font-size: 18px;
   line-height: 1.5;
-  color: var(--fog);
+  color: var(--ink);
 }
 .notes__block { margin-top: 30px; }
 .notes__block h3 {
@@ -322,9 +297,9 @@
   font-weight: 400;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--copper);
+  color: var(--accent);
 }
-.notes__challenge h4 { margin: 0 0 4px; font-weight: 500; color: var(--fog); }
+.notes__challenge h4 { margin: 0 0 4px; font-weight: 500; color: var(--ink); }
 
 .sheet__next {
   display: block;
@@ -343,14 +318,14 @@
   text-transform: uppercase;
   color: var(--faint);
 }
-.sheet__next:hover { color: var(--copper-hi); }
+.sheet__next:hover { color: var(--accent); }
 
 @media (max-width: 768px) {
-  .sheet { padding: 0 var(--gutter) 80px; border-left: 0; background: var(--night-2); }
+  .sheet { padding: 0 var(--gutter) 80px; border-left: 0; }
   .sheet__facts > div { grid-template-columns: 100px 1fr; }
-  .print { width: 88%; }
+  .render { width: 90%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sheet, .sheet-backdrop, .notes { animation: none; }
+  .sheet, .notes { animation: none; }
 }

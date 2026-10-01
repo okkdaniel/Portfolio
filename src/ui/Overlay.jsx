@@ -10,18 +10,17 @@ export const PROFESSIONAL_URL = "https://danielkaliko.com";
 /**
  * Overlay — the only text on the piece. A name, one line, and three folds
  * (Works / About / Contact) in the top-left; a reset control and hint in the
- * bottom-left; the clock in the bottom-right. Only one fold is open at a time,
- * and which one lives in App so the frog can open About.
+ * bottom-left; the clock in the bottom-right. Only one fold is open at a time.
  */
-export function Overlay({ open, setOpen, onReset, projects, headRef }) {
+export function Overlay({ open, setOpen, onReset, projects }) {
   const isTouch = useMediaQuery("(hover: none)");
   const toggle = (key) => setOpen(open === key ? null : key);
 
   return (
     <div className="overlay">
-      <header className="ov-head" ref={headRef} data-keepout>
+      <header className="ov-head" data-keepout>
         <h1 className="ov-name">Daniel Kaliko</h1>
-        <p className="ov-line">builds things, grows things. mostly out of copper.</p>
+        <p className="ov-line">builds robots, thinks about trees.</p>
 
         <Fold id="works" label="Works" open={open === "works"} onToggle={toggle}>
           <ol className="works">
@@ -31,7 +30,7 @@ export function Overlay({ open, setOpen, onReset, projects, headRef }) {
 
         <Fold id="about" label="About" open={open === "about"} onToggle={toggle}>
           <div className="about">
-            <p>I grew up in the Las Vegas desert and keep drifting toward green: tall trees, moss, fog, frogs.</p>
+            <p>I grew up in the Las Vegas desert and keep drifting toward green: cedar, ferns, moss, rain.</p>
             <p>I build things to understand them. Robots, circuit boards, the occasional website.</p>
             <p>Studying engineering at the University of Nevada, Reno.</p>
             <p>
@@ -52,8 +51,8 @@ export function Overlay({ open, setOpen, onReset, projects, headRef }) {
       </header>
 
       <div className="ov-foot ov-foot--left" data-keepout>
-        <button type="button" className="reset" onClick={onReset} aria-label="Clear the board and start again" title="start again">↻</button>
-        <span className="hint">{isTouch ? "(drag to grow · tap to solder)" : "(move to grow · click to solder)"}</span>
+        <button type="button" className="reset" onClick={onReset} aria-label="Clear the paper and start again" title="start again">↻</button>
+        <span className="hint">{isTouch ? "(tap the ground to grow)" : "(click the ground to grow)"}</span>
       </div>
 
       <div className="ov-foot ov-foot--right" data-keepout>

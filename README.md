@@ -1,12 +1,13 @@
-# Daniel Kaliko — Undergrowth
+# Daniel Kaliko
 
-A circuit board that is also a Pacific Northwest forest floor at night.
-Copper traces grow like firs and roots, routed only at PCB angles; as they
-age they oxidize through verdigris into moss, then fade, so the board slowly
-regrows and is never the same twice. Fog drifts, fireflies pulse, and the
-anura frog hops between solder pads.
+A sheet of paper that things grow on. Click the ground and a patch of the
+Pacific Northwest comes up: ferns unfurling from fiddleheads, moss cushions
+with their spore capsules, lichen rosettes, firs and drooping cedar, with
+roots creeping outward and opening more plants as they go.
 
-Move to grow. Click to solder. The frog knows things.
+Everything is drawn in halftone washes on one screen grid and multiplied
+onto the paper, so overlapping color deepens like watercolor. The canvas is
+never cleared; the field only accumulates until you start again (↻).
 
 > The previous, editorial portfolio lives on `main` (and is tagged
 > `v1-original`). This `redesign` branch deploys to its own Vercel preview.
@@ -24,23 +25,24 @@ npm run preview  # serve the production build
 
 ```
 src/
-  App.jsx              board + overlay; '#work/<slug>' opens a project sheet
+  App.jsx              field + overlay; '#work/<slug>' opens a project sheet
   styles.css           tokens + base (imports art/art.css, ui/ui.css)
   data.js              project records (drive Works and the project sheets)
   art/
-    growth.js          growth engine: lattice, tips, branching, ring buffers
-    Board.jsx          canvas renderer, patina, fireflies, pointer input
-    Atmosphere.jsx     fog, vignette, grain (pure CSS)
-    Frog.jsx           the anura mark, hopping between pads
+    ink.js             the two marks (halftone wash, seed) and the palette
+    forms.js           fern, fiddlehead, moss, lichen, conifer, cedar, runners
+    Field.jsx          the canvas: paces growth, input, keep-outs, resize
   ui/
     Overlay.jsx        name, Works / About / Contact folds, hint, clock
     Clock.jsx          live Las Vegas time
-    ProjectSheet.jsx   one project: 3D model, print, facts, full notes
+    ProjectSheet.jsx   one project: 3D model, render, facts, full notes
   components/media/    ModelPlate (3D viewer), ImageLightbox
   hooks/, utils/       media queries, preload, encrypted email
 ```
 
-Any element marked `data-keepout` becomes a keep-out zone: traces route
-around it, the way they would around a component on a real board.
+Each form is a generator: it lays down a little ink and yields, so the
+field can pace it across frames. To add a plant, write a generator in
+`forms.js` and add it to `anyForm`.
 
-Reduced motion: the board is pre-grown and drawn still; clicks still solder.
+Any element marked `data-keepout` stays clear of new ink.
+Reduced motion: each growth is drawn complete, instantly.

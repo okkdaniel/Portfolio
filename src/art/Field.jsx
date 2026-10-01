@@ -1,5 +1,5 @@
 import React from "react";
-import { Ink, PAPER } from "./ink.js";
+import { Ink, PAPER, FEATHER, WOBBLE } from "./ink.js";
 import { grow, SPORE_COLORS } from "./forms.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 
@@ -13,13 +13,20 @@ import { useMediaQuery } from "../hooks/useMediaQuery.js";
  * growth reaches it, so the field only accumulates and a frame costs the
  * same however full it gets. The loop sleeps when nothing is growing.
  *
- * Anything marked data-keepout (the text) is kept clear of new ink.
+ * Anything marked data-keepout (the text) is kept clear of new ink. Ink that
+ * grew before the text got there (a fold opening over it) is hidden by the
+ * veil: a second canvas of paper laid over the field, solid under the text
+ * and dithered away across the same soft, wandering edge that new ink thins
+ * out along. The veil follows the text as folds open and close, and never
+ * erases anything, so closing a fold brings the plants back.
+ *
  * Reduced motion: each growth is drawn complete, instantly.
  *
  * Ref: { reset } clears the paper.
  */
 export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
   const canvasRef = React.useRef(null);
+  const veilRef = React.useRef(null);
   const api = React.useRef({ reset() {} });
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const isSmall = useMediaQuery("(max-width: 768px)");
@@ -29,6 +36,8 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
   React.useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
+    const veil = veilRef.current;
+    const vctx = veil.getContext("2d");
     const ink = new Ink(ctx, isSmall ? 2.2 : 3);
     let w = 0, h = 0, dpr = 1;
     let growing = [];
@@ -53,8 +62,8 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       dpr = Math.min(2, window.devicePixelRatio || 1);
       w = window.innerWidth;
       h = window.innerHeight;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
+      canvas.width = veil.width = Math.round(w * dpr);
+      canvas.height = veil.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       paper();
       if (keep) {
@@ -66,11 +75,44 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       }
     };
 
+    // Same per-cell odds every redraw, so the veil's edge holds still while a
+    // fold animates instead of shimmering.
+    const cellHash = (gx, gy) => {
+      const v = Math.sin(gx * 12.9898 + gy * 78.233) * 43758.5453;
+      return v - Math.floor(v);
+    };
+
+    // Paper over the text, dithered away along the same edge new ink fades on:
+    // a cell is covered with probability (1 - fade), just as new ink skips it.
+    const drawVeil = () => {
+      vctx.setTransform(1, 0, 0, 1, 0, 0);
+      vctx.clearRect(0, 0, veil.width, veil.height);
+      vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      vctx.fillStyle = PAPER;
+      const P = ink.pitch;
+      const M = FEATHER + WOBBLE;
+      for (const r of ink.keepouts) {
+        vctx.fillRect(r.x, r.y, r.w, r.h);
+        const gx0 = Math.floor((r.x - M) / P), gx1 = Math.ceil((r.x + r.w + M) / P);
+        const gy0 = Math.floor((r.y - M) / P), gy1 = Math.ceil((r.y + r.h + M) / P);
+        for (let gy = gy0; gy <= gy1; gy++) {
+          const py = gy * P;
+          for (let gx = gx0; gx <= gx1; gx++) {
+            const px = gx * P;
+            if (px > r.x && px < r.x + r.w && py > r.y && py < r.y + r.h) continue;
+            if (cellHash(gx, gy) < ink.fade(px, py)) continue;
+            vctx.fillRect(px - P / 2 - 0.3, py - P / 2 - 0.3, P + 0.6, P + 0.6);
+          }
+        }
+      }
+    };
+
     const applyKeepouts = () => {
       ink.keepouts = [...document.querySelectorAll("[data-keepout]")].map((el) => {
         const r = el.getBoundingClientRect();
         return { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 };
       });
+      drawVeil();
     };
 
     // Run every growing thing a few steps; adopt anything it spawns.
@@ -112,7 +154,9 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
 
     resize();
     applyKeepouts();
-    const keepoutTimer = setInterval(applyKeepouts, 400);
+    // Folds change the text's footprint; follow it every frame they animate.
+    const watcher = new ResizeObserver(applyKeepouts);
+    document.querySelectorAll("[data-keepout]").forEach((el) => watcher.observe(el));
 
     // A little has already grown when you arrive.
     const seeds = isSmall
@@ -151,7 +195,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
 
     return () => {
       cancelAnimationFrame(raf);
-      clearInterval(keepoutTimer);
+      watcher.disconnect();
       seedTimers.forEach(clearTimeout);
       canvas.removeEventListener("pointerdown", onDown);
       canvas.removeEventListener("pointerup", onUp);
@@ -162,10 +206,13 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
   }, [reducedMotion, isSmall]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={`field${dimmed ? " field--dimmed" : ""}`}
-      aria-hidden="true"
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        className={`field${dimmed ? " field--dimmed" : ""}`}
+        aria-hidden="true"
+      />
+      <canvas ref={veilRef} className="veil" aria-hidden="true" />
+    </>
   );
 });

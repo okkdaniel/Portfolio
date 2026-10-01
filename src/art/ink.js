@@ -12,8 +12,8 @@
 export const PAPER = "#f3f0e8";
 export const PITCH = 3; // halftone screen, CSS px (finer on phones)
 
-const FEATHER = 70; // px over which ink thins out approaching a keep-out
-const WOBBLE = 36;  // how far that edge wanders, so it never reads as a line
+export const FEATHER = 70; // px over which ink thins out approaching a keep-out
+export const WOBBLE = 36;  // how far that edge wanders, so it never reads as a line
 
 // Pacific Northwest, a bit brighter than life.
 export const C = {

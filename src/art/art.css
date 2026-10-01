@@ -12,3 +12,14 @@
 }
 
 .field--dimmed { opacity: 0.35; }
+
+/* Paper laid over the field under the text (see Field.jsx). Never takes the
+   pointer, so clicks still reach the field. */
+.veil {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  pointer-events: none;
+}

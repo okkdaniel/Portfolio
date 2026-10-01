@@ -116,70 +116,87 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     };
 
     // ---- easing ----
-    // A form's generator is run to the end the moment it's planted, against a
-    // recorder instead of the real ink, so its full length is known. Playback
-    // then lays its steps down along an ease-in-out curve: slow to start,
-    // quick through the middle, settling at the end. Every form, and every
-    // runner it spawns, gets its own curve. Ink decisions (keep-out fades)
-    // still happen at draw time, against the real ink.
-    const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
-    const SLOWER = 2.5; // longer than the old linear pace, so the easing reads
+    // When something is planted, its generators run to the end at once
+    // against a recorder rather than the real ink, which captures every mark
+    // as a tree of strokes (ink.open/close in forms.js; a spawned plant is a
+    // stroke too). Each stroke is then timed on its own ease-out curve, quick
+    // to start and slowing before it finishes, and each child stroke starts
+    // the moment its parent reaches the spot it branches from. Playback just
+    // draws marks as their times come due. Keep-out fades are still decided
+    // at draw time, against the real ink.
+    const PER_MARK = 0.022; // seconds of stroke per mark, before easing
+    const MIN_STROKE = 0.35;
+    const easeOutInv = (p) => 1 - Math.pow(1 - p, 1 / 4); // inverse of ease-out quart
 
     const recorder = {
-      cur: null,
-      wash(...a) { this.cur.push(["wash", a]); },
-      seed(...a) { this.cur.push(["seed", a]); },
+      stack: null,
+      top() { return this.stack[this.stack.length - 1]; },
+      wash(...a) { this.top().marks.push(["wash", a]); },
+      seed(...a) { this.top().marks.push(["seed", a]); },
+      open() {
+        const parent = this.top();
+        const s = { marks: [], kids: [] };
+        parent.kids.push({ at: parent.marks.length, s });
+        this.stack.push(s);
+      },
+      close() { this.stack.pop(); },
       blocked: (x, y) => ink.blocked(x, y),
     };
 
-    const record = ({ it, speed }) => {
-      const steps = [];
-      const prev = recorder.cur;
-      let cur = [];
+    const record = ({ it }) => {
+      const root = { marks: [], kids: [] };
+      const saved = recorder.stack;
+      recorder.stack = [root];
       for (;;) {
-        recorder.cur = cur; // a nested record() moves it; take it back
         const r = it.next();
         if (r.done) break;
-        if (r.value && r.value.spawn) cur.push(["spawn", record(r.value.spawn)]);
-        else { steps.push(cur); cur = []; }
+        if (r.value && r.value.spawn) {
+          const at = recorder.top();
+          const here = recorder.stack;
+          const child = record(r.value.spawn);
+          recorder.stack = here;
+          at.kids.push({ at: at.marks.length, s: child });
+        }
       }
-      if (cur.length) steps.push(cur);
-      recorder.cur = prev;
-      return { steps, duration: Math.max(0.3, (steps.length / (speed * 60)) * SLOWER) };
+      recorder.stack = saved;
+      return root;
     };
 
-    const run = (op, now) => {
-      if (op[0] === "wash") ink.wash(...op[1]);
-      else if (op[0] === "seed") ink.seed(...op[1]);
-      else if (now === null) runAll(op[1]);
-      else growing.push({ rec: op[1], t0: now, i: 0 });
+    // Flatten a stroke tree into [time, mark] pairs.
+    const schedule = (s, start, out) => {
+      const n = s.marks.length;
+      const D = Math.max(MIN_STROKE, n * PER_MARK);
+      const times = s.marks.map((_, j) => start + D * easeOutInv((j + 1) / n));
+      s.marks.forEach((m, j) => out.push([times[j], m]));
+      for (const k of s.kids) schedule(k.s, k.at > 0 ? times[k.at - 1] : start, out);
+      return out;
     };
-    const runAll = (rec) => rec.steps.forEach((s) => s.forEach((op) => run(op, null)));
 
+    const draw = ([kind, a]) => (kind === "wash" ? ink.wash(...a) : ink.seed(...a));
+
+    // Each planting is its own timeline of marks sorted by when they land.
     const frame = (ms) => {
       const now = ms / 1000;
-      // Iterate over a snapshot: spawns started this frame begin next frame.
-      const playing = growing;
-      growing = [];
-      for (const g of playing) {
+      growing = growing.filter((g) => {
         if (g.t0 === null) g.t0 = now;
-        const n = g.rec.steps.length;
-        const target = Math.ceil(n * ease(Math.min(1, (now - g.t0) / g.rec.duration)));
-        for (; g.i < target; g.i++) g.rec.steps[g.i].forEach((op) => run(op, now));
-        if (g.i < n) growing.push(g);
-      }
+        const t = now - g.t0;
+        while (g.i < g.marks.length && g.marks[g.i][0] <= t) draw(g.marks[g.i++][1]);
+        return g.i < g.marks.length;
+      });
       raf = growing.length ? requestAnimationFrame(frame) : 0;
     };
 
     const scale = () => Math.min(1.4, Math.max(0.85, Math.min(w, h) / 700));
 
     const growAt = (x, y, s = scale() * (0.75 + Math.random() * 0.5)) => {
-      const recs = grow(recorder, x, y, s, { w, h }).map(record);
+      const marks = [];
+      for (const g of grow(recorder, x, y, s, { w, h })) schedule(record(g), 0, marks);
       if (reducedMotion) {
-        recs.forEach(runAll);
+        marks.forEach((m) => draw(m[1]));
         return;
       }
-      for (const rec of recs) growing.push({ rec, t0: null, i: 0 });
+      marks.sort((p, q) => p[0] - q[0]);
+      growing.push({ marks, t0: null, i: 0 });
       if (!raf) raf = requestAnimationFrame(frame);
     };
 

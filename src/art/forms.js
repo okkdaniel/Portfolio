@@ -4,6 +4,11 @@
 // form (runners do this: they creep along and open ferns, moss, firs on
 // the way).
 //
+// ink.open() / ink.close() bracket one stroke: a fern leaflet, a fir bough,
+// a cedar sprig, a lichen ring. Strokes nest (leaflets inside a stem), and
+// the Field eases each one out on its own, so every branch visibly slows
+// before it finishes rather than the plant moving at one flat speed.
+//
 // Nothing here is literal botany; it's the gesture of each plant drawn in
 // halftone washes and crisp seeds.
 
@@ -48,6 +53,7 @@ function wander(x, y, a, length, { step = 3, curl = 0, jitter = 0.03, droop = 0 
 
 /** Confetti: spores and pollen thrown around a point. */
 export function* spores(ink, x, y, R, n, colors = SPORE_COLORS) {
+  ink.open();
   for (let i = 0; i < n; i++) {
     const ang = rand(0, TAU);
     const d = R * Math.sqrt(Math.random()) * rand(0.3, 1);
@@ -55,15 +61,18 @@ export function* spores(ink, x, y, R, n, colors = SPORE_COLORS) {
     ink.seed(x + Math.cos(ang) * d, y + Math.sin(ang) * d, big ? rand(3, 5.5) : rand(0.9, 2.8), pick(colors), rand(0.45, 0.95));
     if (i % 3 === 0) yield;
   }
+  ink.close();
 }
 
 /** Big, faint washes: color bleeding into the paper under everything else. */
 export function* bleed(ink, x, y, s, rgb = pick(SCHEMES.bleed)) {
+  ink.open();
   const n = randInt(2, 4);
   for (let i = 0; i < n; i++) {
     ink.wash(x + rand(-60, 60) * s, y + rand(-50, 50) * s, rand(50, 110) * s, rgb, rand(0.18, 0.28), rand(0.45, 0.65));
     yield;
   }
+  ink.close();
 }
 
 // ---- plants ---------------------------------------------------------------
@@ -72,11 +81,13 @@ export function* fern(ink, x, y, a, s, sc = pick(SCHEMES.fern)) {
   const L = rand(150, 280) * s;
   const rachis = wander(x, y, a, L, { curl: rand(-0.012, 0.012), jitter: 0.015 });
 
+  ink.open();
   for (let i = 0; i < rachis.length; i += 9) {
     const p = rachis[i];
     ink.wash(p.x, p.y, 32 * s * (1 - p.t * 0.5), sc[1], 0.2, 0.5);
     yield;
   }
+  ink.close();
 
   let side = 1;
   let next = 6 * s;
@@ -90,15 +101,19 @@ export function* fern(ink, x, y, a, s, sc = pick(SCHEMES.fern)) {
       const prof = Math.sin(Math.PI * Math.min(1, p.t * 1.05 + 0.1)) * (1 - 0.35 * p.t);
       const len = (12 + 46 * prof) * s;
       const pa = p.a + side * (Math.PI / 2 - 0.45 - 0.4 * p.t);
+      ink.open();
       for (const q of wander(p.x, p.y, pa, len, { curl: -side * 0.015, jitter: 0.02 })) {
         ink.wash(q.x, q.y, (6.5 - 4 * q.t) * s, chance(0.12) ? sc[2] : sc[0], 0.42, 0.9);
       }
+      ink.close();
     }
     if (i % 2) yield;
   }
 
   const tip = rachis[rachis.length - 1];
+  ink.open();
   yield* fiddlehead(ink, tip.x, tip.y, tip.a, s * 0.32, sc, true);
+  ink.close();
   yield* spores(ink, x + Math.cos(a) * L * 0.5, y + Math.sin(a) * L * 0.5, L * 0.6, randInt(10, 22), [sc[0], sc[1], sc[2], C.rust]);
 }
 
@@ -162,9 +177,11 @@ export function* moss(ink, x, y, s, sc = pick(SCHEMES.moss)) {
   for (let i = 0; i < count; i++) {
     const b = pick(cushion);
     const stalk = wander(b.x, b.y, UP + rand(-0.5, 0.5), rand(10, 28) * s, { step: 2, curl: rand(-0.02, 0.02) });
+    ink.open();
     for (const q of stalk) ink.seed(q.x, q.y, 0.55 * Math.max(0.7, s), C.bark, 0.6);
     const top = stalk[stalk.length - 1];
     ink.seed(top.x, top.y, rand(1.8, 3) * Math.max(0.7, s), pick([C.rust, C.cedar, C.sun, C.berry]), 0.9);
+    ink.close();
     yield;
   }
 }
@@ -190,10 +207,12 @@ export function* lichen(ink, x, y, s, sc = pick(SCHEMES.lichen)) {
       marks.push({ x: x + Math.cos(th) * d, y: y + Math.sin(th) * d });
     }
     marks.sort(() => Math.random() - 0.5);
+    ink.open();
     for (let i = 0; i < marks.length; i++) {
       ink.wash(marks[i].x, marks[i].y, rr * s, col, 0.42, 0.9);
       if (i % 3 === 0) yield;
     }
+    ink.close();
   }
   yield* spores(ink, x, y, R * 1.3, randInt(8, 18), [sc[0], sc[1], C.rust, C.sun]);
 }
@@ -202,10 +221,12 @@ export function* conifer(ink, x, y, s, sc = pick(SCHEMES.conifer)) {
   const H = rand(140, 280) * s;
   const maxW = H * rand(0.3, 0.42);
 
+  ink.open();
   for (let t = 0; t < 1; t += 0.22) {
     ink.wash(x + rand(-6, 6) * s, y - H * (t + 0.1), maxW * (1 - t) * 0.9 + 14 * s, sc[1], 0.18, 0.45);
     yield;
   }
+  ink.close();
 
   // The trunk climbs; boughs open as it passes, long at the base, short up top.
   let nextTier = rand(10, 18) * s;
@@ -220,9 +241,11 @@ export function* conifer(ink, x, y, s, sc = pick(SCHEMES.conifer)) {
         const w = maxW * Math.pow(1 - t, 1.1) * rand(0.75, 1.1) + 3 * s;
         const a0 = side > 0 ? rand(0.12, 0.45) : Math.PI - rand(0.12, 0.45);
         // Tips turn back up a little, like fir boughs.
+        ink.open();
         for (const q of wander(tx, ty, a0, w, { curl: -side * 0.012, jitter: 0.03 })) {
           ink.wash(q.x, q.y, (5 - 2.8 * q.t) * s, chance(0.85) ? sc[0] : sc[2], 0.42, 0.9);
         }
+        ink.close();
       }
       yield;
     }
@@ -240,6 +263,7 @@ export function* cedar(ink, x, y, a, s, sc = pick(SCHEMES.cedar)) {
   function* spray(x0, y0, a0, len, depth) {
     const pts = wander(x0, y0, a0, len, { droop: 0.02 + depth * 0.01, jitter: 0.02 });
     let side = 1;
+    ink.open();
     for (let i = 0; i < pts.length; i++) {
       const p = pts[i];
       ink.seed(p.x, p.y, (depth === 0 ? 1.1 : 0.7) * Math.max(0.7, s), C.cedar, 0.55);
@@ -250,6 +274,7 @@ export function* cedar(ink, x, y, a, s, sc = pick(SCHEMES.cedar)) {
       }
       if (i % 2) yield;
     }
+    ink.close();
   }
   ink.wash(x, y, 60 * s, sc[1], 0.18, 0.45);
   yield* spray(x, y, a, rand(110, 190) * s, 0);

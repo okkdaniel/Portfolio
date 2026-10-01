@@ -69,6 +69,11 @@ export class Ink {
     return this.fade(x, y) <= 0;
   }
 
+  // Stroke brackets (see forms.js). Only the Field's recorder uses them for
+  // timing; drawn directly, a stroke is just its marks.
+  open() {}
+  close() {}
+
   /** Halftone wash: a soft disc of screen dots. */
   wash(x, y, r, rgb, alpha = 0.4, density = 1) {
     const ctx = this.ctx;

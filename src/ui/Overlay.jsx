@@ -19,6 +19,7 @@ export function Overlay({ open, setOpen, onReset, projects }) {
   return (
     <div className="overlay">
       <header className="ov-head" data-keepout>
+        <span className="ov-mark" aria-hidden="true" />
         <h1 className="ov-name">Daniel Kaliko</h1>
         <p className="ov-line">builds robots, thinks about trees.</p>
 

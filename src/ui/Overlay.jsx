@@ -4,8 +4,8 @@ import { decryptEmail } from "../utils/email.js";
 import { usePreloadProject } from "../hooks/usePreloadProject.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 
-// The previous, professional version of the site.
-export const PROFESSIONAL_URL = "https://danielkaliko.com";
+// The previous, professional version of the site (the main branch).
+export const PROFESSIONAL_URL = "https://old.danielkaliko.com";
 
 /**
  * Overlay — the only text on the piece. A name, one line, and three folds

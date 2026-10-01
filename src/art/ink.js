@@ -6,14 +6,27 @@
 // stack on the same cells and deepen like pigment instead of turning to noise.
 // A `seed` is a single crisp dot: spores, capsules, pollen.
 //
-// Everything is drawn with multiply, so color only ever darkens where it
-// overlaps, the way paint behaves on paper.
+// Ink lands on the paper by multiply, so color only ever darkens where it
+// overlaps, the way paint behaves on paper. (Marks are drawn onto a scratch
+// layer that the Field multiplies onto the paper once per frame; see
+// Field.jsx for why.)
 
 export const PAPER = "#f3f0e8";
 export const PITCH = 3; // halftone screen, CSS px (finer on phones)
 
 export const FEATHER = 70; // px over which ink thins out approaching a keep-out
 export const WOBBLE = 36;  // how far that edge wanders, so it never reads as a line
+
+// The wash's falloff curves, f^0.55 and f^0.7, precomputed: they run for
+// every dot of every wash, and Math.pow there was a real share of the cost.
+const LUT_N = 1023;
+const POW_055 = new Float32Array(LUT_N + 2);
+const POW_07 = new Float32Array(LUT_N + 2);
+for (let i = 0; i <= LUT_N + 1; i++) {
+  const f = Math.min(1, i / LUT_N);
+  POW_055[i] = Math.pow(f, 0.55);
+  POW_07[i] = Math.pow(f, 0.7);
+}
 
 // Pacific Northwest, a bit brighter than life.
 export const C = {
@@ -38,11 +51,19 @@ export class Ink {
   constructor(ctx, pitch = PITCH) {
     this.ctx = ctx;
     this.pitch = pitch;
+    // Device pixels per CSS pixel on the canvas; dots snap to this grid.
+    this.pixelRatio = 1;
     this.keepouts = [];
     // Masking fluid: { x, y, w, h, a } — a shape (the frog) painted onto the
     // paper before anything grows. Ink never lands inside it, so washes that
     // pass over it leave it behind as bare paper.
     this.resist = null;
+    // Running count of dots drawn, so the Field can budget each frame by how
+    // much it actually asked the canvas to fill.
+    this.dots = 0;
+    // Bounding box [x0, y0, x1, y1] (CSS px) of everything drawn since the
+    // Field last flushed this layer onto the paper.
+    this.dirty = null;
   }
 
   resisted(x, y) {
@@ -93,16 +114,45 @@ export class Ink {
   open() {}
   close() {}
 
-  /** Halftone wash: a soft disc of screen dots. */
-  wash(x, y, r, rgb, alpha = 0.4, density = 1) {
+  /**
+   * Whether a disc at (x, y, r) could be touched by a keep-out's feathered
+   * edge or by the resist. Most marks are nowhere near either, and this lets
+   * them skip the per-dot fade check entirely.
+   */
+  nearMasks(x, y, r) {
+    const M = FEATHER + WOBBLE;
+    for (const k of this.keepouts) {
+      if (x + r > k.x - M && x - r < k.x + k.w + M && y + r > k.y - M && y - r < k.y + k.h + M) return true;
+    }
+    const m = this.resist;
+    return !!m && x + r > m.x && x - r < m.x + m.w && y + r > m.y && y - r < m.y + m.h;
+  }
+
+  /**
+   * Halftone wash: a soft disc of screen dots.
+   *
+   * A big wash can be thousands of dots, too many for one frame, so it can be
+   * drawn in pieces: pass `fromRow` (a grid row, or null to start) and
+   * `maxDots`, and it stops once it has drawn that many, returning the row to
+   * resume from (or -1 when the wash is complete).
+   */
+  wash(x, y, r, rgb, alpha = 0.4, density = 1, fromRow = null, maxDots = Infinity) {
     const ctx = this.ctx;
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
     const P = this.pitch;
+    const k = this.pixelRatio;
+    const masked = this.nearMasks(x, y, r);
+    this.touch(x - r, y - r, x + r, y + r);
     const gx0 = Math.ceil((x - r) / P), gx1 = Math.floor((x + r) / P);
     const gy0 = Math.ceil((y - r) / P), gy1 = Math.floor((y + r) / P);
     const r2 = r * r;
-    for (let gy = gy0; gy <= gy1; gy++) {
+    // Every dot of the wash goes into one path and is filled in a single
+    // call. The dots sit on separate grid cells and never overlap, so this
+    // looks identical to filling them one by one, at a fraction of the cost.
+    let dots = 0;
+    let resume = -1;
+    ctx.beginPath();
+    for (let gy = fromRow ?? gy0; gy <= gy1; gy++) {
+      if (dots >= maxDots) { resume = gy; break; }
       const py = gy * P;
       const dy = py - y;
       for (let gx = gx0; gx <= gx1; gx++) {
@@ -111,23 +161,47 @@ export class Ink {
         const d2 = (dx * dx + dy * dy) / r2;
         if (d2 >= 1) continue;
         const f = density * (1 - d2) * (1 - d2);
+        const fi = (f * LUT_N) | 0;
         // Dense in the middle, breaking up raggedly toward the edge.
-        if (Math.random() > Math.pow(f, 0.55)) continue;
-        if ((this.keepouts.length || this.resist) && Math.random() > this.fade(px, py)) continue;
-        const s = (0.3 + 0.7 * Math.pow(f, 0.7) * (0.75 + Math.random() * 0.25)) * P;
-        ctx.fillRect(px - s / 2, py - s / 2, s, s);
+        if (Math.random() > POW_055[fi]) continue;
+        if (masked && Math.random() > this.fade(px, py)) continue;
+        const s = (0.3 + 0.7 * POW_07[fi] * (0.75 + Math.random() * 0.25)) * P;
+        // Snapped to whole device pixels: square, unsmoothed edges are the
+        // canvas's fast path (benchmarked ~2.5x quicker to fill), and on a 3px
+        // halftone screen the difference doesn't show.
+        const e = Math.max(1, Math.round(s * k)) / k;
+        ctx.rect(Math.round((px - e / 2) * k) / k, Math.round((py - e / 2) * k) / k, e, e);
+        dots++;
       }
     }
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    ctx.fill();
+    this.dots += dots;
+    return resume;
   }
 
   /** One crisp round dot. */
+  touch(x0, y0, x1, y1) {
+    const d = this.dirty;
+    if (!d) this.dirty = [x0, y0, x1, y1];
+    else {
+      if (x0 < d[0]) d[0] = x0;
+      if (y0 < d[1]) d[1] = y0;
+      if (x1 > d[2]) d[2] = x1;
+      if (y1 > d[3]) d[3] = y1;
+    }
+  }
+
   seed(x, y, r, rgb, alpha = 0.85) {
-    if ((this.keepouts.length || this.resist) && Math.random() > this.fade(x, y)) return;
+    if (this.nearMasks(x, y, r) && Math.random() > this.fade(x, y)) return;
+    this.touch(x - r, y - r, x + r, y + r);
     const ctx = this.ctx;
     ctx.globalAlpha = alpha;
     ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
+    this.dots++;
   }
 }

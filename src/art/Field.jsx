@@ -1,5 +1,5 @@
 import React from "react";
-import { Ink, PAPER, FEATHER, WOBBLE } from "./ink.js";
+import { Ink, C, PAPER, FEATHER, WOBBLE } from "./ink.js";
 import { grow, clearing, SPORE_COLORS } from "./forms.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 
@@ -44,7 +44,13 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     const ctx = canvas.getContext("2d");
     const veil = veilRef.current;
     const vctx = veil.getContext("2d");
-    const ink = new Ink(ctx, isSmall ? 2.2 : 3);
+    // Ink is drawn with plain blending onto a transparent scratch layer, which
+    // is then multiplied onto the paper in a single draw per frame, over just
+    // the area that changed. Multiplying every wash directly made the GPU copy
+    // the canvas behind each draw call: ~3.5x the cost (measured).
+    const scratch = document.createElement("canvas");
+    const sctx = scratch.getContext("2d");
+    const ink = new Ink(sctx, isSmall ? 2.2 : 3);
     let w = 0, h = 0, dpr = 1;
     let growing = [];
     let raf = 0;
@@ -54,7 +60,29 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       ctx.globalAlpha = 1;
       ctx.fillStyle = PAPER;
       ctx.fillRect(0, 0, w, h);
+    };
+
+    // Multiply whatever ink has gathered on the scratch layer onto the paper,
+    // then wipe that patch of scratch.
+    const flush = () => {
+      const d = ink.dirty;
+      if (!d) return;
+      ink.dirty = null;
+      const x0 = Math.max(0, Math.floor(d[0] * dpr) - 2);
+      const y0 = Math.max(0, Math.floor(d[1] * dpr) - 2);
+      const x1 = Math.min(canvas.width, Math.ceil(d[2] * dpr) + 2);
+      const y1 = Math.min(canvas.height, Math.ceil(d[3] * dpr) + 2);
+      if (x1 <= x0 || y1 <= y0) return;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalCompositeOperation = "multiply";
+      ctx.globalAlpha = 1;
+      ctx.drawImage(scratch, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+      ctx.restore();
+      sctx.save();
+      sctx.setTransform(1, 0, 0, 1, 0, 0);
+      sctx.clearRect(x0, y0, x1 - x0, y1 - y0);
+      sctx.restore();
     };
 
     // Resizing a canvas wipes it, so carry the painting across.
@@ -66,18 +94,19 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
         keep.getContext("2d").drawImage(canvas, 0, 0);
       }
       dpr = Math.min(2, window.devicePixelRatio || 1);
+      ink.pixelRatio = dpr;
       w = window.innerWidth;
       h = window.innerHeight;
-      canvas.width = veil.width = Math.round(w * dpr);
-      canvas.height = veil.height = Math.round(h * dpr);
+      canvas.width = veil.width = scratch.width = Math.round(w * dpr);
+      canvas.height = veil.height = scratch.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ink.dirty = null;
       paper();
       if (keep) {
-        ctx.globalCompositeOperation = "source-over";
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.drawImage(keep, 0, 0);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.globalCompositeOperation = "multiply";
       }
     };
 
@@ -97,8 +126,10 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       vctx.fillStyle = PAPER;
       const P = ink.pitch;
       const M = FEATHER + WOBBLE;
+      // One path for the whole veil, filled once (as with washes).
+      vctx.beginPath();
       for (const r of ink.keepouts) {
-        vctx.fillRect(r.x, r.y, r.w, r.h);
+        vctx.rect(r.x, r.y, r.w, r.h);
         const gx0 = Math.floor((r.x - M) / P), gx1 = Math.ceil((r.x + r.w + M) / P);
         const gy0 = Math.floor((r.y - M) / P), gy1 = Math.ceil((r.y + r.h + M) / P);
         for (let gy = gy0; gy <= gy1; gy++) {
@@ -107,17 +138,23 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
             const px = gx * P;
             if (px > r.x && px < r.x + r.w && py > r.y && py < r.y + r.h) continue;
             if (cellHash(gx, gy) < ink.keepoutFade(px, py)) continue;
-            vctx.fillRect(px - P / 2 - 0.3, py - P / 2 - 0.3, P + 0.6, P + 0.6);
+            vctx.rect(px - P / 2 - 0.3, py - P / 2 - 0.3, P + 0.6, P + 0.6);
           }
         }
       }
+      vctx.fill();
     };
 
+    let keepoutKey = "";
     const applyKeepouts = () => {
       ink.keepouts = [...document.querySelectorAll("[data-keepout]")].map((el) => {
         const r = el.getBoundingClientRect();
         return { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 };
       });
+      // Redraw the veil only when the text's footprint actually moved.
+      const key = ink.keepouts.map((r) => [r.x, r.y, r.w, r.h].map(Math.round).join(",")).join("|") + "@" + dpr;
+      if (key === keepoutKey) return;
+      keepoutKey = key;
       drawVeil();
     };
 
@@ -149,23 +186,40 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       blocked: (x, y) => ink.blocked(x, y),
     };
 
-    const record = ({ it }) => {
+    // Recording is resumable and runs a slice at a time inside the frame loop,
+    // so a click never stalls a frame however much it sets off. `pending`
+    // holds one entry per top-level form; each keeps a stack of generator
+    // contexts, since a form can spawn another (a runner opening a fern)
+    // whose tree hangs off the stroke it was spawned from. A form starts
+    // playing as soon as its own tree is fully recorded.
+    let pending = [];
+    const contextFor = ({ it }, attach = null) => {
       const root = { marks: [], kids: [] };
-      const saved = recorder.stack;
-      recorder.stack = [root];
-      for (;;) {
-        const r = it.next();
-        if (r.done) break;
-        if (r.value && r.value.spawn) {
-          const at = recorder.top();
-          const here = recorder.stack;
-          const child = record(r.value.spawn);
-          recorder.stack = here;
-          at.kids.push({ at: at.marks.length, s: child });
+      return { it, root, stack: [root], attach };
+    };
+
+    const advance = (deadline, emit) => {
+      while (pending.length) {
+        const top = pending[0];
+        const ctx = top[top.length - 1];
+        recorder.stack = ctx.stack;
+        let finished = false;
+        for (let k = 0; k < 32; k++) {
+          const r = ctx.it.next();
+          if (r.done) { finished = true; break; }
+          if (r.value && r.value.spawn) {
+            const s = ctx.stack[ctx.stack.length - 1];
+            top.push(contextFor(r.value.spawn, { s, at: s.marks.length }));
+            break;
+          }
         }
+        if (finished) {
+          top.pop();
+          if (ctx.attach) ctx.attach.s.kids.push({ at: ctx.attach.at, s: ctx.root });
+          else { pending.shift(); emit(ctx.root); }
+        }
+        if (performance.now() > deadline) return;
       }
-      recorder.stack = saved;
-      return root;
     };
 
     // Flatten a stroke tree into [time, mark] pairs.
@@ -181,29 +235,65 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     const draw = ([kind, a]) => (kind === "wash" ? ink.wash(...a) : ink.seed(...a));
 
     // Each planting is its own timeline of marks sorted by when they land.
+    // Drawing is capped at a few milliseconds per frame: whatever's due past
+    // that waits for the next frame. Under heavy clicking, growth falls a beat
+    // behind its schedule instead of the page stuttering. Plantings take
+    // turns starting first, so none is starved while others are busy.
+    // Two caps: script time, and dots handed to the canvas (the canvas fills
+    // them after the script returns, so time alone undercounts the cost).
+    const RECORD_MS = 4;
+    const BUDGET_MS = 6;
+    const BUDGET_DOTS = 4500;
+    let turn = 0;
+    const play = (root) => {
+      const marks = schedule(root, 0, []).sort((p, q) => p[0] - q[0]);
+      growing.push({ marks, t0: null, i: 0 });
+    };
     const frame = (ms) => {
       const now = ms / 1000;
-      growing = growing.filter((g) => {
+      advance(performance.now() + RECORD_MS, play);
+      const start = performance.now();
+      const dots0 = ink.dots;
+      const spent = () => performance.now() - start > BUDGET_MS || ink.dots - dots0 > BUDGET_DOTS;
+      const n = growing.length;
+      for (let k = 0; k < n; k++) {
+        const g = growing[(k + turn) % n];
         if (g.t0 === null) g.t0 = now;
         const t = now - g.t0;
-        while (g.i < g.marks.length && g.marks[g.i][0] <= t) draw(g.marks[g.i++][1]);
-        return g.i < g.marks.length;
-      });
-      raf = growing.length ? requestAnimationFrame(frame) : 0;
+        while (g.i < g.marks.length && g.marks[g.i][0] <= t) {
+          const [kind, a] = g.marks[g.i][1];
+          if (kind === "wash") {
+            // A big wash may not fit in what's left of the frame; draw what
+            // fits and pick it up from the same row next frame.
+            const left = Math.max(1, BUDGET_DOTS - (ink.dots - dots0));
+            const row = ink.wash(a[0], a[1], a[2], a[3], a[4] ?? 0.4, a[5] ?? 1, g.row ?? null, left);
+            if (row !== -1) { g.row = row; break; }
+            g.row = null;
+          } else {
+            ink.seed(...a);
+          }
+          g.i++;
+          if (spent()) break;
+        }
+        if (spent()) break;
+      }
+      flush();
+      turn++;
+      growing = growing.filter((g) => g.i < g.marks.length);
+      raf = growing.length || pending.length ? requestAnimationFrame(frame) : 0;
     };
 
     const scale = () => Math.min(1.4, Math.max(0.85, Math.min(w, h) / 700));
 
-    // Record, time and start playing a set of generators.
+    // Queue a set of generators to be recorded, timed and played. Reduced
+    // motion records and draws them all at once.
     const plant = (gens) => {
-      const marks = [];
-      for (const g of gens) schedule(record(g), 0, marks);
+      for (const g of gens) pending.push([contextFor(g)]);
       if (reducedMotion) {
-        marks.forEach((m) => draw(m[1]));
+        advance(Infinity, (root) => schedule(root, 0, []).forEach((m) => draw(m[1])));
+        flush();
         return;
       }
-      marks.sort((p, q) => p[0] - q[0]);
-      growing.push({ marks, t0: null, i: 0 });
       if (!raf) raf = requestAnimationFrame(frame);
     };
 
@@ -241,10 +331,43 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
 
     api.current.reset = () => {
       growing = [];
+      pending = [];
+      ink.dirty = null;
+      sctx.save();
+      sctx.setTransform(1, 0, 0, 1, 0, 0);
+      sctx.clearRect(0, 0, scratch.width, scratch.height);
+      sctx.restore();
       paper();
     };
 
     resize();
+
+    // Warm the GPU up before anything is visible. The first time a kind of
+    // draw is used (halftone path, small and large seeds, the multiply
+    // composite) the graphics driver compiles a shader for it, which stalled
+    // the first frames of growth by 60–150ms. Doing one of each now, then
+    // laying fresh paper over it, moves that cost into page load.
+    // The marks go in the top-left corner, which always sits under the
+    // header's paper veil, so they're never seen. They have to really be
+    // drawn (paper laid straight over them would let the browser skip them),
+    // so the corner is cleaned a couple of frames later instead.
+    ink.wash(60, 60, 14, C.moss, 0.4, 1);
+    ink.wash(120, 80, 50, C.lichen, 0.2, 0.5);
+    ink.wash(150, 130, 110, C.glacier, 0.25, 0.75);
+    ink.seed(60, 110, 1.2, C.rust, 0.8);
+    ink.seed(80, 110, 4.5, C.sun, 0.8);
+    flush();
+    let warmRaf = requestAnimationFrame(() => {
+      warmRaf = requestAnimationFrame(() => {
+        ctx.save();
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = PAPER;
+        ctx.fillRect(0, 0, 270, 250);
+        ctx.restore();
+      });
+    });
+
     applyKeepouts();
     // Folds change the text's footprint; follow it every frame they animate.
     const watcher = new ResizeObserver(applyKeepouts);
@@ -280,9 +403,10 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       const a = Math.random() * Math.PI * 2, d = 6 + Math.random() * 18;
       const col = SPORE_COLORS[Math.floor(Math.random() * SPORE_COLORS.length)];
       ink.seed(e.clientX + Math.cos(a) * d, e.clientY + Math.sin(a) * d, 0.8 + Math.random() * 1.6, col, 0.55);
+      if (!raf) flush(); // otherwise the running frame loop flushes it
     };
     const onLeave = () => { lastX = null; };
-    const onResize = () => { resize(); applyKeepouts(); };
+    const onResize = () => { resize(); keepoutKey = ""; applyKeepouts(); }; // resize wipes the veil
 
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointerup", onUp);
@@ -292,6 +416,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
 
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(warmRaf);
       watcher.disconnect();
       alive = false;
       seedTimers.forEach(clearTimeout);

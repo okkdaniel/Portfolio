@@ -28,8 +28,8 @@
   position: absolute;
   /* Headroom so the seal beside the name isn't clipped by the scroll box;
      the text itself still starts one gutter from the top. */
-  top: max(0px, calc(var(--gutter) - 44px));
-  padding-top: 44px;
+  top: max(0px, calc(var(--gutter) - 36px));
+  padding-top: 36px;
   left: var(--gutter);
   width: min(320px, calc(100vw - var(--gutter) * 2));
   max-height: calc(100dvh - var(--gutter) - 58px);
@@ -46,8 +46,8 @@
 .bloom {
   display: inline-block;
   position: relative;
-  top: -19px;
-  margin: -65px -39px -65px -27px;
+  top: -15px;
+  margin: -56px -30px -56px -30px;
   vertical-align: middle;
 }
 
@@ -163,7 +163,6 @@
 @media (max-width: 768px) {
   .ov-name { font-size: 30px; }
   .ov-top { margin-bottom: 22px; }
-  .bloom { transform: scale(0.82); transform-origin: 30% 50%; }
   .ov-foot { bottom: var(--gutter); }
   .clock__place { display: none; }
 }

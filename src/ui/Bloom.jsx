@@ -2,9 +2,8 @@ import React from "react";
 import { Ink, C } from "../art/ink.js";
 import { lichen, SPORE_COLORS } from "../art/forms.js";
 
-const SIZE = 150; // canvas, CSS px: the rosette plus room for its confetti
-const R = 34;     // rosette radius
-const FROG = 47;  // frog size (its longer side), CSS px
+const SIZE = 132; // canvas, CSS px: the rosette plus room for its confetti
+const R = 29;     // rosette radius
 const SRC = "/assets/brand/anura.svg";
 
 /**
@@ -28,17 +27,16 @@ export function Bloom() {
     const c = SIZE / 2;
 
     // The rosette exactly as it grows in the field, at a fixed size.
-    const it = lichen(ink, c, c, 0.55, [C.rust, C.sun], { R, lobes: 7, spores: 7, ringAlpha: 0.75 });
+    const it = lichen(ink, c, c, 0.5, [C.rust, C.sun], { R, lobes: 7, spores: 7, ringAlpha: 0.7 });
     while (!it.next().done);
 
-    // Field lichens are open rings; fill the middle so the frog has ground to
+    // Field lichens are open rings; fill this one so the frog has ground to
     // be carved from. A tight screen here, nearly solid, so the frog's thin
-    // legs still read once they're cut out. The fill stops short of the
-    // outer ring, so the lobed lichen edge still shows around it.
+    // legs still read once they're cut out.
     const fill = new Ink(ctx, 1);
     for (let i = 0; i < 170; i++) {
       const th = Math.random() * Math.PI * 2;
-      const d = Math.sqrt(Math.random()) * R * 0.7;
+      const d = Math.sqrt(Math.random()) * R * 0.9;
       fill.wash(c + Math.cos(th) * d, c + Math.sin(th) * d, 5, i % 3 ? C.rust : C.cedar, 0.5, 1);
     }
 
@@ -47,7 +45,7 @@ export function Bloom() {
     img.src = SRC;
     img.decode().then(() => {
       if (!alive) return;
-      const s = FROG / Math.max(img.width, img.height);
+      const s = (R * 1.62) / Math.max(img.width, img.height);
       const fw = img.width * s, fh = img.height * s;
       ctx.globalCompositeOperation = "destination-out";
       ctx.globalAlpha = 1;

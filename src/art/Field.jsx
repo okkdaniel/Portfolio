@@ -242,8 +242,14 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     // Two caps: script time, and dots handed to the canvas (the canvas fills
     // them after the script returns, so time alone undercounts the cost).
     const RECORD_MS = 4;
-    const BUDGET_MS = 6;
-    const BUDGET_DOTS = 4500;
+    // Growth is drawn on a 15fps beat, for a stop-motion feel: the loop still
+    // runs every display frame (recording stays responsive), but ink only
+    // lands on every ~4th, and each beat draws whatever came due since the
+    // last. With a quarter as many drawing frames, each gets a bigger budget.
+    const GROWTH_FPS = 15;
+    const BUDGET_MS = 10;
+    const BUDGET_DOTS = 9000;
+    let lastBeat = -Infinity;
     let turn = 0;
     const play = (root) => {
       const marks = schedule(root, 0, []).sort((p, q) => p[0] - q[0]);
@@ -252,6 +258,14 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     const frame = (ms) => {
       const now = ms / 1000;
       advance(performance.now() + RECORD_MS, play);
+      // Not a beat yet: start the clock on anything new, but draw nothing.
+      // (A few ms of slack so 60Hz frames land on a steady every-4th beat.)
+      if (now - lastBeat < 1 / GROWTH_FPS - 0.004) {
+        for (const g of growing) if (g.t0 === null) g.t0 = now;
+        raf = growing.length || pending.length ? requestAnimationFrame(frame) : 0;
+        return;
+      }
+      lastBeat = now;
       const start = performance.now();
       const dots0 = ink.dots;
       const spent = () => performance.now() - start > BUDGET_MS || ink.dots - dots0 > BUDGET_DOTS;

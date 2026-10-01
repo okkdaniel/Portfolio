@@ -6,7 +6,7 @@ import { ImageLightbox } from "../components/media/ImageLightbox.jsx";
  * ProjectSheet — one project, on a sheet of paper that slides over the (still
  * growing) board. Short by default: title, one line, the object itself (3D
  * model or wireframe drawing), the render, a few facts. The whole
- * case study is folded under "full notes".
+ * case study is folded under "details".
  *
  * Closes with the close control, a click outside, or Escape.
  */
@@ -51,7 +51,7 @@ export function ProjectSheet({ project: p, next, onClose }) {
               orientation={p.modelOrientation}
               zoom={p.modelZoom}
               lift={p.modelLift}
-              caption="drag to turn it over"
+              caption="drag to rotate"
             />
           ) : p.preview ? (
             <button type="button" className="drawing" onClick={() => setZoom(p.preview)} aria-label="Enlarge the wireframe drawing">
@@ -75,7 +75,7 @@ export function ProjectSheet({ project: p, next, onClose }) {
         )}
 
         <button type="button" className="sheet__notes-toggle" aria-expanded={notes} onClick={() => setNotes(!notes)}>
-          full notes <span aria-hidden="true">{notes ? "(−)" : "(+)"}</span>
+          details <span aria-hidden="true">{notes ? "(−)" : "(+)"}</span>
         </button>
 
         {notes && <Notes p={p} />}

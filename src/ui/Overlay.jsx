@@ -21,7 +21,7 @@ export function Overlay({ open, setOpen, onReset, projects }) {
       <header className="ov-head" data-keepout>
         <div className="ov-top">
           <h1 className="ov-name">Daniel Kaliko</h1>
-          <p className="ov-line">builds robots, thinks about trees.</p>
+          <p className="ov-line">Engineering student. Robotics, mechanical, and PCB design.</p>
         </div>
 
         <Fold id="works" label="Works" open={open === "works"} onToggle={toggle}>
@@ -32,12 +32,19 @@ export function Overlay({ open, setOpen, onReset, projects }) {
 
         <Fold id="about" label="About" open={open === "about"} onToggle={toggle}>
           <div className="about">
-            <p>I grew up in the Las Vegas desert and keep drifting toward green: cedar, ferns, moss, rain.</p>
-            <p>I build things to understand them. Robots, circuit boards, the occasional website.</p>
             <p>Studying engineering at the University of Nevada, Reno.</p>
+            <p>Based in Las Vegas, Nevada.</p>
             <p>
-              This is the inside of my head. The tidy version lives{" "}
-              <a href={PROFESSIONAL_URL} className="link">here&nbsp;→</a>
+              Competed and mentored with{" "}
+              <a className="link" href="https://www.instagram.com/sloancanyonrobotics/" target="_blank" rel="noopener noreferrer">Sloan Canyon Robotics</a>.
+            </p>
+            <p>
+              Designed competition robots in CAD for{" "}
+              <a className="link" href="https://www.team987.com/" target="_blank" rel="noopener noreferrer">FRC Team 987</a>.
+            </p>
+            <p>
+              Previous portfolio:{" "}
+              <a href={PROFESSIONAL_URL} className="link">old.danielkaliko.com&nbsp;→</a>
             </p>
           </div>
         </Fold>
@@ -54,7 +61,7 @@ export function Overlay({ open, setOpen, onReset, projects }) {
 
       <div className="ov-foot ov-foot--left" data-keepout>
         <button type="button" className="reset" onClick={onReset} aria-label="Clear the paper and start again" title="start again">↻</button>
-        <span className="hint">{isTouch ? "(tap the ground to grow)" : "(click the ground to grow)"}</span>
+        <span className="hint">{isTouch ? "(tap to grow)" : "(click to grow)"}</span>
       </div>
 
       <div className="ov-foot ov-foot--right" data-keepout>

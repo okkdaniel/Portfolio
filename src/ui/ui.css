@@ -26,30 +26,16 @@
 
 .ov-head {
   position: absolute;
-  /* Headroom so the seal beside the name isn't clipped by the scroll box;
-     the text itself still starts one gutter from the top. */
-  top: max(0px, calc(var(--gutter) - 36px));
-  padding-top: 36px;
+  top: var(--gutter);
   left: var(--gutter);
   width: min(320px, calc(100vw - var(--gutter) * 2));
-  max-height: calc(100dvh - var(--gutter) - 58px);
+  max-height: calc(100dvh - var(--gutter) - 84px);
   overflow-y: auto;
   scrollbar-width: none;
 }
 .ov-head::-webkit-scrollbar { display: none; }
 
 .ov-top { margin-bottom: 30px; }
-
-/* The lichen seal (Bloom.jsx) sits after the name like a chop beside a
-   signature, lifted so it rides up beside the name rather than down into the
-   bio. Negative margins keep it from stretching the line. */
-.bloom {
-  display: inline-block;
-  position: relative;
-  top: -15px;
-  margin: -56px -30px -56px -30px;
-  vertical-align: middle;
-}
 
 .ov-name {
   margin: 0 0 6px;

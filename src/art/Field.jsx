@@ -1,7 +1,9 @@
 import React from "react";
 import { Ink, PAPER, FEATHER, WOBBLE } from "./ink.js";
-import { grow, SPORE_COLORS } from "./forms.js";
+import { grow, clearing, SPORE_COLORS } from "./forms.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
+
+const FROG_SRC = "/assets/brand/anura.svg";
 
 /**
  * Field — the paper everything grows on. A click sets off a growth: a bloom of
@@ -19,6 +21,10 @@ import { useMediaQuery } from "../hooks/useMediaQuery.js";
  * and dithered away across the same soft, wandering edge that new ink thins
  * out along. The veil follows the text as folds open and close, and never
  * erases anything, so closing a fold brings the plants back.
+ *
+ * Hidden on the paper is the anura frog in masking fluid: ink never lands on
+ * it, and the page opens by growing a clearing over it, so the frog appears
+ * as the bare paper the paint couldn't reach.
  *
  * Reduced motion: each growth is drawn complete, instantly.
  *
@@ -100,7 +106,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
           for (let gx = gx0; gx <= gx1; gx++) {
             const px = gx * P;
             if (px > r.x && px < r.x + r.w && py > r.y && py < r.y + r.h) continue;
-            if (cellHash(gx, gy) < ink.fade(px, py)) continue;
+            if (cellHash(gx, gy) < ink.keepoutFade(px, py)) continue;
             vctx.fillRect(px - P / 2 - 0.3, py - P / 2 - 0.3, P + 0.6, P + 0.6);
           }
         }
@@ -188,9 +194,10 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
 
     const scale = () => Math.min(1.4, Math.max(0.85, Math.min(w, h) / 700));
 
-    const growAt = (x, y, s = scale() * (0.75 + Math.random() * 0.5)) => {
+    // Record, time and start playing a set of generators.
+    const plant = (gens) => {
       const marks = [];
-      for (const g of grow(recorder, x, y, s, { w, h })) schedule(record(g), 0, marks);
+      for (const g of gens) schedule(record(g), 0, marks);
       if (reducedMotion) {
         marks.forEach((m) => draw(m[1]));
         return;
@@ -198,6 +205,38 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       marks.sort((p, q) => p[0] - q[0]);
       growing.push({ marks, t0: null, i: 0 });
       if (!raf) raf = requestAnimationFrame(frame);
+    };
+
+    const growAt = (x, y, s = scale() * (0.75 + Math.random() * 0.5)) => {
+      plant(grow(recorder, x, y, s, { w, h }));
+    };
+
+    // ---- the frog ----
+    // Masking fluid in the shape of the anura frog, laid on the paper before
+    // anything grows (see Ink.resist). The page opens by planting a clearing
+    // over it, so the frog surfaces as bare paper in the middle of the
+    // growth. It's placed once; resizing or clearing the paper leaves it be.
+    let alive = true;
+    const placeFrog = async () => {
+      const img = new Image();
+      img.src = FROG_SRC;
+      await img.decode();
+      if (!alive) return null;
+      const size = isSmall ? w * 0.62 : Math.min(w * 0.26, h * 0.48);
+      const k = size / Math.max(img.width, img.height);
+      const fw = Math.round(img.width * k), fh = Math.round(img.height * k);
+      const cx = isSmall ? w * 0.5 : w * 0.66;
+      const cy = isSmall ? h * 0.66 : h * 0.56;
+      const probe = document.createElement("canvas");
+      probe.width = fw;
+      probe.height = fh;
+      const pc = probe.getContext("2d", { willReadFrequently: true });
+      pc.drawImage(img, 0, 0, fw, fh);
+      const px = pc.getImageData(0, 0, fw, fh).data;
+      const a = new Uint8Array(fw * fh);
+      for (let i = 0; i < a.length; i++) a[i] = px[i * 4 + 3];
+      ink.resist = { x: Math.round(cx - fw / 2), y: Math.round(cy - fh / 2), w: fw, h: fh, a };
+      return { x: cx - fw * 0.65, y: cy - fh * 0.65, w: fw * 1.3, h: fh * 1.3 };
     };
 
     api.current.reset = () => {
@@ -211,13 +250,18 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     const watcher = new ResizeObserver(applyKeepouts);
     document.querySelectorAll("[data-keepout]").forEach((el) => watcher.observe(el));
 
-    // A little has already grown when you arrive.
-    const seeds = isSmall
-      ? [[0.62, 0.8, 0]]
-      : [[0.74, 0.66, 0], [0.9, 0.2, 1400]];
-    const seedTimers = seeds.map(([fx, fy, delay]) =>
-      setTimeout(() => growAt(w * fx, h * fy), reducedMotion ? 0 : delay + 300)
-    );
+    // A little grows as you arrive: the clearing that turns up the frog, and
+    // on wider screens one more patch off in the corner.
+    const seedTimers = [];
+    placeFrog()
+      .then((box) => {
+        if (!box) return;
+        seedTimers.push(setTimeout(() => plant(clearing(recorder, box, scale(), { w, h })), reducedMotion ? 0 : 300));
+      })
+      .catch(() => {});
+    if (!isSmall) {
+      seedTimers.push(setTimeout(() => growAt(w * 0.9, h * 0.18), reducedMotion ? 0 : 2200));
+    }
 
     // ---- input ----
     let downX = 0, downY = 0, downAt = 0;
@@ -249,6 +293,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     return () => {
       cancelAnimationFrame(raf);
       watcher.disconnect();
+      alive = false;
       seedTimers.forEach(clearTimeout);
       canvas.removeEventListener("pointerdown", onDown);
       canvas.removeEventListener("pointerup", onUp);

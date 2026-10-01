@@ -319,6 +319,37 @@ export function* runner(ink, x, y, a, s, bounds, depth = 0) {
   if (chance(0.7)) yield { spawn: anyForm(ink, end.x, end.y, end.a, s * rand(0.5, 0.85)) };
 }
 
+/**
+ * A dense patch of growth over a box: broad washes for ground, moss and
+ * lichen across it, ferns and a fir at the edges, spores over the lot. The
+ * Field plants this over the frog resist when the page opens, so the frog
+ * comes up as bare paper in the middle of it.
+ */
+export function clearing(ink, box, s, bounds) {
+  const { x, y, w, h } = box;
+  const at = (fx, fy) => [x + fx * w, y + fy * h];
+  const ground = function* () {
+    ink.open();
+    for (let i = 0; i < 16; i++) {
+      const [gx, gy] = at(rand(0.05, 0.95), rand(0.05, 0.95));
+      ink.wash(gx, gy, rand(55, 100) * s, pick([C.moss, C.lichen, C.spring, C.glacier, C.fern]), rand(0.22, 0.32), rand(0.6, 0.8));
+      yield;
+    }
+    ink.close();
+  };
+  const out = [{ it: ground(), speed: 1 }];
+  for (const [fx, fy] of [[0.3, 0.3], [0.7, 0.35], [0.45, 0.65], [0.75, 0.75], [0.2, 0.75]]) {
+    out.push({ it: moss(ink, ...at(fx + rand(-0.06, 0.06), fy + rand(-0.06, 0.06)), s * rand(0.85, 1.1)), speed: 4 });
+  }
+  out.push({ it: lichen(ink, ...at(0.55, 0.45), s), speed: 5 });
+  out.push({ it: fern(ink, ...at(0.05, 0.9), UP + 0.5, s), speed: 4 });
+  out.push({ it: fern(ink, ...at(0.98, 0.85), UP - 0.6, s * 0.9), speed: 4 });
+  out.push({ it: conifer(ink, ...at(0.92, 0.6), s * 0.85), speed: 3 });
+  out.push({ it: spores(ink, x + w / 2, y + h / 2, Math.max(w, h) * 0.75, 60), speed: 2 });
+  out.push({ it: runner(ink, ...at(0.5, 0.5), rand(0, TAU), s, bounds), speed: 3 });
+  return out;
+}
+
 /** Everything a single click sets off. */
 export function grow(ink, x, y, s, bounds) {
   const out = [

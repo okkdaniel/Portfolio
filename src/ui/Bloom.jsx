@@ -3,7 +3,7 @@ import { Ink, C } from "../art/ink.js";
 import { lichen, SPORE_COLORS } from "../art/forms.js";
 
 const SIZE = 132; // canvas, CSS px: the rosette plus room for its confetti
-const R = 26;     // rosette radius
+const R = 29;     // rosette radius
 const SRC = "/assets/brand/anura.svg";
 
 /**
@@ -34,9 +34,9 @@ export function Bloom() {
     // be carved from. A tight screen here, nearly solid, so the frog's thin
     // legs still read once they're cut out.
     const fill = new Ink(ctx, 1);
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 170; i++) {
       const th = Math.random() * Math.PI * 2;
-      const d = Math.sqrt(Math.random()) * R * 0.74;
+      const d = Math.sqrt(Math.random()) * R * 0.9;
       fill.wash(c + Math.cos(th) * d, c + Math.sin(th) * d, 5, i % 3 ? C.rust : C.cedar, 0.5, 1);
     }
 
@@ -45,11 +45,15 @@ export function Bloom() {
     img.src = SRC;
     img.decode().then(() => {
       if (!alive) return;
-      const s = (R * 1.7) / Math.max(img.width, img.height);
+      const s = (R * 1.62) / Math.max(img.width, img.height);
       const fw = img.width * s, fh = img.height * s;
       ctx.globalCompositeOperation = "destination-out";
       ctx.globalAlpha = 1;
-      ctx.drawImage(img, c - fw / 2, c - fh / 2, fw, fh);
+      // Cut a few times with small offsets: thickens the frog's thin legs
+      // by about a pixel so the carving holds up at this size.
+      for (const [ox, oy] of [[0, 0], [-0.8, 0], [0.8, 0], [0, -0.8], [0, 0.8], [-0.6, -0.6], [0.6, 0.6], [-0.6, 0.6], [0.6, -0.6]]) {
+        ctx.drawImage(img, c - fw / 2 + ox, c - fh / 2 + oy, fw, fh);
+      }
 
       // Confetti thrown around it, the way spores scatter in the field:
       // mixed sizes and colors. Kept to the top and right, in a flattened

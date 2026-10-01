@@ -242,11 +242,11 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     // Two caps: script time, and dots handed to the canvas (the canvas fills
     // them after the script returns, so time alone undercounts the cost).
     const RECORD_MS = 4;
-    // Growth is drawn on a 15fps beat, for a stop-motion feel: the loop still
+    // Growth is drawn on a 12fps beat, for a stop-motion feel: the loop still
     // runs every display frame (recording stays responsive), but ink only
-    // lands on every ~4th, and each beat draws whatever came due since the
-    // last. With a quarter as many drawing frames, each gets a bigger budget.
-    const GROWTH_FPS = 15;
+    // lands on every ~5th, and each beat draws whatever came due since the
+    // last. With far fewer drawing frames, each gets a bigger budget.
+    const GROWTH_FPS = 12;
     const BUDGET_MS = 10;
     const BUDGET_DOTS = 9000;
     let lastBeat = -Infinity;

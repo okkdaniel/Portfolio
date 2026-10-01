@@ -49,8 +49,28 @@ export function Bloom() {
       const fw = img.width * s, fh = img.height * s;
       ctx.globalCompositeOperation = "destination-out";
       ctx.globalAlpha = 1;
+      // Optical centering: put the frog's visual center of mass (the
+      // alpha-weighted centroid of its pixels) on the flower's center,
+      // rather than the middle of its bounding box, which the lopsided
+      // drawing would leave looking off-center.
+      const probe = document.createElement("canvas");
+      probe.width = Math.ceil(fw);
+      probe.height = Math.ceil(fh);
+      const pc = probe.getContext("2d", { willReadFrequently: true });
+      pc.drawImage(img, 0, 0, fw, fh);
+      const px = pc.getImageData(0, 0, probe.width, probe.height).data;
+      let mass = 0, mx = 0, my = 0;
+      for (let y = 0; y < probe.height; y++) {
+        for (let x = 0; x < probe.width; x++) {
+          const a = px[(y * probe.width + x) * 4 + 3];
+          mass += a; mx += a * x; my += a * y;
+        }
+      }
+      const gx = mass ? mx / mass : fw / 2;
+      const gy = mass ? my / mass : fh / 2;
+
       // The frog exactly as drawn: one clean cut, no reshaping.
-      ctx.drawImage(img, c - fw / 2, c - fh / 2, fw, fh);
+      ctx.drawImage(img, c - gx, c - gy, fw, fh);
 
       // Confetti thrown around it, the way spores scatter in the field:
       // mixed sizes and colors. Kept to the top and right, in a flattened

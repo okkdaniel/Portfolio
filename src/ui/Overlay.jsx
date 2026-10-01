@@ -1,5 +1,6 @@
 import React from "react";
 import { Clock } from "./Clock.jsx";
+import { Mark } from "./Mark.jsx";
 import { decryptEmail } from "../utils/email.js";
 import { usePreloadProject } from "../hooks/usePreloadProject.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -19,9 +20,13 @@ export function Overlay({ open, setOpen, onReset, projects }) {
   return (
     <div className="overlay">
       <header className="ov-head" data-keepout>
-        <span className="ov-mark" aria-hidden="true" />
-        <h1 className="ov-name">Daniel Kaliko</h1>
-        <p className="ov-line">builds robots, thinks about trees.</p>
+        <div className="ov-top">
+          <div>
+            <h1 className="ov-name">Daniel Kaliko</h1>
+            <p className="ov-line">builds robots, thinks about trees.</p>
+          </div>
+          <Mark />
+        </div>
 
         <Fold id="works" label="Works" open={open === "works"} onToggle={toggle}>
           <ol className="works">

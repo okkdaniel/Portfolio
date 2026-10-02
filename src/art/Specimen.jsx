@@ -1,5 +1,5 @@
 import React from "react";
-import { PAPER, resistFrom } from "./ink.js";
+import { PAPER, resistFrom, dissolveMask } from "./ink.js";
 import { specimen, seeded, setRandom } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -18,13 +18,17 @@ import { ModelPlate } from "../components/media/ModelPlate.jsx";
  * A project with a 3D model (`project.model`) can be picked up: "3d model
  * (+)" turns the render into the model in the same spot, to drag around,
  * while the growth fades back. "(−)" sets it down again. The model viewer
- * only loads when it's asked for.
+ * only loads when it's asked for. Its canvas reaches past the render's box by
+ * the sheet's margin (the camera pulls back to keep the model the same size),
+ * and dissolves into halftone across that margin, so zooming in past the
+ * frame breaks the model up into dots instead of cutting it off.
  */
 export function Specimen({ project: p, onZoom }) {
   const canvasRef = React.useRef(null);
   const imgRef = React.useRef(null);
+  const modelRef = React.useRef(null);
   const [lifted, setLifted] = React.useState(false);
-  const [ratio, setRatio] = React.useState("1 / 1");
+  const [frame, setFrame] = React.useState({ ratio: "1 / 1", zoom: "90%" });
   const inView = useFullyInView(imgRef);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const isSmall = useMediaQuery("(max-width: 768px)");
@@ -105,12 +109,44 @@ export function Specimen({ project: p, onZoom }) {
     };
   }, [inView, reducedMotion, isSmall, p.plant, p.seed, p.slug]);
 
-  // The model takes the render's exact box.
+  // The model takes the render's box plus the sheet's margin all round, with
+  // the camera pulled back by the same factor so it frames the model as the
+  // render does (model-viewer fits the model to the canvas's shorter side).
   const lift = () => {
-    const img = imgRef.current;
-    if (img?.naturalWidth) setRatio(`${img.naturalWidth} / ${img.naturalHeight}`);
+    const box = imgRef.current?.getBoundingClientRect();
+    if (box?.width) {
+      const pad = margin(canvasRef.current);
+      const w = box.width + 2 * pad, h = box.height + 2 * pad;
+      const f = Math.min(w, h) / Math.min(box.width, box.height);
+      setFrame({ ratio: `${w} / ${h}`, zoom: `${(parseFloat(p.modelZoom ?? "90") * f).toFixed(1)}%` });
+    }
     setLifted(!lifted);
   };
+
+  // The halftone edge, drawn for the model's box as it is (and redrawn if
+  // that changes).
+  React.useEffect(() => {
+    const el = modelRef.current;
+    if (!lifted || !el) return;
+    let size = "";
+    const apply = () => {
+      const w = el.clientWidth, h = el.clientHeight;
+      if (!w || !h || `${w}x${h}` === size) return;
+      size = `${w}x${h}`;
+      // Clear of the control below, as ink keeps clear of text.
+      const box = el.getBoundingClientRect();
+      const holes = [...(el.closest(".sheet")?.querySelectorAll(".plate__lift") ?? [])].map((t) => {
+        const r = t.getBoundingClientRect();
+        return { x: r.left - box.left - 6, y: r.top - box.top - 6, w: r.width + 12, h: r.height + 12 };
+      });
+      const url = `url(${dissolveMask(w, h, margin(el), isSmall ? 2.2 : 3, holes)})`;
+      el.style.maskImage = el.style.webkitMaskImage = url;
+    };
+    apply();
+    const watcher = new ResizeObserver(apply);
+    watcher.observe(el);
+    return () => watcher.disconnect();
+  }, [lifted, isSmall]);
   // Start fetching the viewer as soon as someone reaches for the control.
   const warm = () => { import("@google/model-viewer"); };
 
@@ -123,15 +159,15 @@ export function Specimen({ project: p, onZoom }) {
             <img ref={imgRef} src={p.hero} alt={`${p.title}, render`} />
           </button>
           {lifted && (
-            <div className="object__model">
+            <div ref={modelRef} className="object__model">
               <ModelPlate
                 src={p.model}
                 poster={p.hero}
                 alt={`${p.title}, interactive 3D model`}
                 orientation={p.modelOrientation}
-                zoom={p.modelZoom}
+                zoom={frame.zoom}
                 lift={p.modelLift}
-                ratio={ratio}
+                ratio={frame.ratio}
                 caption={null}
               />
             </div>
@@ -146,6 +182,11 @@ export function Specimen({ project: p, onZoom }) {
       )}
     </>
   );
+}
+
+/** The sheet's side margin (--sheet-pad), in px. */
+function margin(el) {
+  return parseFloat(getComputedStyle(el).getPropertyValue("--sheet-pad")) || 44;
 }
 
 /**

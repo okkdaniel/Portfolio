@@ -240,3 +240,41 @@ export function resistFrom(img, x, y, w, h, spread = 0) {
   for (let i = 0; i < a.length; i++) a[i] = px[i * 4 + 3];
   return { x: x - pad, y: y - pad, w: mw, h: mh, a };
 }
+
+/**
+ * A halftone edge for anything that isn't ink (the 3D model on a project
+ * sheet): a w × h CSS px mask, solid inside and breaking up into screen dots
+ * across the outer `band` px, thinning and shrinking toward the edge along the
+ * same wandering line ink fades on. `holes` ([{ x, y, w, h }] in the
+ * mask's px) are kept clear the same way, as text is from ink. Returns a PNG
+ * data URL for CSS mask-image, drawn at `scale` × for sharp dots.
+ */
+export function dissolveMask(w, h, band, pitch = PITCH, holes = [], scale = 2) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * scale);
+  c.height = Math.round(h * scale);
+  const ctx = c.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#000";
+  ctx.beginPath();
+  const W = band / 2; // how far the edge wanders
+  for (let y = pitch / 2; y < h; y += pitch) {
+    for (let x = pitch / 2; x < w; x += pitch) {
+      let d = Math.min(x, y, w - x, h - y);
+      for (const r of holes) {
+        d = Math.min(d, Math.hypot(Math.max(r.x - x, 0, x - (r.x + r.w)), Math.max(r.y - y, 0, y - (r.y + r.h))));
+      }
+      if (d >= band) { ctx.rect(x - pitch / 2, y - pitch / 2, pitch, pitch); continue; }
+      d += (Math.sin(x * 0.045 + Math.sin(y * 0.031) * 2) + Math.sin(y * 0.052 + x * 0.013)) * (W / 4) - W / 2;
+      if (d <= 0) continue;
+      const t = Math.min(1, d / (band - W / 2));
+      const f = t * t * (3 - 2 * t);
+      // As in a wash: sparse and small at the edge, full cells inside.
+      if (Math.random() > Math.pow(f, 0.55)) continue;
+      const s = (0.3 + 0.7 * Math.pow(f, 0.7) * (0.75 + Math.random() * 0.25)) * pitch;
+      ctx.rect(x - s / 2, y - s / 2, s, s);
+    }
+  }
+  ctx.fill();
+  return c.toDataURL("image/png");
+}

@@ -3,6 +3,7 @@ import { PAPER, resistFrom } from "./ink.js";
 import { specimen, seeded, setRandom } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
+import { ModelPlate } from "../components/media/ModelPlate.jsx";
 
 /**
  * Specimen — a project's render, standing in its own patch of growth on the
@@ -13,10 +14,17 @@ import { useMediaQuery } from "../hooks/useMediaQuery.js";
  *
  * The growth is seeded by the project, so it comes up the same every visit.
  * If the sheet changes size, it's redrawn complete at the new size.
+ *
+ * A project with a 3D model (`project.model`) can be picked up: "3d model
+ * (+)" turns the render into the model in the same spot, to drag around,
+ * while the growth fades back. "(−)" sets it down again. The model viewer
+ * only loads when it's asked for.
  */
 export function Specimen({ project: p, onZoom }) {
   const canvasRef = React.useRef(null);
   const imgRef = React.useRef(null);
+  const [lifted, setLifted] = React.useState(false);
+  const [ratio, setRatio] = React.useState("1 / 1");
   const inView = useFullyInView(imgRef);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const isSmall = useMediaQuery("(max-width: 768px)");
@@ -50,11 +58,11 @@ export function Specimen({ project: p, onZoom }) {
       const r = img.getBoundingClientRect();
       ink.resist = resistFrom(img, Math.round(r.left - c.left), Math.round(r.top - c.top), Math.round(r.width), Math.round(r.height), spread);
 
-      // Keep clear of the model above and the facts below, and fade out
-      // before the canvas's own edges.
+      // Keep clear of the text above and below (and the 3D control), and
+      // fade out before the canvas's own edges.
       const rel = (q) => ({ x: q.left - c.left - 6, y: q.top - c.top - 6, w: q.width + 12, h: q.height + 12 });
       const sheet = canvas.closest(".sheet");
-      const near = sheet ? [...sheet.querySelectorAll(".sheet__object, .sheet__facts")] : [];
+      const near = sheet ? [...sheet.querySelectorAll(".sheet__lede, .plate__lift, .sheet__facts")] : [];
       const F = 1e4;
       ink.keepouts = [
         ...near.map((el) => rel(el.getBoundingClientRect())),
@@ -97,13 +105,46 @@ export function Specimen({ project: p, onZoom }) {
     };
   }, [inView, reducedMotion, isSmall, p.plant, p.seed, p.slug]);
 
+  // The model takes the render's exact box.
+  const lift = () => {
+    const img = imgRef.current;
+    if (img?.naturalWidth) setRatio(`${img.naturalWidth} / ${img.naturalHeight}`);
+    setLifted(!lifted);
+  };
+  // Start fetching the viewer as soon as someone reaches for the control.
+  const warm = () => { import("@google/model-viewer"); };
+
   return (
-    <div className="plate">
-      <canvas ref={canvasRef} className="plate__ink" aria-hidden="true" />
-      <button type="button" className="render" onClick={onZoom} aria-label="Enlarge the render">
-        <img ref={imgRef} src={p.hero} alt={`${p.title}, render`} loading="lazy" />
-      </button>
-    </div>
+    <>
+      <div className={`plate${p.model ? " plate--model" : ""}${lifted ? " plate--lifted" : ""}`}>
+        <canvas ref={canvasRef} className="plate__ink" aria-hidden="true" />
+        <div className="object">
+          <button type="button" className="render" onClick={onZoom} aria-label="Enlarge the render" tabIndex={lifted ? -1 : 0}>
+            <img ref={imgRef} src={p.hero} alt={`${p.title}, render`} />
+          </button>
+          {lifted && (
+            <div className="object__model">
+              <ModelPlate
+                src={p.model}
+                poster={p.hero}
+                alt={`${p.title}, interactive 3D model`}
+                orientation={p.modelOrientation}
+                zoom={p.modelZoom}
+                lift={p.modelLift}
+                ratio={ratio}
+                caption={null}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+      {p.model && (
+        <button type="button" className="plate__lift" aria-pressed={lifted} onClick={lift} onPointerEnter={warm} onFocus={warm}>
+          3d model <span aria-hidden="true">{lifted ? "(−)" : "(+)"}</span>
+          <span className="plate__hint">drag to rotate</span>
+        </button>
+      )}
+    </>
   );
 }
 

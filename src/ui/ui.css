@@ -222,8 +222,6 @@
   color: var(--dim);
 }
 
-.sheet__object { margin: 0 -12px 34px; }
-
 /* Wireframes are dark lines on transparency: they sit on the paper as ink. */
 .drawing {
   display: block;
@@ -242,7 +240,8 @@
    sheet's edges and a little above and below the render, behind everything:
    the sheet is its own stacking context, so z-index -1 lands above the
    sheet's paper but under its content. */
-.plate { position: relative; }
+.plate { position: relative; margin-bottom: 56px; }
+.plate--model { margin-bottom: 14px; }
 
 .plate__ink {
   position: absolute;
@@ -252,15 +251,48 @@
   width: calc(100% + 2 * var(--sheet-pad));
   height: calc(100% + 24px + 96px);
   pointer-events: none;
+  transition: opacity 0.6s var(--ease);
+}
+
+.object {
+  position: relative;
+  width: min(80%, 460px);
+  margin-left: auto;
 }
 
 .render {
   display: block;
-  width: min(80%, 460px);
-  margin: 0 0 56px auto;
+  width: 100%;
   cursor: zoom-in;
+  transition: opacity 0.5s var(--ease);
 }
 .render img { display: block; width: 100%; }
+
+/* Picked up: the render gives way to the 3D model in the same box, and the
+   growth fades back so the object stands alone. */
+.object__model {
+  position: absolute;
+  inset: 0;
+  animation: fade-in 0.6s var(--ease);
+}
+.plate--lifted .plate__ink { opacity: 0.22; }
+.plate--lifted .render { opacity: 0; pointer-events: none; }
+
+.plate__lift {
+  display: block;
+  margin: 0 0 38px;
+  color: var(--dim);
+  letter-spacing: 0.04em;
+  transition: color 0.25s;
+}
+.plate__lift:hover { color: var(--accent); }
+/* Always laid out, so the growth's clearing around the control fits it. */
+.plate__hint {
+  visibility: hidden;
+  margin-left: 14px;
+  color: var(--faint);
+}
+.plate__lift[aria-pressed="true"] .plate__hint { visibility: visible; }
 
 .sheet__facts {
   display: grid;
@@ -340,9 +372,9 @@
 @media (max-width: 768px) {
   .sheet { --sheet-pad: var(--gutter); padding: 0 var(--sheet-pad) 80px; border-left: 0; }
   .sheet__facts > div { grid-template-columns: 100px 1fr; }
-  .render { width: 90%; }
+  .object { width: 90%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sheet, .notes { animation: none; }
+  .sheet, .notes, .object__model { animation: none; }
 }

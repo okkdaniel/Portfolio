@@ -1,14 +1,13 @@
 import React from "react";
-import { ModelPlate } from "../components/media/ModelPlate.jsx";
 import { ImageLightbox } from "../components/media/ImageLightbox.jsx";
 import { Specimen } from "../art/Specimen.jsx";
 
 /**
  * ProjectSheet — one project, on a sheet of paper that slides over the (still
- * growing) board. Short by default: title, one line, the object itself (3D
- * model or wireframe drawing), the render standing in its own growth
- * (Specimen), a few facts. The whole
- * case study is folded under "details".
+ * growing) board. Short by default: title, one line, the object (its render
+ * standing in its own growth, which turns into the 3D model on request; see
+ * Specimen), a few facts. The whole case study, and the wireframe drawing,
+ * are folded under "details".
  *
  * Closes with the close control, a click outside, or Escape.
  */
@@ -43,24 +42,6 @@ export function ProjectSheet({ project: p, next, onClose }) {
 
         <h2 id="sheet-title" className="sheet__title">{p.title}</h2>
         <p className="sheet__lede">{p.lede}</p>
-
-        <div className="sheet__object">
-          {p.model ? (
-            <ModelPlate
-              src={p.model}
-              poster={p.preview}
-              alt={`${p.title}, interactive 3D model`}
-              orientation={p.modelOrientation}
-              zoom={p.modelZoom}
-              lift={p.modelLift}
-              caption="drag to rotate"
-            />
-          ) : p.preview ? (
-            <button type="button" className="drawing" onClick={() => setZoom(p.preview)} aria-label="Enlarge the wireframe drawing">
-              <img src={p.preview} alt={`${p.title}, wireframe drawing`} />
-            </button>
-          ) : null}
-        </div>
 
         {p.hero && <Specimen key={p.slug} project={p} onZoom={() => setZoom(p.hero)} />}
 
@@ -140,7 +121,7 @@ function Notes({ p }) {
         </Block>
       )}
 
-      {p.model && p.preview && (
+      {p.preview && (
         <div className="drawing drawing--still" aria-hidden="true">
           <img src={p.preview} alt="" loading="lazy" />
         </div>

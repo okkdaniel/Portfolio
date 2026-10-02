@@ -33,11 +33,12 @@ src/
     forms.js           fern, fiddlehead, moss, lichen, conifer, cedar, runners
     growth.js          records, times and plays growth on a canvas (12fps beat)
     Field.jsx          the canvas: input, keep-outs, the frog, resize
-    Specimen.jsx       a project render standing in its own growth
+    Specimen.jsx       a project render standing in its own growth; "3d model (+)"
+                       turns it into the 3D model in place
   ui/
     Overlay.jsx        name, Works / About / Contact folds, hint, clock
     Clock.jsx          live Las Vegas time
-    ProjectSheet.jsx   one project: 3D model, specimen, facts, full notes
+    ProjectSheet.jsx   one project: specimen (lifts into 3D), facts, full notes
   components/media/    ModelPlate (3D viewer), ImageLightbox
   hooks/, utils/       media queries, preload, encrypted email
 ```

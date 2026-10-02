@@ -5,8 +5,9 @@ import "./ModelPlate.css";
 
 /**
  * ModelPlate — an interactive 3D model in the same slot a wireframe PlateImage
- * would occupy. Drag to orbit, scroll/pinch to zoom (no pan). A gentle auto-spin
- * runs by default and pauses while the viewer is being dragged.
+ * would occupy. Drag to orbit; no zoom or pan, so the model always stays the
+ * size it's framed at and the page scrolls normally over it. A gentle
+ * auto-spin runs by default and pauses while the viewer is being dragged.
  *
  * Performance: the ~250KB `<model-viewer>` library is code-split and only
  * dynamically imported once the slot scrolls near the viewport, so it never
@@ -28,7 +29,7 @@ export function ModelPlate({
   src,
   poster,
   alt = "",
-  caption = "Interactive model · drag to orbit · scroll to zoom",
+  caption = "Interactive model · drag to orbit",
   ratio = "4 / 3",
   // Onshape exports Z-up; glTF/model-viewer is Y-up, so models arrive tipped on
   // their side. This roll/pitch/yaw rights them. Override per project via
@@ -96,6 +97,7 @@ export function ModelPlate({
             alt={alt}
             camera-controls=""
             disable-pan=""
+            disable-zoom=""
             touch-action="pan-y"
             orientation={orientation}
             auto-rotate={reducedMotion ? undefined : ""}

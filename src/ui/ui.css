@@ -168,7 +168,6 @@
   bottom: 0;
   z-index: 11;
   width: min(700px, 100vw);
-  overflow-x: hidden; /* the 3D model's box can reach past the paper's edge */
   overflow-y: auto;
   --sheet-pad: 44px;
   padding: 0 var(--sheet-pad) 96px;
@@ -269,25 +268,18 @@
 }
 .render img { display: block; width: 100%; }
 
-/* Picked up: the render gives way to the 3D model in the same place, and the
-   growth fades back so the object stands alone. The model's box reaches well
-   past the render (--reach, set in Specimen.jsx), where its halftone edge
-   dissolves it. */
+/* Picked up: the render gives way to the 3D model in the same box, and the
+   growth fades back so the object stands alone. */
 .object__model {
   position: absolute;
-  inset: calc(-1 * var(--reach, 0px));
-  mask-size: 100% 100%;
-  -webkit-mask-size: 100% 100%;
+  inset: 0;
   animation: fade-in 0.6s var(--ease);
 }
 .plate--lifted .plate__ink { opacity: 0.22; }
 .plate--lifted .render { opacity: 0; pointer-events: none; }
 
 .plate__lift {
-  position: relative; /* above the model's box, which reaches down over it */
-  z-index: 1;
   display: block;
-  width: fit-content; /* just the text, so the model only dissolves around that */
   margin: 0 0 38px;
   color: var(--dim);
   letter-spacing: 0.04em;

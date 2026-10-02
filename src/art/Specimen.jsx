@@ -18,17 +18,20 @@ import { ModelPlate } from "../components/media/ModelPlate.jsx";
  * A project with a 3D model (`project.model`) can be picked up: "3d model
  * (+)" turns the render into the model in the same spot, to drag around,
  * while the growth fades back. "(−)" sets it down again. The model viewer
- * only loads when it's asked for. Its canvas reaches past the render's box by
- * the sheet's margin (the camera pulls back to keep the model the same size),
- * and dissolves into halftone across that margin, so zooming in past the
- * frame breaks the model up into dots instead of cutting it off.
+ * only loads when it's asked for. It dissolves into halftone toward an
+ * irregular rounded outline fitted to the open paper around the render (side
+ * to side across the sheet, from under the line above to over the facts
+ * below), so zooming in breaks it up into dots before it reaches any text or
+ * edge, instead of cutting it off. Its canvas reaches far enough past the
+ * render to cover that, with the camera pulled back to keep the model the
+ * same size.
  */
 export function Specimen({ project: p, onZoom }) {
   const canvasRef = React.useRef(null);
   const imgRef = React.useRef(null);
   const modelRef = React.useRef(null);
   const [lifted, setLifted] = React.useState(false);
-  const [frame, setFrame] = React.useState({ ratio: "1 / 1", zoom: "90%" });
+  const [frame, setFrame] = React.useState({ ratio: "1 / 1", zoom: "90%", reach: 0 });
   const inView = useFullyInView(imgRef);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const isSmall = useMediaQuery("(max-width: 768px)");
@@ -109,16 +112,19 @@ export function Specimen({ project: p, onZoom }) {
     };
   }, [inView, reducedMotion, isSmall, p.plant, p.seed, p.slug]);
 
-  // The model takes the render's box plus the sheet's margin all round, with
-  // the camera pulled back by the same factor so it frames the model as the
-  // render does (model-viewer fits the model to the canvas's shorter side).
+  // The model takes the render's box plus the same reach all round, enough to
+  // cover the open paper (see paperFor), with the camera pulled back by the
+  // same factor so it frames the model as the render does (model-viewer fits
+  // the model to the canvas's shorter side). Beyond the sheet's edge it's off
+  // the paper, and fully dissolved by then anyway.
   const lift = () => {
     const box = imgRef.current?.getBoundingClientRect();
     if (box?.width) {
-      const pad = margin(canvasRef.current);
-      const w = box.width + 2 * pad, h = box.height + 2 * pad;
+      const a = paperFor(imgRef.current);
+      const reach = Math.ceil(Math.max(box.left - a.left, a.right - box.right, box.top - a.top, a.bottom - box.bottom, 0)) + 4;
+      const w = box.width + 2 * reach, h = box.height + 2 * reach;
       const f = Math.min(w, h) / Math.min(box.width, box.height);
-      setFrame({ ratio: `${w} / ${h}`, zoom: `${(parseFloat(p.modelZoom ?? "90") * f).toFixed(1)}%` });
+      setFrame({ ratio: `${w} / ${h}`, zoom: `${(parseFloat(p.modelZoom ?? "90") * f).toFixed(1)}%`, reach });
     }
     setLifted(!lifted);
   };
@@ -133,13 +139,16 @@ export function Specimen({ project: p, onZoom }) {
       const w = el.clientWidth, h = el.clientHeight;
       if (!w || !h || `${w}x${h}` === size) return;
       size = `${w}x${h}`;
-      // Clear of the control below, as ink keeps clear of text.
+      // Fitted to the open paper, and clear of the control within it, as ink
+      // keeps clear of text.
       const box = el.getBoundingClientRect();
+      const a = paperFor(el);
+      const area = { x: a.left - box.left, y: a.top - box.top, w: a.right - a.left, h: a.bottom - a.top };
       const holes = [...(el.closest(".sheet")?.querySelectorAll(".plate__lift") ?? [])].map((t) => {
         const r = t.getBoundingClientRect();
         return { x: r.left - box.left - 6, y: r.top - box.top - 6, w: r.width + 12, h: r.height + 12 };
       });
-      const url = `url(${dissolveMask(w, h, margin(el), isSmall ? 2.2 : 3, holes)})`;
+      const url = `url(${dissolveMask(w, h, { area, inner: 0.72, pitch: isSmall ? 2.2 : 3, holes })})`;
       el.style.maskImage = el.style.webkitMaskImage = url;
     };
     apply();
@@ -159,7 +168,7 @@ export function Specimen({ project: p, onZoom }) {
             <img ref={imgRef} src={p.hero} alt={`${p.title}, render`} />
           </button>
           {lifted && (
-            <div ref={modelRef} className="object__model">
+            <div ref={modelRef} className="object__model" style={{ "--reach": `${frame.reach}px` }}>
               <ModelPlate
                 src={p.model}
                 poster={p.hero}
@@ -184,9 +193,22 @@ export function Specimen({ project: p, onZoom }) {
   );
 }
 
-/** The sheet's side margin (--sheet-pad), in px. */
-function margin(el) {
-  return parseFloat(getComputedStyle(el).getPropertyValue("--sheet-pad")) || 44;
+/**
+ * The open paper around a sheet's render, in viewport px: across the sheet
+ * (just inside its edges), from under the line above to over the facts below.
+ */
+function paperFor(el) {
+  const sheet = el.closest(".sheet");
+  const s = sheet.getBoundingClientRect();
+  const above = sheet.querySelector(".sheet__lede")?.getBoundingClientRect();
+  const below = sheet.querySelector(".sheet__facts")?.getBoundingClientRect();
+  const r = el.closest(".plate").getBoundingClientRect();
+  return {
+    left: s.left + 12,
+    right: s.right - 12,
+    top: (above ? above.bottom : r.top - 40) + 8,
+    bottom: (below ? below.top : r.bottom + 80) - 8,
+  };
 }
 
 /**

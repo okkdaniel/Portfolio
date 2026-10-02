@@ -168,6 +168,7 @@
   bottom: 0;
   z-index: 11;
   width: min(700px, 100vw);
+  overflow-x: hidden; /* the 3D model's box can reach past the paper's edge */
   overflow-y: auto;
   --sheet-pad: 44px;
   padding: 0 var(--sheet-pad) 96px;
@@ -269,11 +270,12 @@
 .render img { display: block; width: 100%; }
 
 /* Picked up: the render gives way to the 3D model in the same place, and the
-   growth fades back so the object stands alone. The model's box reaches out
-   by the sheet's margin, where its halftone edge (Specimen.jsx) dissolves it. */
+   growth fades back so the object stands alone. The model's box reaches well
+   past the render (--reach, set in Specimen.jsx), where its halftone edge
+   dissolves it. */
 .object__model {
   position: absolute;
-  inset: calc(-1 * var(--sheet-pad));
+  inset: calc(-1 * var(--reach, 0px));
   mask-size: 100% 100%;
   -webkit-mask-size: 100% 100%;
   animation: fade-in 0.6s var(--ease);

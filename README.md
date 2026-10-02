@@ -67,7 +67,9 @@ node tools/frog-reveal/render.mjs              # 1920×1080, 12fps, ~6s
 node tools/frog-reveal/render.mjs w=540 h=960 flowers=12 --name frog-vertical
 ```
 
-Out come a `.mov` (QuickTime Animation, lossless) and a VP9 `.webm`, both
-with alpha, an `.mp4` on the paper colour, and the last frame as a
-transparent `.png`. Page params
+Out come, with alpha: a `.mov` (QuickTime Animation, lossless) for editing,
+a VP9 `.webm`, an animated `-preview.png` (half size; plays in phone
+browsers), and the last frame as a `.png`. Without: `.mp4`s on the paper
+colour and over a checkerboard (to see the transparency on a phone, which
+can't play video with alpha). Page params
 are listed at the top of `reveal.js`.

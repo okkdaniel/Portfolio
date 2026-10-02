@@ -9,6 +9,8 @@
 //                         Resolve, After Effects); small, since most of the frame is clear
 //   <name>.webm           VP9 with alpha (browsers, web video)
 //   <name>-on-paper.mp4   H.264 on the site's paper colour, for anything without alpha
+//   <name>-on-checker.mp4 H.264 over a checkerboard, to see the transparency on a phone
+//   <name>-preview.png    animated PNG with alpha at half size; plays in phone browsers
 //   <name>-last.png       the finished frame, transparent
 //
 // Needs, once, outside package.json:
@@ -88,6 +90,17 @@ run(
   "-c:v", "libx264", "-crf", "16", "-preset", "slow", "-movflags", "+faststart",
   file("-on-paper.mp4"),
 );
+// Over a checkerboard, the usual stand-in for "transparent", for phones,
+// which can't play video with alpha.
+run(
+  "-y", "-hide_banner", "-loglevel", "error",
+  "-f", "lavfi", "-i", `color=c=white:s=${width}x${height}:r=${fps},format=gray,geq=lum='if(mod(floor(X/32)+floor(Y/32),2),205,240)'`,
+  "-framerate", String(fps), "-i", join(tmp, "%05d.png"),
+  "-filter_complex", "[0][1]overlay=shortest=1,format=yuv420p",
+  "-c:v", "libx264", "-crf", "16", "-preset", "slow", "-movflags", "+faststart",
+  file("-on-checker.mp4"),
+);
+run(...seq, "-vf", `scale=${Math.round(width / 2)}:-1:flags=lanczos`, "-plays", "0", "-f", "apng", file("-preview.png"));
 await copyFile(last, file("-last.png"));
 await rm(tmp, { recursive: true, force: true });
 console.log(`wrote ${out}`);

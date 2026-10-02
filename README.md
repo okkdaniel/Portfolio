@@ -59,7 +59,7 @@ comes up the same way every visit.
 `tools/frog-reveal/` renders the site's opening (the clearing growing in over
 the frog) as video with a transparent background, the frog left as a hole in
 the growth. With the dev server running, open `/tools/frog-reveal/` to watch
-it, or render files into `media/frog-reveal/` (git-ignored):
+it, or render files into `media/frog-reveal/`:
 
 ```bash
 npm i --no-save puppeteer-core ffmpeg-static   # once
@@ -68,5 +68,6 @@ node tools/frog-reveal/render.mjs w=540 h=960 flowers=12 --name frog-vertical
 ```
 
 Out come a ProRes 4444 `.mov` and a VP9 `.webm` (both with alpha), an `.mp4`
-on the paper colour, and the last frame as a transparent `.png`. Page params
+on the paper colour, and the last frame as a transparent `.png`. The `.mov` is
+too big for GitHub and stays local; the rest are committed. Page params
 are listed at the top of `reveal.js`.

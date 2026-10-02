@@ -13,6 +13,18 @@
 
 .field--dimmed { opacity: 0.35; }
 
+/* The field as it was when a resize settled, fading out over the redrawn
+   field (see Field.jsx). */
+.field-ghost {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  pointer-events: none;
+  transition: opacity 0.35s var(--ease);
+}
+
 /* Paper laid over the field under the text (see Field.jsx). Never takes the
    pointer, so clicks still reach the field. */
 .veil {

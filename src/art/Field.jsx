@@ -24,11 +24,12 @@ const GROWING = 9000;
  * The field also remembers what grew rather than only the pixels: every
  * planting (the frog's clearing, each click) as a position relative to the
  * window and a random seed, and the spore trail likewise. When the window
- * changes size, it waits for the resizing to settle, then redraws all of it
- * for the new size: the frog placed for the new layout, every plant in the
- * same shape at the same relative spot. (Until then the old painting just
- * stretches.) Small height-only changes, like a phone's toolbar, keep the
- * painting as it is.
+ * changes size, the canvas follows it live, kept at full resolution, with
+ * the painting carried along so the frog holds its place in the layout; once
+ * the resizing settles (a full redraw is too much to do every frame), it
+ * redraws all of it for the new size: the frog placed for the new layout,
+ * every plant in the same shape at the same relative spot. Small height-only
+ * changes, like a phone's toolbar, keep the painting as it is.
  *
  * Anything marked data-keepout (the text) is kept clear of new ink. Ink that
  * grew before the text got there (a fold opening over it) is hidden by the
@@ -153,12 +154,13 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     const frog = new Image();
     frog.src = FROG_SRC;
     let frogBox = null;
+    // Where the frog sits for a window of w × h.
+    const frogAt = (w, h) => (isSmall ? [w * 0.5, h * 0.66] : [w * 0.66, h * 0.56]);
     const placeFrog = () => {
       const size = isSmall ? w * 0.62 : Math.min(w * 0.26, h * 0.48);
       const k = size / Math.max(frog.width, frog.height);
       const fw = Math.round(frog.width * k), fh = Math.round(frog.height * k);
-      const cx = isSmall ? w * 0.5 : w * 0.66;
-      const cy = isSmall ? h * 0.66 : h * 0.56;
+      const [cx, cy] = frogAt(w, h);
       ink.resist = resistFrom(frog, Math.round(cx - fw / 2), Math.round(cy - fh / 2), fw, fh);
       frogBox = { x: cx - fw * 0.65, y: cy - fh * 0.65, w: fw * 1.3, h: fh * 1.3 };
     };
@@ -293,17 +295,64 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     };
     const onLeave = () => { lastX = null; };
 
-    // Redraw once the window has settled at its new size.
+    // While the window is being resized: every frame, size the canvas to it
+    // (so nothing stretches) and lay the painting as it was when resizing
+    // began back down, shifted so the frog keeps its place in the layout.
+    // Growth pauses meanwhile. Once the window settles, redraw it all.
+    let drag = null; // { snap, w, h, dpr } from when resizing began
+    let followRaf = 0;
+    const follow = () => {
+      followRaf = 0;
+      if (!drag) {
+        growth.clear();
+        const snap = document.createElement("canvas");
+        snap.width = canvas.width;
+        snap.height = canvas.height;
+        snap.getContext("2d").drawImage(canvas, 0, 0);
+        drag = { snap, w, h, dpr };
+      }
+      sizeTo();
+      paper();
+      if (dpr === drag.dpr) {
+        const [x0, y0] = frogAt(drag.w, drag.h), [x1, y1] = frogAt(w, h);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.drawImage(drag.snap, Math.round((x1 - x0) * dpr), Math.round((y1 - y0) * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      applyKeepouts();
+    };
+    // The last frame of the resize, laid over the field and faded out while
+    // the redrawn painting appears under it, so it settles instead of jumping.
+    const ghost = () => {
+      if (reducedMotion) return;
+      const g = document.createElement("canvas");
+      g.width = canvas.width;
+      g.height = canvas.height;
+      g.getContext("2d").drawImage(canvas, 0, 0);
+      g.className = "field-ghost";
+      g.setAttribute("aria-hidden", "true");
+      g.style.opacity = getComputedStyle(canvas).opacity;
+      canvas.after(g);
+      requestAnimationFrame(() => requestAnimationFrame(() => { g.style.opacity = "0"; }));
+      setTimeout(() => g.remove(), 600);
+    };
     let settle = 0;
     const onResize = () => {
+      const sameWidth = window.innerWidth === w && Math.min(2, window.devicePixelRatio || 1) === dpr;
+      if (!drag && sameWidth && Math.abs(window.innerHeight - h) < 100) {
+        clearTimeout(settle);
+        settle = setTimeout(() => { carry(); keepoutKey = ""; applyKeepouts(); }, 150);
+        return;
+      }
+      if (!followRaf) followRaf = requestAnimationFrame(follow);
       clearTimeout(settle);
       settle = setTimeout(() => {
-        const sameWidth = window.innerWidth === w && Math.min(2, window.devicePixelRatio || 1) === dpr;
-        if (sameWidth && Math.abs(window.innerHeight - h) < 100) carry();
-        else return redraw();
-        keepoutKey = "";
-        applyKeepouts();
-      }, 200);
+        cancelAnimationFrame(followRaf);
+        followRaf = 0;
+        drag = null;
+        ghost();
+        redraw();
+      }, 150);
     };
 
     canvas.addEventListener("pointerdown", onDown);
@@ -316,6 +365,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       growth.clear();
       cancelAnimationFrame(warmRaf);
       clearTimeout(settle);
+      cancelAnimationFrame(followRaf);
       watcher.disconnect();
       alive = false;
       seedTimers.forEach(clearTimeout);

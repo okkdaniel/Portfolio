@@ -1,10 +1,14 @@
 import React from "react";
 import { C, PAPER, FEATHER, WOBBLE, resistFrom } from "./ink.js";
-import { grow, clearing, SPORE_COLORS } from "./forms.js";
+import { grow, clearing, seeded, setRandom, SPORE_COLORS } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 
 const FROG_SRC = "/assets/brand/anura.svg";
+
+// A planting younger than this (ms) may still be growing: redrawn after a
+// resize, it grows again rather than appearing complete.
+const GROWING = 9000;
 
 /**
  * Field — the paper everything grows on. A click sets off a growth: a bloom of
@@ -12,10 +16,19 @@ const FROG_SRC = "/assets/brand/anura.svg";
  * they go, and a scatter of spores. Moving the mouse leaves a faint trail of
  * spores.
  *
- * The canvas is never cleared. Each mark is drawn exactly once, when the
- * growth reaches it, so the field only accumulates and a frame costs the
- * same however full it gets. The loop sleeps when nothing is growing (see
- * growth.js for how growth is paced).
+ * The canvas is never cleared while you're on it. Each mark is drawn exactly
+ * once, when the growth reaches it, so the field only accumulates and a frame
+ * costs the same however full it gets. The loop sleeps when nothing is
+ * growing (see growth.js for how growth is paced).
+ *
+ * The field also remembers what grew rather than only the pixels: every
+ * planting (the frog's clearing, each click) as a position relative to the
+ * window and a random seed, and the spore trail likewise. When the window
+ * changes size, it waits for the resizing to settle, then redraws all of it
+ * for the new size: the frog placed for the new layout, every plant in the
+ * same shape at the same relative spot. (Until then the old painting just
+ * stretches.) Small height-only changes, like a phone's toolbar, keep the
+ * painting as it is.
  *
  * Anything marked data-keepout (the text) is kept clear of new ink. Ink that
  * grew before the text got there (a fold opening over it) is hidden by the
@@ -38,10 +51,14 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
   const api = React.useRef({ reset() {} });
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const isSmall = useMediaQuery("(max-width: 768px)");
+  // What has grown, kept outside the effect, which runs again when the
+  // screen crosses the phone breakpoint, so that can redraw it too.
+  const memory = React.useRef({ plantings: [], trail: [], salt: Math.random().toString(36).slice(2), n: 0 });
 
   React.useImperativeHandle(ref, () => ({ reset: () => api.current.reset() }), []);
 
   React.useEffect(() => {
+    const mem = memory.current;
     const canvas = canvasRef.current;
     const veil = veilRef.current;
     const vctx = veil.getContext("2d");
@@ -53,26 +70,27 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
 
     const paper = () => layer.paper(PAPER);
 
-    // Resizing a canvas wipes it, so carry the painting across.
-    const resize = () => {
-      const keep = w ? document.createElement("canvas") : null;
-      if (keep) {
-        keep.width = canvas.width;
-        keep.height = canvas.height;
-        keep.getContext("2d").drawImage(canvas, 0, 0);
-      }
+    // Size both canvases to the window. This wipes them.
+    const sizeTo = () => {
       dpr = Math.min(2, window.devicePixelRatio || 1);
       w = window.innerWidth;
       h = window.innerHeight;
       layer.size(w, h, dpr);
       veil.width = canvas.width;
       veil.height = canvas.height;
+    };
+
+    // Resize but keep the painting where it is, for small height-only changes.
+    const carry = () => {
+      const keep = document.createElement("canvas");
+      keep.width = canvas.width;
+      keep.height = canvas.height;
+      keep.getContext("2d").drawImage(canvas, 0, 0);
+      sizeTo();
       paper();
-      if (keep) {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.drawImage(keep, 0, 0);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(keep, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
     // Same per-cell odds every redraw, so the veil's edge holds still while a
@@ -117,7 +135,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
         return { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 };
       });
       // Redraw the veil only when the text's footprint actually moved.
-      const key = ink.keepouts.map((r) => [r.x, r.y, r.w, r.h].map(Math.round).join(",")).join("|") + "@" + dpr;
+      const key = ink.keepouts.map((r) => [r.x, r.y, r.w, r.h].map(Math.round).join(",")).join("|") + "@" + dpr + "@" + veil.width;
       if (key === keepoutKey) return;
       keepoutKey = key;
       drawVeil();
@@ -125,39 +143,83 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
 
     const scale = () => Math.min(1.4, Math.max(0.85, Math.min(w, h) / 700));
 
-    const plant = (gens) => growth.plant(gens);
-
-    const growAt = (x, y, s = scale() * (0.75 + Math.random() * 0.5)) => {
-      plant(grow(recorder, x, y, s, { w, h }));
-    };
-
     // ---- the frog ----
     // Masking fluid in the shape of the anura frog, laid on the paper before
     // anything grows (see Ink.resist). The page opens by planting a clearing
     // over it, so the frog surfaces as bare paper in the middle of the
-    // growth. It's placed once; resizing or clearing the paper leaves it be.
-    let alive = true;
-    const placeFrog = async () => {
-      const img = new Image();
-      img.src = FROG_SRC;
-      await img.decode();
-      if (!alive) return null;
+    // growth. It's placed for the window's size, and placed again (with its
+    // clearing redrawn around it) when that changes; clearing the paper
+    // leaves it be.
+    const frog = new Image();
+    frog.src = FROG_SRC;
+    let frogBox = null;
+    const placeFrog = () => {
       const size = isSmall ? w * 0.62 : Math.min(w * 0.26, h * 0.48);
-      const k = size / Math.max(img.width, img.height);
-      const fw = Math.round(img.width * k), fh = Math.round(img.height * k);
+      const k = size / Math.max(frog.width, frog.height);
+      const fw = Math.round(frog.width * k), fh = Math.round(frog.height * k);
       const cx = isSmall ? w * 0.5 : w * 0.66;
       const cy = isSmall ? h * 0.66 : h * 0.56;
-      ink.resist = resistFrom(img, Math.round(cx - fw / 2), Math.round(cy - fh / 2), fw, fh);
-      return { x: cx - fw * 0.65, y: cy - fh * 0.65, w: fw * 1.3, h: fh * 1.3 };
+      ink.resist = resistFrom(frog, Math.round(cx - fw / 2), Math.round(cy - fh / 2), fw, fh);
+      frogBox = { x: cx - fw * 0.65, y: cy - fh * 0.65, w: fw * 1.3, h: fh * 1.3 };
+    };
+
+    // ---- plantings ----
+    // Each is { kind: "clearing" } (over the frog) or { kind: "grow", fx, fy,
+    // k } (a click, at a fraction of the window, k its size against scale()),
+    // plus a seed: everything about how it grows comes from that, so it can
+    // be drawn again, the same, at any size.
+    const plantOne = (p, now) => {
+      if (p.kind === "clearing" && !frogBox) return;
+      const random = seeded(p.seed);
+      let gens;
+      setRandom(random);
+      try {
+        gens = p.kind === "clearing"
+          ? clearing(recorder, frogBox, scale(), { w, h })
+          : grow(recorder, p.fx * w, p.fy * h, scale() * p.k, { w, h });
+      } finally {
+        setRandom(null);
+      }
+      growth.plant(gens, { random, now });
+    };
+    const add = (p) => {
+      p.seed = `${mem.salt}-${mem.n++}`;
+      p.at = performance.now();
+      mem.plantings.push(p);
+      plantOne(p, reducedMotion);
+    };
+    const growAt = (x, y) => add({ kind: "grow", fx: x / w, fy: y / h, k: 0.75 + Math.random() * 0.5 });
+
+    // Everything that's grown, again, for the window as it is now. Older
+    // plantings are drawn complete; recent ones grow again from the start.
+    // (The complete ones go first: drawing at once also finishes anything
+    // already queued.)
+    const redraw = () => {
+      growth.clear();
+      layer.clearScratch();
+      sizeTo();
+      paper();
+      if (frog.complete && frog.naturalWidth) placeFrog();
+      const t = performance.now();
+      const done = (p) => reducedMotion || t - p.at > GROWING;
+      for (const p of mem.plantings) if (done(p)) plantOne(p, true);
+      for (const d of mem.trail) ink.seed(d.fx * w, d.fy * h, d.r, d.col, 0.55);
+      layer.flush();
+      for (const p of mem.plantings) if (!done(p)) plantOne(p, false);
+      keepoutKey = "";
+      applyKeepouts();
     };
 
     api.current.reset = () => {
       growth.clear();
       layer.clearScratch();
       paper();
+      mem.plantings = [];
+      mem.trail = [];
     };
 
-    resize();
+    sizeTo();
+    paper();
 
     // Warm the GPU up before anything is visible. The first time a kind of
     // draw is used (halftone path, small and large seeds, the multiply
@@ -191,17 +253,21 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     document.querySelectorAll("[data-keepout]").forEach((el) => watcher.observe(el));
 
     // A little grows as you arrive: the clearing that turns up the frog, and
-    // on wider screens one more patch off in the corner.
+    // on wider screens one more patch off in the corner. If things have grown
+    // already (this runs again when the screen crosses the phone breakpoint),
+    // they're redrawn for the new layout instead.
+    let alive = true;
     const seedTimers = [];
-    placeFrog()
-      .then((box) => {
-        if (!box) return;
-        seedTimers.push(setTimeout(() => plant(clearing(recorder, box, scale(), { w, h })), reducedMotion ? 0 : 300));
+    frog
+      .decode()
+      .then(() => {
+        if (!alive) return;
+        placeFrog();
+        if (mem.plantings.length) return redraw();
+        seedTimers.push(setTimeout(() => add({ kind: "clearing" }), reducedMotion ? 0 : 300));
+        if (!isSmall) seedTimers.push(setTimeout(() => growAt(w * 0.9, h * 0.18), reducedMotion ? 0 : 2200));
       })
       .catch(() => {});
-    if (!isSmall) {
-      seedTimers.push(setTimeout(() => growAt(w * 0.9, h * 0.18), reducedMotion ? 0 : 2200));
-    }
 
     // ---- input ----
     let downX = 0, downY = 0, downAt = 0;
@@ -219,11 +285,26 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       travel = 0;
       const a = Math.random() * Math.PI * 2, d = 6 + Math.random() * 18;
       const col = SPORE_COLORS[Math.floor(Math.random() * SPORE_COLORS.length)];
-      ink.seed(e.clientX + Math.cos(a) * d, e.clientY + Math.sin(a) * d, 0.8 + Math.random() * 1.6, col, 0.55);
+      const x = e.clientX + Math.cos(a) * d, y = e.clientY + Math.sin(a) * d, r = 0.8 + Math.random() * 1.6;
+      ink.seed(x, y, r, col, 0.55);
+      mem.trail.push({ fx: x / w, fy: y / h, r, col });
+      if (mem.trail.length > 4000) mem.trail.shift();
       if (!growth.busy) layer.flush(); // otherwise the running growth loop flushes it
     };
     const onLeave = () => { lastX = null; };
-    const onResize = () => { resize(); keepoutKey = ""; applyKeepouts(); }; // resize wipes the veil
+
+    // Redraw once the window has settled at its new size.
+    let settle = 0;
+    const onResize = () => {
+      clearTimeout(settle);
+      settle = setTimeout(() => {
+        const sameWidth = window.innerWidth === w && Math.min(2, window.devicePixelRatio || 1) === dpr;
+        if (sameWidth && Math.abs(window.innerHeight - h) < 100) carry();
+        else return redraw();
+        keepoutKey = "";
+        applyKeepouts();
+      }, 200);
+    };
 
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointerup", onUp);
@@ -234,6 +315,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     return () => {
       growth.clear();
       cancelAnimationFrame(warmRaf);
+      clearTimeout(settle);
       watcher.disconnect();
       alive = false;
       seedTimers.forEach(clearTimeout);

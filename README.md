@@ -67,6 +67,16 @@ node tools/frog-reveal/render.mjs              # 1920×1080, 12fps, ~6s
 node tools/frog-reveal/render.mjs w=540 h=960 flowers=12 --name frog-vertical
 ```
 
+`media/frog-reveal/versions/` holds eight different versions in the vine style
+(a tighter clearing, with vines wrapping the frog and opening the site's
+plants), each from its own seed, picked from 24 for how completely they
+outline the frog. `frog-reveal-grid.mp4` shows them side by side, and
+`seeds.txt` lists the params to re-render any one. For a fresh batch:
+
+```bash
+node tools/frog-reveal/render.mjs style=vine --versions 8 --seeds w
+```
+
 Out come, with alpha: a `.mov` (QuickTime Animation, lossless) for editing,
 a VP9 `.webm`, an animated `-preview.png` (half size; plays in phone
 browsers), and the last frame as a `.png`. Without: `.mp4`s on the paper

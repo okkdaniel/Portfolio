@@ -378,6 +378,38 @@ export function* lupine(ink, x, y, s, flower = pick([C.lupine, C.salal, C.firewe
   }
 }
 
+/**
+ * A vine: a runner that follows a given path ([{ x, y, out }], a few px
+ * apart; `out` is the direction away from whatever it's wrapping) instead of
+ * wandering, opening plants along the way. Now and then (`flowers`, 0..1) it
+ * opens a wildflower or lupine instead. The frog reveal wraps these around
+ * the frog, so everything that grows is joined to it.
+ */
+export function* vine(ink, path, s, { flowers = 0.15 } = {}) {
+  const col = pick([C.bark, C.moss, C.fern, C.cedar]);
+  let next = rand(15, 40) * s;
+  let walked = 0;
+  for (let i = 0; i < path.length; i++) {
+    const p = path[i];
+    if (i) walked += Math.hypot(p.x - path[i - 1].x, p.y - path[i - 1].y);
+    ink.wash(p.x, p.y, 1.4 * s, col, 0.55, 1);
+    if (walked >= next) {
+      next += rand(55, 95) * s;
+      const k = s * rand(0.45, 0.7);
+      if (chance(flowers)) {
+        // Flowers stand up, leaning a little outward.
+        const lean = Math.atan2(Math.sin(p.out - UP), Math.cos(p.out - UP));
+        yield { spawn: chance(0.4)
+          ? { it: lupine(ink, p.x, p.y, k * 1.6) }
+          : { it: wildflower(ink, p.x, p.y, UP + lean * 0.3 + rand(-0.3, 0.3), k * 1.8) } };
+      } else {
+        yield { spawn: anyForm(ink, p.x, p.y, p.out, k) };
+      }
+    }
+    if (i % 2) yield;
+  }
+}
+
 // ---- wiring ---------------------------------------------------------------
 
 /** Some plant, chosen at random, rooted at (x, y). */

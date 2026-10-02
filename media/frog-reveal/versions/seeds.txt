@@ -1,0 +1,10 @@
+Each version's page params, to re-render one exactly:
+
+frog-reveal-01  style=vine&seed=v11  (outline 0.55)
+frog-reveal-02  style=vine&seed=v4  (outline 0.54)
+frog-reveal-03  style=vine&seed=v14  (outline 0.53)
+frog-reveal-04  style=vine&seed=v12  (outline 0.53)
+frog-reveal-05  style=vine&seed=v8  (outline 0.53)
+frog-reveal-06  style=vine&seed=v24  (outline 0.52)
+frog-reveal-07  style=vine&seed=v1  (outline 0.51)
+frog-reveal-08  style=vine&seed=v10  (outline 0.51)

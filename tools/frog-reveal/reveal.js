@@ -9,7 +9,8 @@
 //   marks are re-timed so the ink as a whole eases out over the same time the
 //   site's clearing takes: quick at first, slowing to a stop, with the frog
 //   surfacing over several frames as the ground builds up around it.
-// - Flowers. Wildflowers and lupines come up around the clearing.
+// - More around it. Firs and big ferns frame the clearing, and wildflowers
+//   and lupines come up around its edge.
 // - Optical centering. The frog is placed by its visual center (the
 //   alpha-weighted centroid of its pixels), and the growth is shifted so its
 //   own center of ink sits on that point.
@@ -23,25 +24,27 @@
 //   fps     frame rate (12, the site's stop-motion beat)
 //   dur     seconds the growth takes (as long as the site's clearing, ~4)
 //   ease    how hard the growth eases out: 1 lays ink at a constant rate,
-//           higher front-loads it (2)
+//           higher front-loads it (4, the site's ease-out quart)
 //   even    0..1, how far the marks are re-timed to that curve; 0 keeps the
-//           site's own timing (0.7)
+//           site's own timing (0.85)
 //   flowers how many flowers come up around the clearing (9)
+//   trees   1 frames the clearing with a fir either side and big ferns
+//           reaching out from its lower corners; 0 leaves them out (1)
 //   seed    which version of the growth (any text; "cedar", picked because
 //           its ground outlines the whole frog)
 //   frog    frog size, as a share of the frame's shorter side (0.5)
 
 import { resistFrom } from "../../src/art/ink.js";
-import { clearing, wildflower, lupine, seeded, setRandom } from "../../src/art/forms.js";
+import { clearing, conifer, fern, wildflower, lupine, seeded, setRandom } from "../../src/art/forms.js";
 import { inkLayer, createGrowth } from "../../src/art/growth.js";
 
 const q = new URLSearchParams(location.search);
 const num = (k, d) => (q.has(k) ? Number(q.get(k)) : d);
 const W = num("w", 960), H = num("h", 540), DPR = num("dpr", 2);
-const FPS = num("fps", 12), EASE = num("ease", 2), EVEN = num("even", 0.7);
-const FROG = num("frog", 0.5), FLOWERS = num("flowers", 9);
+const FPS = num("fps", 12), EASE = num("ease", 4), EVEN = num("even", 0.85);
+const FROG = num("frog", 0.5), FLOWERS = num("flowers", 9), TREES = num("trees", 1);
 const SEED = q.get("seed") ?? "cedar";
-const LEAD = 0.4, TAIL = 1.5; // seconds of empty frame before, and held after
+const LEAD = 0.17, TAIL = 1.5; // seconds of empty frame before, and held after
 
 const canvas = document.getElementById("c");
 canvas.style.width = `${W}px`;
@@ -110,10 +113,21 @@ try {
     const rr = 0.42 + random() * 0.12;
     const fx = cx + Math.cos(th) * box.w * rr;
     const fy = cy + Math.sin(th) * box.h * rr + box.h * 0.08;
-    const fs = s * (1.3 + random() * 0.45);
+    const fs = s * (1.6 + random() * 0.7);
     flowers.push(random() < 0.4
       ? { it: lupine(growth.recorder, fx, fy, fs), speed: 3 }
       : { it: wildflower(growth.recorder, fx, fy, -Math.PI / 2 + (random() - 0.5) * 0.7, fs), speed: 3 });
+  }
+  // A fir either side, standing on the clearing's ground line (a conifer's
+  // height is 140–280 × its scale, so scale = height / 210), and ferns
+  // reaching out from its lower corners.
+  if (TREES) {
+    const ground = cy + box.h * 0.5;
+    const UP = -Math.PI / 2;
+    flowers.push({ it: conifer(growth.recorder, cx - box.w * 0.82, ground, (box.h * 0.8) / 210), speed: 3 });
+    flowers.push({ it: conifer(growth.recorder, cx + box.w * 0.8, ground - box.h * 0.03, (box.h * 0.66) / 210), speed: 3 });
+    flowers.push({ it: fern(growth.recorder, cx - box.w * 0.5, ground + box.h * 0.02, UP - 1.15, s * 1.15), speed: 4 });
+    flowers.push({ it: fern(growth.recorder, cx + box.w * 0.52, ground + box.h * 0.02, UP + 1.1, s * 1.1), speed: 4 });
   }
 } finally {
   setRandom(null);

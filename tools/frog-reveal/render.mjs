@@ -5,7 +5,8 @@
 //
 // Page params go straight through to the page, e.g. `seed=moss w=1080 h=1080`.
 // Writes to media/frog-reveal/:
-//   <name>.mov            ProRes 4444 with alpha (Premiere, Final Cut, Resolve, After Effects)
+//   <name>.mov            QuickTime Animation, lossless with alpha (Premiere, Final Cut,
+//                         Resolve, After Effects); small, since most of the frame is clear
 //   <name>.webm           VP9 with alpha (browsers, web video)
 //   <name>-on-paper.mp4   H.264 on the site's paper colour, for anything without alpha
 //   <name>-last.png       the finished frame, transparent
@@ -77,7 +78,7 @@ const seq = ["-y", "-hide_banner", "-loglevel", "error", "-framerate", String(fp
 const run = (...a) => execFileSync(ffmpeg, a, { stdio: "inherit" });
 const file = (ext) => join(out, `${name}${ext}`);
 
-run(...seq, "-c:v", "prores_ks", "-profile:v", "4444", "-pix_fmt", "yuva444p10le", "-alpha_bits", "16", "-vendor", "apl0", file(".mov"));
+run(...seq, "-c:v", "qtrle", "-pix_fmt", "argb", file(".mov"));
 run(...seq, "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", "22", "-row-mt", "1", "-auto-alt-ref", "0", file(".webm"));
 run(
   "-y", "-hide_banner", "-loglevel", "error",

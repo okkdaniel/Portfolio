@@ -67,7 +67,7 @@ node tools/frog-reveal/render.mjs              # 1920×1080, 12fps, ~6s
 node tools/frog-reveal/render.mjs w=540 h=960 flowers=12 --name frog-vertical
 ```
 
-Out come a ProRes 4444 `.mov` and a VP9 `.webm` (both with alpha), an `.mp4`
-on the paper colour, and the last frame as a transparent `.png`. The `.mov` is
-too big for GitHub and stays local; the rest are committed. Page params
+Out come a `.mov` (QuickTime Animation, lossless) and a VP9 `.webm`, both
+with alpha, an `.mp4` on the paper colour, and the last frame as a
+transparent `.png`. Page params
 are listed at the top of `reveal.js`.

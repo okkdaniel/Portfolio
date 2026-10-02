@@ -8,6 +8,10 @@
 // into an interactive, orbitable 3D viewer; `preview` is still required as its
 // instant poster/fallback. Paths are absolute against /public.
 //
+// `plant` is what grows beside the render on the sheet (see art/Specimen.jsx):
+// "conifer", "cedar" or "fern". `seed` optionally picks a different (but
+// still repeatable) version of that growth; it defaults to the slug.
+//
 // The detail page is an engineering case study. Optional fields render their
 // section only when present: `summary`, `facts`, `overview`, `goals`,
 // `process` ([{ heading, body[] }]), `extraSections` ([{ label, body[] }]),
@@ -26,6 +30,7 @@ export const SAMPLE_PROJECTS = [
     lede: "An offseason FRC robot built to learn parametric design and master sketch workflows in Onshape.",
     preview: "/assets/projects/frc-987-offseason-wireframe.png",
     hero: "/assets/projects/frc-987-offseason.png",
+    plant: "conifer",
     model: "/assets/projects/frc-987-offseason.glb",
     summary:
       "A collaborative offseason FRC robot I designed as a learning project to sharpen my CAD workflow. The point was less about the robot itself and more about learning parametric design and master sketch techniques in Onshape while taking a full competition robot from a concept to a finished assembly.",
@@ -108,6 +113,7 @@ export const SAMPLE_PROJECTS = [
     lede: "A low rise monitor stand designed in SolidWorks to clean up my desk and learn sheet metal.",
     preview: "/assets/projects/monitor-stand-wireframe.png",
     hero: "/assets/projects/monitor-stand-render.png",
+    plant: "cedar",
     model: "/assets/projects/monitor-stand.glb",
     summary:
       "A low rise monitor stand I designed to replace the bulky commercial stands I could never find a good version of. It cleared up my desk and improved my setup, and it gave me a reason to learn more advanced sheet metal and surfacing tools in SolidWorks while solving a real problem.",
@@ -201,6 +207,7 @@ export const SAMPLE_PROJECTS = [
     lede: "A 2024 VEX competition robot with Limelight vision that aligns its own shots to ease the driver's load.",
     preview: "/assets/projects/rival-robotics-2024-wireframe.png",
     hero: "/assets/projects/rival-robotics-2024.png",
+    plant: "fern",
     summary:
       "A competition robot for the 2024 Rival Robotics Competition with custom vision-assisted scoring. It paired Limelight cameras with VEX hardware, a combination the two are not usually built for, so the robot could line up its shots on its own and take some of the load off the driver.",
     facts: [

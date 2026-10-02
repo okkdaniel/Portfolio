@@ -44,6 +44,8 @@ export const C = {
   bark:     [112, 80, 58],
   berry:    [212, 52, 66],
   salal:    [74, 64, 132],
+  fireweed: [222, 84, 150],
+  lupine:   [104, 92, 200],
   stone:    [150, 164, 150],
 };
 
@@ -54,6 +56,9 @@ export class Ink {
     // Device pixels per CSS pixel on the canvas; dots snap to this grid.
     this.pixelRatio = 1;
     this.keepouts = [];
+    // How softly ink gives out approaching a keep-out (see fade).
+    this.feather = FEATHER;
+    this.wobble = WOBBLE;
     // Masking fluid: { x, y, w, h, a } — a shape (the frog) painted onto the
     // paper before anything grows. Ink never lands inside it, so washes that
     // pass over it leave it behind as bare paper.
@@ -86,17 +91,18 @@ export class Ink {
   }
 
   keepoutFade(x, y) {
+    const F = this.feather, W = this.wobble;
     let k = 1;
     for (const r of this.keepouts) {
       const dx = Math.max(r.x - x, 0, x - (r.x + r.w));
       const dy = Math.max(r.y - y, 0, y - (r.y + r.h));
       let d = Math.hypot(dx, dy);
       if (d === 0) return 0;
-      if (d > FEATHER + WOBBLE) continue;
-      d += (Math.sin(x * 0.045 + Math.sin(y * 0.031) * 2) + Math.sin(y * 0.052 + x * 0.013)) * (WOBBLE / 2);
+      if (d > F + W) continue;
+      d += (Math.sin(x * 0.045 + Math.sin(y * 0.031) * 2) + Math.sin(y * 0.052 + x * 0.013)) * (W / 2);
       if (d <= 0) return 0;
-      if (d < FEATHER) {
-        const t = d / FEATHER;
+      if (d < F) {
+        const t = d / F;
         k = Math.min(k, t * t * (3 - 2 * t));
       }
     }
@@ -120,7 +126,7 @@ export class Ink {
    * them skip the per-dot fade check entirely.
    */
   nearMasks(x, y, r) {
-    const M = FEATHER + WOBBLE;
+    const M = this.feather + this.wobble;
     for (const k of this.keepouts) {
       if (x + r > k.x - M && x - r < k.x + k.w + M && y + r > k.y - M && y - r < k.y + k.h + M) return true;
     }
@@ -204,4 +210,33 @@ export class Ink {
     ctx.fill();
     this.dots++;
   }
+}
+
+/**
+ * Masking fluid in the shape of an image (see Ink.resist): the image drawn at
+ * (x, y), w × h CSS px, and wherever it's opaque, ink won't land. `spread`
+ * widens the shape by that many px all round, so ink stops a little short of
+ * it and leaves a margin of bare paper. (Widened by stamping the image around
+ * a ring rather than with a canvas blur filter, which Safari lacks.)
+ */
+export function resistFrom(img, x, y, w, h, spread = 0) {
+  const pad = Math.ceil(spread);
+  const mw = w + pad * 2, mh = h + pad * 2;
+  const probe = document.createElement("canvas");
+  probe.width = mw;
+  probe.height = mh;
+  const pc = probe.getContext("2d", { willReadFrequently: true });
+  pc.drawImage(img, pad, pad, w, h);
+  if (spread > 0) {
+    for (const r of [spread / 2, spread]) {
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        pc.drawImage(img, pad + Math.cos(a) * r, pad + Math.sin(a) * r, w, h);
+      }
+    }
+  }
+  const px = pc.getImageData(0, 0, mw, mh).data;
+  const a = new Uint8Array(mw * mh);
+  for (let i = 0; i < a.length; i++) a[i] = px[i * 4 + 3];
+  return { x: x - pad, y: y - pad, w: mw, h: mh, a };
 }

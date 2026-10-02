@@ -31,11 +31,13 @@ src/
   art/
     ink.js             the two marks (halftone wash, seed) and the palette
     forms.js           fern, fiddlehead, moss, lichen, conifer, cedar, runners
-    Field.jsx          the canvas: paces growth, input, keep-outs, resize
+    growth.js          records, times and plays growth on a canvas (12fps beat)
+    Field.jsx          the canvas: input, keep-outs, the frog, resize
+    Specimen.jsx       a project render standing in its own growth
   ui/
     Overlay.jsx        name, Works / About / Contact folds, hint, clock
     Clock.jsx          live Las Vegas time
-    ProjectSheet.jsx   one project: 3D model, render, facts, full notes
+    ProjectSheet.jsx   one project: 3D model, specimen, facts, full notes
   components/media/    ModelPlate (3D viewer), ImageLightbox
   hooks/, utils/       media queries, preload, encrypted email
 ```
@@ -46,3 +48,25 @@ field can pace it across frames. To add a plant, write a generator in
 
 Any element marked `data-keepout` stays clear of new ink.
 Reduced motion: each growth is drawn complete, instantly.
+
+Each project sheet does the same thing as the frog with the project's render:
+the render is masking fluid, and when it scrolls into view the ground and the
+project's `plant` (data.js) grow around it. It's seeded by the project, so it
+comes up the same way every visit.
+
+## Frog reveal video
+
+`tools/frog-reveal/` renders the site's opening (the clearing growing in over
+the frog) as video with a transparent background, the frog left as a hole in
+the growth. With the dev server running, open `/tools/frog-reveal/` to watch
+it, or render files into `media/frog-reveal/` (git-ignored):
+
+```bash
+npm i --no-save puppeteer-core ffmpeg-static   # once
+node tools/frog-reveal/render.mjs              # 1920×1080, 12fps, ~6s
+node tools/frog-reveal/render.mjs w=540 h=960 flowers=12 --name frog-vertical
+```
+
+Out come a ProRes 4444 `.mov` and a VP9 `.webm` (both with alpha), an `.mp4`
+on the paper colour, and the last frame as a transparent `.png`. Page params
+are listed at the top of `reveal.js`.

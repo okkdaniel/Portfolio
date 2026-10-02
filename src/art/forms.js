@@ -16,10 +16,32 @@ import { C } from "./ink.js";
 
 const TAU = Math.PI * 2;
 const UP = -Math.PI / 2;
-const rand = (a, b) => a + Math.random() * (b - a);
+
+// Where forms get their randomness. Usually Math.random; a planting can bring
+// a seeded source instead (growth.js swaps it in while that planting records),
+// so it grows the same way every time.
+let random = Math.random;
+export const setRandom = (fn) => { random = fn || Math.random; };
+
+/** A repeatable random source for a string key (mulberry32). */
+export function seeded(key) {
+  let h = 1779033703 ^ key.length;
+  for (let i = 0; i < key.length; i++) {
+    h = Math.imul(h ^ key.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  let t = h >>> 0;
+  return () => {
+    t = (t + 0x6d2b79f5) | 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = (a, b) => a + random() * (b - a);
 const randInt = (a, b) => Math.floor(rand(a, b + 1));
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const chance = (p) => Math.random() < p;
+const pick = (arr) => arr[Math.floor(random() * arr.length)];
+const chance = (p) => random() < p;
 
 const SPORE_COLORS = [C.lichen, C.sun, C.rust, C.fern, C.glacier, C.rain, C.spring, C.cedar, C.moss, C.berry, C.salal];
 
@@ -40,7 +62,7 @@ function wander(x, y, a, length, { step = 3, curl = 0, jitter = 0.03, droop = 0 
   const steps = Math.max(1, Math.round(length / step));
   for (let i = 0; i <= steps; i++) {
     pts.push({ x, y, a, t: i / steps });
-    n = n * 0.9 + (Math.random() - 0.5) * jitter;
+    n = n * 0.9 + (random() - 0.5) * jitter;
     a += curl + n;
     if (droop) a += droop * Math.sin(Math.PI / 2 - a); // steer toward straight down
     x += Math.cos(a) * step;
@@ -56,7 +78,7 @@ export function* spores(ink, x, y, R, n, colors = SPORE_COLORS) {
   ink.open();
   for (let i = 0; i < n; i++) {
     const ang = rand(0, TAU);
-    const d = R * Math.sqrt(Math.random()) * rand(0.3, 1);
+    const d = R * Math.sqrt(random()) * rand(0.3, 1);
     const big = chance(0.12);
     ink.seed(x + Math.cos(ang) * d, y + Math.sin(ang) * d, big ? rand(3, 5.5) : rand(0.9, 2.8), pick(colors), rand(0.45, 0.95));
     if (i % 3 === 0) yield;
@@ -162,7 +184,7 @@ export function* moss(ink, x, y, s, sc = pick(SCHEMES.moss)) {
   const n = Math.round((R * R) / 45);
   while (cushion.length < n) {
     const th = rand(0, TAU);
-    const d = Math.sqrt(Math.random()) * edge(th);
+    const d = Math.sqrt(random()) * edge(th);
     cushion.push({ x: x + Math.cos(th) * d, y: y + Math.sin(th) * d * 0.72, d });
   }
   cushion.sort((p, q) => p.d - q.d);
@@ -208,7 +230,7 @@ export function* lichen(ink, x, y, s, sc = pick(SCHEMES.lichen), opts = {}) {
       const d = edge(th) * k + rand(-1.5, 1.5) * s;
       marks.push({ x: x + Math.cos(th) * d, y: y + Math.sin(th) * d });
     }
-    marks.sort(() => Math.random() - 0.5);
+    marks.sort(() => random() - 0.5);
     ink.open();
     for (let i = 0; i < marks.length; i++) {
       ink.wash(marks[i].x, marks[i].y, rr * s, col, opts.ringAlpha ?? 0.42, 0.9);
@@ -283,11 +305,84 @@ export function* cedar(ink, x, y, a, s, sc = pick(SCHEMES.cedar)) {
   yield* spores(ink, x, y, 70 * s, randInt(6, 12), [C.cedar, C.sun, sc[0]]);
 }
 
+// ---- flowers --------------------------------------------------------------
+// Not planted on the field; the frog reveal video (tools/frog-reveal) sets
+// them around its clearing.
+
+const PETALS = [C.berry, C.sun, C.fireweed, C.lupine, C.rain, C.rust];
+
+/** A wildflower: a thin stem, a leaf or two, then a ring of petals opening around a seeded eye. */
+export function* wildflower(ink, x, y, a, s, petal = pick(PETALS)) {
+  const stem = wander(x, y, a, rand(40, 95) * s, { step: 2.5, curl: rand(-0.01, 0.01), jitter: 0.04 });
+  const leafAt = new Set([Math.floor(stem.length * 0.35), chance(0.5) ? Math.floor(stem.length * 0.6) : -1]);
+  for (let i = 0; i < stem.length; i++) {
+    const p = stem[i];
+    ink.wash(p.x, p.y, 1.3 * s, C.fern, 0.55, 1);
+    if (leafAt.has(i)) {
+      const side = chance(0.5) ? 1 : -1;
+      ink.open();
+      for (const q of wander(p.x, p.y, p.a + side * rand(0.6, 1), rand(10, 18) * s, { curl: -side * 0.03 })) {
+        ink.wash(q.x, q.y, (3.4 - 2 * q.t) * s, pick([C.fern, C.spring]), 0.42, 0.9);
+      }
+      ink.close();
+    }
+    if (i % 2) yield;
+  }
+  // Petals open once the stem is up (they hang off its last mark).
+  const top = stem[stem.length - 1];
+  const n = randInt(5, 8);
+  const ph = rand(0, TAU);
+  const R = rand(7, 11) * s;
+  for (let i = 0; i < n; i++) {
+    const th = ph + (i / n) * TAU;
+    ink.open();
+    for (let j = 1; j <= 4; j++) {
+      const d = (j / 4) * R;
+      ink.wash(top.x + Math.cos(th) * d, top.y + Math.sin(th) * d * 0.8, (3.6 - j * 0.45) * s, petal, 0.7, 1);
+    }
+    ink.close();
+    yield;
+  }
+  ink.open();
+  for (let i = 0; i < 5; i++) {
+    ink.seed(top.x + rand(-2, 2) * s, top.y + rand(-2, 2) * s, rand(0.8, 1.6) * Math.max(0.7, s), pick([C.sun, C.rust]), 0.9);
+  }
+  ink.close();
+  yield;
+}
+
+/** A lupine: a fan of leaflets at the foot, then a spike of florets opening up the stem. */
+export function* lupine(ink, x, y, s, flower = pick([C.lupine, C.salal, C.fireweed])) {
+  const lf = randInt(6, 8);
+  for (let i = 0; i < lf; i++) {
+    ink.open();
+    for (const q of wander(x, y - 4 * s, UP + (i / (lf - 1) - 0.5) * 2.6, rand(12, 18) * s, { jitter: 0.02 })) {
+      ink.wash(q.x, q.y, (3.2 - 1.7 * q.t) * s, pick([C.fern, C.fern, C.spring]), 0.42, 0.9);
+    }
+    ink.close();
+  }
+  yield;
+  const stem = wander(x, y, UP + rand(-0.15, 0.15), rand(70, 120) * s, { step: 2.5, jitter: 0.02 });
+  for (let i = 0; i < stem.length; i++) {
+    const p = stem[i];
+    ink.wash(p.x, p.y, 1.5 * s, C.fern, 0.55, 1);
+    if (p.t > 0.4 && i % 2 === 0) {
+      const u = (p.t - 0.4) / 0.6; // 0 at the spike's foot, 1 at its tip
+      const off = (5 * (1 - u) + 1.5) * s;
+      for (const side of [-1, 1]) {
+        const o = p.a + side * Math.PI / 2;
+        ink.wash(p.x + Math.cos(o) * off, p.y + Math.sin(o) * off, (3.2 - 1.8 * u) * s, chance(0.15) ? C.rain : flower, 0.7, 1);
+      }
+    }
+    if (i % 2) yield;
+  }
+}
+
 // ---- wiring ---------------------------------------------------------------
 
 /** Some plant, chosen at random, rooted at (x, y). */
 export function anyForm(ink, x, y, along, s) {
-  const r = Math.random();
+  const r = random();
   if (r < 0.22) return { it: conifer(ink, x, y, s), speed: 3 };
   if (r < 0.42) return { it: fern(ink, x, y, UP + rand(-1.1, 1.1) + (along - UP) * 0.2, s), speed: 4 };
   if (r < 0.6)  return { it: moss(ink, x, y, s), speed: 4 };
@@ -347,6 +442,44 @@ export function clearing(ink, box, s, bounds) {
   out.push({ it: conifer(ink, ...at(0.92, 0.6), s * 0.85), speed: 3 });
   out.push({ it: spores(ink, x + w / 2, y + h / 2, Math.max(w, h) * 0.75, 60), speed: 2 });
   out.push({ it: runner(ink, ...at(0.5, 0.5), rand(0, TAU), s, bounds), speed: 3 });
+  return out;
+}
+
+/**
+ * A project's specimen: the object (its render, laid down as masking fluid)
+ * standing in a patch of ground, with the project's own plant beside it.
+ * `box` is the outline of the object itself, and the open paper to its left
+ * is where the plant goes. Everything grows around the object and leaves it
+ * bare, the way the clearing leaves the frog.
+ */
+export function specimen(ink, plant, box, s) {
+  const { x, y, w, h } = box;
+  const base = y + h;
+  const left = x - Math.min(x * 0.42, 90 * s); // root of the plant, in the open paper
+  const ground = function* () {
+    ink.open();
+    for (let i = 0; i < 12; i++) {
+      ink.wash(x + rand(-0.3, 1) * w, base + rand(-0.14, 0.03) * h, rand(40, 80) * s, pick([C.moss, C.lichen, C.spring, C.glacier, C.fern]), rand(0.2, 0.3), rand(0.55, 0.75));
+      yield;
+    }
+    ink.close();
+  };
+  const out = [{ it: ground(), speed: 1 }];
+  for (const f of [-0.12, 0.3, 0.75]) {
+    out.push({ it: moss(ink, x + (f + rand(-0.05, 0.05)) * w, base + rand(-0.02, 0.03) * h, s * rand(0.6, 0.8)), speed: 4 });
+  }
+  out.push({ it: lichen(ink, x + w * rand(0.85, 1), base - h * rand(0.05, 0.15), s * 0.7), speed: 5 });
+  if (plant === "conifer") {
+    out.push({ it: conifer(ink, left, base + 4 * s, (0.85 * h) / 210), speed: 3 });
+  } else if (plant === "cedar") {
+    const k = Math.min(1.25, (0.45 * w) / 150);
+    out.push({ it: cedar(ink, left, base, UP + 0.55, k), speed: 4 });
+    out.push({ it: cedar(ink, left + 30 * s, base, UP + 0.95, k * 0.7), speed: 4 });
+  } else if (plant === "fern") {
+    out.push({ it: fern(ink, left, base, UP - 0.45, (0.9 * h) / 215), speed: 4 });
+    out.push({ it: fiddlehead(ink, x + w * 0.95, base, UP + 0.2, s * 0.9), speed: 3 });
+  }
+  out.push({ it: spores(ink, x + w * 0.4, base - h * 0.4, Math.max(w, h) * 0.7, 40), speed: 2 });
   return out;
 }
 

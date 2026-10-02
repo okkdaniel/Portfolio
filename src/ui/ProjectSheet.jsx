@@ -1,11 +1,13 @@
 import React from "react";
 import { ModelPlate } from "../components/media/ModelPlate.jsx";
 import { ImageLightbox } from "../components/media/ImageLightbox.jsx";
+import { Specimen } from "../art/Specimen.jsx";
 
 /**
  * ProjectSheet — one project, on a sheet of paper that slides over the (still
  * growing) board. Short by default: title, one line, the object itself (3D
- * model or wireframe drawing), the render, a few facts. The whole
+ * model or wireframe drawing), the render standing in its own growth
+ * (Specimen), a few facts. The whole
  * case study is folded under "details".
  *
  * Closes with the close control, a click outside, or Escape.
@@ -60,11 +62,7 @@ export function ProjectSheet({ project: p, next, onClose }) {
           ) : null}
         </div>
 
-        {p.hero && (
-          <button type="button" className="render" onClick={() => setZoom(p.hero)} aria-label="Enlarge the render">
-            <img src={p.hero} alt={`${p.title}, render`} loading="lazy" />
-          </button>
-        )}
+        {p.hero && <Specimen key={p.slug} project={p} onZoom={() => setZoom(p.hero)} />}
 
         {p.facts && (
           <dl className="sheet__facts">

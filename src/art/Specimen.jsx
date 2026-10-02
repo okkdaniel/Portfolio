@@ -2,13 +2,12 @@ import React from "react";
 import { PAPER, resistFrom } from "./ink.js";
 import { specimen, seeded, setRandom } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
-import { useInView } from "../hooks/useInView.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 
 /**
  * Specimen — a project's render, standing in its own patch of growth on the
  * sheet. The render is laid on the paper as masking fluid (as the frog is on
- * the field), so when it scrolls into view the ground and the project's plant
+ * the field), so once it's scrolled fully into view the ground and the project's plant
  * (`project.plant`) grow around it and leave the object bare, with a thin
  * margin of paper all round.
  *
@@ -18,7 +17,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery.js";
 export function Specimen({ project: p, onZoom }) {
   const canvasRef = React.useRef(null);
   const imgRef = React.useRef(null);
-  const [plateRef, inView] = useInView({ threshold: 0.35, once: true });
+  const inView = useFullyInView(imgRef);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const isSmall = useMediaQuery("(max-width: 768px)");
 
@@ -99,7 +98,7 @@ export function Specimen({ project: p, onZoom }) {
   }, [inView, reducedMotion, isSmall, p.plant, p.seed, p.slug]);
 
   return (
-    <div ref={plateRef} className="plate">
+    <div className="plate">
       <canvas ref={canvasRef} className="plate__ink" aria-hidden="true" />
       <button type="button" className="render" onClick={onZoom} aria-label="Enlarge the render">
         <img ref={imgRef} src={p.hero} alt={`${p.title}, render`} loading="lazy" />
@@ -126,4 +125,50 @@ function outline(m, inset) {
   }
   if (x1 < 0) return null;
   return { x: m.x + x0 + inset, y: m.y + y0 + inset, w: x1 - x0 - 2 * inset, h: y1 - y0 - 2 * inset };
+}
+
+/**
+ * Whether the image has (once) been scrolled fully into view: loaded, and
+ * entirely on screen below the sheet's sticky bar. An image taller than the
+ * screen counts once it fills what's visible. Latches true.
+ */
+function useFullyInView(imgRef) {
+  const [seen, setSeen] = React.useState(false);
+
+  React.useEffect(() => {
+    const img = imgRef.current;
+    if (!img || seen) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setSeen(true);
+      return;
+    }
+    let io = null;
+    let alive = true;
+    // Wait for the image itself: before it loads it has no height, and an
+    // empty box counts as fully in view anywhere on screen.
+    img
+      .decode()
+      .catch(() => {})
+      .then(() => {
+        if (!alive) return;
+        const bar = img.closest(".sheet")?.querySelector(".sheet__bar")?.offsetHeight ?? 0;
+        io = new IntersectionObserver(
+          ([e]) => {
+            const full = e.intersectionRatio > 0.99 || (e.rootBounds && e.intersectionRect.height >= e.rootBounds.height - 2);
+            if (full) {
+              setSeen(true);
+              io.disconnect();
+            }
+          },
+          { rootMargin: `-${bar}px 0px 0px 0px`, threshold: Array.from({ length: 21 }, (_, i) => i / 20) }
+        );
+        io.observe(img);
+      });
+    return () => {
+      alive = false;
+      io?.disconnect();
+    };
+  }, [imgRef, seen]);
+
+  return seen;
 }

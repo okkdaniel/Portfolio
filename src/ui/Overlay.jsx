@@ -12,9 +12,16 @@ export const PROFESSIONAL_URL = "https://old.danielkaliko.com";
  * (Works / About / Contact) in the top-left; a reset control and hint in the
  * bottom-left; the clock in the bottom-right. Only one fold is open at a time.
  */
-export function Overlay({ open, setOpen, onReset, projects }) {
+export function Overlay({ open, setOpen, onReset, projects, hovered, onHover }) {
   const isTouch = useMediaQuery("(hover: none)");
   const toggle = (key) => setOpen(open === key ? null : key);
+  // Reaching for Works starts fetching the renders it lays in the paper.
+  const warmWorks = React.useCallback(() => {
+    for (const p of projects) {
+      const img = new Image();
+      img.src = p.hero;
+    }
+  }, [projects]);
 
   return (
     <div className="overlay">
@@ -23,9 +30,9 @@ export function Overlay({ open, setOpen, onReset, projects }) {
           <h1 className="ov-name">Daniel Kaliko</h1>
         </div>
 
-        <Fold id="works" label="Works" open={open === "works"} onToggle={toggle}>
+        <Fold id="works" label="Works" open={open === "works"} onToggle={toggle} onIntent={warmWorks}>
           <ol className="works">
-            {projects.map((p) => <WorkItem key={p.slug} project={p} />)}
+            {projects.map((p) => <WorkItem key={p.slug} project={p} hot={hovered === p.slug} onHover={onHover} />)}
           </ol>
         </Fold>
 
@@ -70,7 +77,7 @@ export function Overlay({ open, setOpen, onReset, projects }) {
   );
 }
 
-function Fold({ id, label, open, onToggle, children }) {
+function Fold({ id, label, open, onToggle, onIntent, children }) {
   return (
     <section className={`fold${open ? " fold--open" : ""}`}>
       <button
@@ -79,6 +86,8 @@ function Fold({ id, label, open, onToggle, children }) {
         aria-expanded={open}
         aria-controls={`fold-${id}`}
         onClick={() => onToggle(id)}
+        onPointerEnter={onIntent}
+        onFocus={onIntent}
       >
         <span>{label}</span>
         <span className="fold__icon" aria-hidden="true">+</span>
@@ -90,11 +99,18 @@ function Fold({ id, label, open, onToggle, children }) {
   );
 }
 
-function WorkItem({ project: p }) {
+function WorkItem({ project: p, hot, onHover }) {
   const preload = usePreloadProject(p);
   return (
     <li>
-      <a href={`#work/${p.slug}`} onMouseEnter={preload} onFocus={preload}>
+      <a
+        href={`#work/${p.slug}`}
+        className={hot ? "is-hot" : undefined}
+        onMouseEnter={() => { preload(); onHover?.(p.slug); }}
+        onMouseLeave={() => onHover?.(null)}
+        onFocus={() => { preload(); onHover?.(p.slug); }}
+        onBlur={() => onHover?.(null)}
+      >
         <span className="works__n">{String(p.index).padStart(2, "0")}</span>
         <span className="works__t">{p.title}</span>
         <span className="works__y">{p.year}</span>

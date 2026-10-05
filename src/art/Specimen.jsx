@@ -1,5 +1,5 @@
 import React from "react";
-import { PAPER, resistFrom } from "./ink.js";
+import { PAPER, resistFrom, opaqueBounds } from "./ink.js";
 import { specimen, seeded, setRandom } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -72,7 +72,7 @@ export function Specimen({ project: p, onZoom }) {
         { x: w, y: -F, w: F, h: 3 * F },
       ];
 
-      const box = outline(ink.resist, spread);
+      const box = opaqueBounds(ink.resist, spread);
       if (!box) return;
       const s = Math.min(1.1, Math.max(0.6, box.h / 380));
       const random = seeded(String(p.seed ?? p.slug));
@@ -146,26 +146,6 @@ export function Specimen({ project: p, onZoom }) {
       )}
     </>
   );
-}
-
-/**
- * The bounding box of the opaque part of a resist, in its own coordinates,
- * pulled back in by `inset` (how far the resist was widened).
- */
-function outline(m, inset) {
-  let x0 = m.w, y0 = m.h, x1 = -1, y1 = -1;
-  for (let y = 0; y < m.h; y++) {
-    const row = y * m.w;
-    for (let x = 0; x < m.w; x++) {
-      if (m.a[row + x] <= 127) continue;
-      if (x < x0) x0 = x;
-      if (x > x1) x1 = x;
-      if (y < y0) y0 = y;
-      y1 = y;
-    }
-  }
-  if (x1 < 0) return null;
-  return { x: m.x + x0 + inset, y: m.y + y0 + inset, w: x1 - x0 - 2 * inset, h: y1 - y0 - 2 * inset };
 }
 
 /**

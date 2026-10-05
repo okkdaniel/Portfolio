@@ -92,8 +92,8 @@
   color: var(--dim);
   transition: color 0.25s;
 }
-.works a:hover, .works a:focus-visible { color: var(--ink); }
-.works a:hover .works__n { color: var(--accent); }
+.works a:hover, .works a:focus-visible, .works a.is-hot { color: var(--ink); }
+.works a:hover .works__n, .works a.is-hot .works__n { color: var(--accent); }
 .works__n, .works__y { color: var(--faint); transition: color 0.25s; }
 
 .about p { margin: 0 0 9px; color: var(--dim); max-width: 34ch; }

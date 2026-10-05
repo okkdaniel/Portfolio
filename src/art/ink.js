@@ -61,7 +61,7 @@ export class Ink {
     this.wobble = WOBBLE;
     // Masking fluid: { x, y, w, h, a } — a shape (the frog) painted onto the
     // paper before anything grows. Ink never lands inside it, so washes that
-    // pass over it leave it behind as bare paper.
+    // pass over it leave it behind as bare paper. Can also be a list of them.
     this.resist = null;
     // Running count of dots drawn, so the Field can budget each frame by how
     // much it actually asked the canvas to fill.
@@ -72,10 +72,13 @@ export class Ink {
   }
 
   resisted(x, y) {
-    const m = this.resist;
-    if (!m) return false;
-    const ix = Math.floor(x - m.x), iy = Math.floor(y - m.y);
-    return ix >= 0 && iy >= 0 && ix < m.w && iy < m.h && m.a[iy * m.w + ix] > 127;
+    const r = this.resist;
+    if (!r) return false;
+    for (const m of Array.isArray(r) ? r : [r]) {
+      const ix = Math.floor(x - m.x), iy = Math.floor(y - m.y);
+      if (ix >= 0 && iy >= 0 && ix < m.w && iy < m.h && m.a[iy * m.w + ix] > 127) return true;
+    }
+    return false;
   }
 
   /**
@@ -130,8 +133,12 @@ export class Ink {
     for (const k of this.keepouts) {
       if (x + r > k.x - M && x - r < k.x + k.w + M && y + r > k.y - M && y - r < k.y + k.h + M) return true;
     }
-    const m = this.resist;
-    return !!m && x + r > m.x && x - r < m.x + m.w && y + r > m.y && y - r < m.y + m.h;
+    const res = this.resist;
+    if (!res) return false;
+    for (const m of Array.isArray(res) ? res : [res]) {
+      if (x + r > m.x && x - r < m.x + m.w && y + r > m.y && y - r < m.y + m.h) return true;
+    }
+    return false;
   }
 
   /**
@@ -239,4 +246,24 @@ export function resistFrom(img, x, y, w, h, spread = 0) {
   const a = new Uint8Array(mw * mh);
   for (let i = 0; i < a.length; i++) a[i] = px[i * 4 + 3];
   return { x: x - pad, y: y - pad, w: mw, h: mh, a };
+}
+
+/**
+ * The bounding box of the opaque part of a resist, in page px, pulled back in
+ * by `inset` (how far the resist was widened). Null if it's all clear.
+ */
+export function opaqueBounds(m, inset = 0) {
+  let x0 = m.w, y0 = m.h, x1 = -1, y1 = -1;
+  for (let y = 0; y < m.h; y++) {
+    const row = y * m.w;
+    for (let x = 0; x < m.w; x++) {
+      if (m.a[row + x] <= 127) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      y1 = y;
+    }
+  }
+  if (x1 < 0) return null;
+  return { x: m.x + x0 + inset, y: m.y + y0 + inset, w: x1 - x0 - 2 * inset, h: y1 - y0 - 2 * inset };
 }

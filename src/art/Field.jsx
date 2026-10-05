@@ -46,7 +46,7 @@ const GROWING = 9000;
  *
  * Ref: { reset } clears the paper.
  */
-export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
+export const Field = React.forwardRef(function Field({ dimmed = false, hushed = false }, ref) {
   const canvasRef = React.useRef(null);
   const veilRef = React.useRef(null);
   const api = React.useRef({ reset() {} });
@@ -381,7 +381,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
     <>
       <canvas
         ref={canvasRef}
-        className={`field${dimmed ? " field--dimmed" : ""}`}
+        className={`field${dimmed ? " field--dimmed" : ""}${hushed ? " field--hushed" : ""}`}
         aria-hidden="true"
       />
       <canvas ref={veilRef} className="veil" aria-hidden="true" />

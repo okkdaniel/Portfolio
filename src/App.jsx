@@ -2,6 +2,7 @@ import React from "react";
 import { Field } from "./art/Field.jsx";
 import { Overlay } from "./ui/Overlay.jsx";
 import { ProjectSheet } from "./ui/ProjectSheet.jsx";
+import { Works } from "./art/Works.jsx";
 import { SAMPLE_PROJECTS } from "./data.js";
 
 const PROJECTS = [...SAMPLE_PROJECTS].sort((a, b) => a.index - b.index);
@@ -11,10 +12,14 @@ const PROJECTS = [...SAMPLE_PROJECTS].sort((a, b) => a.index - b.index);
  * The only route is '#work/<slug>', which opens that project's sheet; anything
  * else is the field alone. The field stays mounted throughout, so navigating
  * never erases what has grown.
+ *
+ * Opening the Works fold surfaces the projects in the paper (Works); it stays
+ * up under an open sheet, so closing the sheet returns to it.
  */
 export default function App() {
   const [hash, setHash] = React.useState(window.location.hash);
   const [open, setOpen] = React.useState(null);
+  const [hovered, setHovered] = React.useState(null);
   const fieldRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -36,13 +41,42 @@ export default function App() {
     document.title = project ? `${project.title} · Daniel Kaliko` : "Daniel Kaliko";
   }, [project]);
 
+  // Works stays mounted for a moment after its fold closes, to fade out.
+  const worksOpen = open === "works";
+  const [worksMounted, setWorksMounted] = React.useState(false);
+  React.useEffect(() => {
+    if (worksOpen) { setWorksMounted(true); return; }
+    setHovered(null);
+    const t = setTimeout(() => setWorksMounted(false), 500);
+    return () => clearTimeout(t);
+  }, [worksOpen]);
+
+  // Escape closes Works (an open sheet handles Escape itself, first).
+  React.useEffect(() => {
+    if (!worksOpen || project) return;
+    const onKey = (e) => { if (e.key === "Escape") setOpen(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [worksOpen, project]);
+
   const close = React.useCallback(() => { window.location.hash = ""; }, []);
+  const closeWorks = React.useCallback(() => setOpen(null), []);
   const reset = React.useCallback(() => fieldRef.current?.reset(), []);
 
   return (
     <>
-      <Field ref={fieldRef} dimmed={!!project} />
-      <Overlay open={open} setOpen={setOpen} onReset={reset} projects={PROJECTS} />
+      <Field ref={fieldRef} dimmed={!!project} hushed={worksOpen && !project} />
+      {worksMounted && (
+        <Works
+          projects={PROJECTS}
+          hovered={hovered}
+          onHover={setHovered}
+          onClose={closeWorks}
+          dimmed={!!project}
+          leaving={!worksOpen}
+        />
+      )}
+      <Overlay open={open} setOpen={setOpen} onReset={reset} projects={PROJECTS} hovered={hovered} onHover={setHovered} />
       {project && <ProjectSheet project={project} next={next !== project ? next : null} onClose={close} />}
     </>
   );

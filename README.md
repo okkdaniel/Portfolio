@@ -33,6 +33,8 @@ src/
     forms.js           fern, fiddlehead, moss, lichen, conifer, cedar, runners
     growth.js          records, times and plays growth on a canvas (12fps beat)
     Field.jsx          the canvas: input, keep-outs, the frog, resize
+    Works.jsx          with Works open, each project surfaces in the paper as a
+                       bare-paper silhouette in its own growth (hover: the render)
     Specimen.jsx       a project render standing in its own growth; "3d model (+)"
                        turns it into the 3D model in place
   ui/

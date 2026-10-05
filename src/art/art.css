@@ -12,6 +12,8 @@
 }
 
 .field--dimmed { opacity: 0.35; }
+/* Further back still while the projects are up in the paper (Works). */
+.field--hushed { opacity: 0.12; }
 
 /* The field as it was when a resize settled, fading out over the redrawn
    field (see Field.jsx). */
@@ -35,3 +37,60 @@
   display: block;
   pointer-events: none;
 }
+
+/* The projects surfaced in the paper while Works is open (Works.jsx): a layer
+   over the dimmed field, under the text. Each project is a bare-paper
+   silhouette in its own growth; its render fades in on hover or focus. */
+.works-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease);
+}
+.works-layer--shown { opacity: 1; }
+.works-layer--shown.works-layer--dimmed { opacity: 0.35; }
+/* Fading out, it lets everything through. */
+.works-layer:not(.works-layer--shown) * { pointer-events: none !important; }
+
+.works-layer__backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.works-layer__ink {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  pointer-events: none;
+}
+
+.works-layer__render {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s var(--ease);
+}
+.works-layer__render.is-hot { opacity: 1; }
+
+.works-layer__spot {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.works-layer__label {
+  position: absolute;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  line-height: 16px;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--dim);
+  transition: color 0.25s;
+}
+.works-layer__spot.is-hot .works-layer__label { color: var(--ink); }

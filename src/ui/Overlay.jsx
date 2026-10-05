@@ -8,7 +8,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery.js";
 export const PROFESSIONAL_URL = "https://old.danielkaliko.com";
 
 /**
- * Overlay — the only text on the piece. A name, one line, and three folds
+ * Overlay — the only text on the piece. A name and three folds
  * (Works / About / Contact) in the top-left; a reset control and hint in the
  * bottom-left; the clock in the bottom-right. Only one fold is open at a time.
  */
@@ -21,7 +21,6 @@ export function Overlay({ open, setOpen, onReset, projects }) {
       <header className="ov-head" data-keepout>
         <div className="ov-top">
           <h1 className="ov-name">Daniel Kaliko</h1>
-          <p className="ov-line">builds robots, thinks about trees.</p>
         </div>
 
         <Fold id="works" label="Works" open={open === "works"} onToggle={toggle}>

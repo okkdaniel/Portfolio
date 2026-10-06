@@ -1,5 +1,5 @@
 import React from "react";
-import { resistFrom, opaqueBounds, eraseMark } from "./ink.js";
+import { resistFrom, opaqueBounds, eraseMark, wipeCells } from "./ink.js";
 import { plot, vine, seeded, setRandom } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -144,8 +144,10 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     retractRef.current = () => {
       leavingNow = true;
       growth.retract({
-        duration: reducedMotion ? 0 : 0.7,
+        duration: reducedMotion ? 0 : 0.85,
+        size: { w: window.innerWidth, h: window.innerHeight },
         erase: (m) => eraseMark(layer.ctx, m, ink.pitch, null),
+        wipe: (xy, from, to) => wipeCells(layer.ctx, xy, from, to, ink.pitch, null),
         onDone: () => { layer.clearScratch(); layer.size(1, 1, 1); },
       });
     };

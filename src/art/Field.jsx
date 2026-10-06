@@ -1,5 +1,5 @@
 import React from "react";
-import { C, PAPER, FEATHER, WOBBLE, resistFrom, eraseMark } from "./ink.js";
+import { C, PAPER, FEATHER, WOBBLE, resistFrom, eraseMark, wipeCells } from "./ink.js";
 import { grow, clearing, seeded, setRandom, SPORE_COLORS } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -234,8 +234,10 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       if (mem.retracted) return;
       mem.retracted = true;
       growth.retract({
-        duration: reducedMotion ? 0 : 0.55,
+        duration: reducedMotion ? 0 : 1,
+        size: { w, h },
         erase: (m) => eraseMark(ctx, m, ink.pitch, PAPER),
+        wipe: (xy, from, to) => wipeCells(ctx, xy, from, to, ink.pitch, PAPER),
         onDone: () => { layer.clearScratch(); paper(); },
       });
     };

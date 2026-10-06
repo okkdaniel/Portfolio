@@ -291,26 +291,64 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
     },
 
     /**
-     * Take everything drawn back off, last mark first, over `duration`
-     * seconds on the same 12fps beat: quick at first, slowing, so the newest
-     * growth goes first and the oldest last. `erase(mark)` wipes one mark
-     * (see eraseMark in ink.js); `onDone` runs at the end, and should leave
-     * the canvas clean (marks may overlap, and a tight beat skips the rest).
+     * Take everything drawn back off over `duration` seconds, on the same
+     * 12fps beat, as the growth reversed. Strokes and small marks go newest
+     * first (`erase(mark)`, see eraseMark in ink.js), so plants shrink back
+     * along themselves toward their roots. Broad washes would vanish as
+     * whole discs that way, so the ground instead recedes cell by cell: each
+     * screen cell they covered is ranked by the newest wash that covered it,
+     * with a good share of chance, and the cells go in that order
+     * (`wipe(xy, from, to)`, see wipeCells). `size` is the canvas, { w, h }
+     * in CSS px. `onDone` runs at the end and should leave it clean.
      */
-    retract({ duration = 1.1, erase, onDone } = {}) {
-      const marks = drawn.reverse();
+    retract({ duration = 1, erase, wipe, size, onDone } = {}) {
+      const all = drawn.reverse();
       this.clear();
-      const n = marks.length;
-      let i = 0, t0 = null, last = -Infinity;
+      const P = ink.pitch;
+      const SMALL = P * 5;
+      const small = [];
+      // Cells of the broad washes, newest wash first, in 32 buckets of rank.
+      const cols = Math.ceil(size.w / P) + 1, rows = Math.ceil(size.h / P) + 1;
+      const seen = new Uint8Array(cols * rows);
+      const B = 32;
+      const buckets = Array.from({ length: B }, () => []);
+      const N = all.length || 1;
+      all.forEach((m, rank) => {
+        const [kind, a] = m;
+        if (kind !== "wash" || a[2] <= SMALL) { small.push(m); return; }
+        const [x, y, r] = a;
+        const r2 = r * r;
+        const gx0 = Math.max(0, Math.ceil((x - r) / P)), gx1 = Math.min(cols - 1, Math.floor((x + r) / P));
+        const gy0 = Math.max(0, Math.ceil((y - r) / P)), gy1 = Math.min(rows - 1, Math.floor((y + r) / P));
+        for (let gy = gy0; gy <= gy1; gy++) {
+          for (let gx = gx0; gx <= gx1; gx++) {
+            const k = gy * cols + gx;
+            if (seen[k]) continue;
+            const dx = gx * P - x, dy = gy * P - y;
+            if (dx * dx + dy * dy >= r2) continue;
+            seen[k] = 1;
+            const v = (rank / N) * 0.6 + Math.random() * 0.4;
+            buckets[Math.min(B - 1, Math.floor(v * B))].push(gx * P, gy * P);
+          }
+        }
+      });
+      const xy = buckets.flat();
+      const cells = xy.length / 2;
+      const ease = (u) => u * u * (3 - 2 * u);
+      let i = 0, c = 0, t0 = null, last = -Infinity;
       const tick = (ms) => {
         const now = ms / 1000;
         if (t0 === null) t0 = now;
         if (now - last >= 1 / GROWTH_FPS - 0.004) {
           last = now;
           const u = Math.min(1, (now - t0) / duration);
-          const to = Math.floor(n * (1 - (1 - u) * (1 - u)));
+          // Strokes over the first three quarters; the ground from a fifth
+          // of the way in to the end, overlapping, so it all goes together.
+          const toMarks = Math.floor(small.length * ease(Math.min(1, u / 0.75)));
+          const toCells = Math.floor(cells * ease(Math.max(0, Math.min(1, (u - 0.2) / 0.8))));
           const start = performance.now();
-          while (i < to && performance.now() - start < 14) erase(marks[i++]);
+          while (i < toMarks && performance.now() - start < 10) erase(small[i++]);
+          if (toCells > c) { wipe(xy, c, toCells); c = toCells; }
           if (u >= 1) { back = 0; onDone?.(); return; }
         }
         back = requestAnimationFrame(tick);

@@ -305,3 +305,21 @@ export function eraseMark(ctx, [kind, a], pitch = PITCH, paper = PAPER) {
   ctx.fill();
   ctx.restore();
 }
+
+/**
+ * Wipe screen cells off a canvas: `xy` holds cell centres as x, y pairs;
+ * cells `from` (inclusive) to `to` (exclusive) go, filled with `paper`, or
+ * cleared to transparent if it's null. One path, one fill.
+ */
+export function wipeCells(ctx, xy, from, to, pitch = PITCH, paper = PAPER) {
+  if (to <= from) return;
+  const P = pitch;
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = paper ? "source-over" : "destination-out";
+  ctx.fillStyle = paper || "#000";
+  ctx.beginPath();
+  for (let i = from; i < to; i++) ctx.rect(xy[2 * i] - P / 2 - 0.3, xy[2 * i + 1] - P / 2 - 0.3, P + 0.6, P + 0.6);
+  ctx.fill();
+  ctx.restore();
+}

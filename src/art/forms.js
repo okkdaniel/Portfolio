@@ -86,6 +86,39 @@ export function* spores(ink, x, y, R, n, colors = SPORE_COLORS) {
   ink.close();
 }
 
+const GROUND = [C.moss, C.lichen, C.spring, C.glacier, C.fern];
+
+/**
+ * Ground that grows rather than lands: from a few starting points near
+ * (x, y), walkers creep outward along wandering paths, each laying medium
+ * washes as it goes, shrinking as they get further out, so the ground
+ * spreads like moss instead of appearing as round discs. Each walker is its
+ * own stroke, so they all grow at once. Covers roughly a disc of radius R.
+ */
+export function* spread(ink, x, y, R, { origins = 3, walkers = 8, colors = GROUND, alpha = [0.18, 0.27] } = {}) {
+  const starts = Array.from({ length: origins }, () => {
+    const a = rand(0, TAU), d = rand(0, 0.3) * R;
+    return [x + Math.cos(a) * d, y + Math.sin(a) * d];
+  });
+  for (let i = 0; i < walkers; i++) {
+    let [wx, wy] = starts[i % origins];
+    let a = rand(0, TAU);
+    const steps = randInt(7, 11);
+    const reach = R * rand(0.75, 1.05);
+    const col = pick(colors);
+    ink.open();
+    for (let k = 0; k < steps; k++) {
+      const t = k / steps;
+      ink.wash(wx, wy, R * rand(0.15, 0.24) * (1 - 0.45 * t), chance(0.7) ? col : pick(colors), rand(...alpha), rand(0.6, 0.8));
+      a += rand(-0.5, 0.5);
+      wx += Math.cos(a) * (reach / steps);
+      wy += Math.sin(a) * (reach / steps);
+      if (k % 2) yield;
+    }
+    ink.close();
+  }
+}
+
 /** Big, faint washes: color bleeding into the paper under everything else. */
 export function* bleed(ink, x, y, s, rgb = pick(SCHEMES.bleed)) {
   ink.open();
@@ -455,16 +488,8 @@ export function* runner(ink, x, y, a, s, bounds, depth = 0) {
 export function clearing(ink, box, s, bounds) {
   const { x, y, w, h } = box;
   const at = (fx, fy) => [x + fx * w, y + fy * h];
-  const ground = function* () {
-    ink.open();
-    for (let i = 0; i < 16; i++) {
-      const [gx, gy] = at(rand(0.05, 0.95), rand(0.05, 0.95));
-      ink.wash(gx, gy, rand(55, 100) * s, pick([C.moss, C.lichen, C.spring, C.glacier, C.fern]), rand(0.22, 0.32), rand(0.6, 0.8));
-      yield;
-    }
-    ink.close();
-  };
-  const out = [{ it: ground(), speed: 1 }];
+  // The ground spreads out over the box from a few points near its middle.
+  const out = [{ it: spread(ink, x + w / 2, y + h / 2, Math.max(w, h) * 0.55, { origins: 3, walkers: 10, alpha: [0.2, 0.3] }), speed: 1 }];
   for (const [fx, fy] of [[0.3, 0.3], [0.7, 0.35], [0.45, 0.65], [0.75, 0.75], [0.2, 0.75]]) {
     out.push({ it: moss(ink, ...at(fx + rand(-0.06, 0.06), fy + rand(-0.06, 0.06)), s * rand(0.85, 1.1)), speed: 4 });
   }
@@ -548,33 +573,66 @@ export function plot(ink, plant, box, s, edge = []) {
     return e;
   };
 
-  // Broad ground washes and the outline (all the way round, but thicker on
-  // the heavy side, so the shape comes up sharp), laid down together: the
-  // broad ones spread through the stroke rather than all at its start, so
-  // the ground builds up with the outline instead of landing in one go.
-  const ground = function* () {
+  // The object's outline, in order round it: the outermost edge point at
+  // each angle from its middle.
+  const bins = 180;
+  const ring = new Array(bins);
+  for (const e of edge) {
+    const a = Math.atan2(e.y - cy, e.x - cx);
+    const b = Math.floor(((a + Math.PI) / TAU) * bins) % bins;
+    const d = Math.hypot(e.x - cx, e.y - cy);
+    if (!ring[b] || d > ring[b].d) ring[b] = { x: e.x, y: e.y, d, a };
+  }
+  const outline = ring.filter(Boolean);
+  const onRing = new Set(outline);
+
+  // Runners trace the outline, starting on the heavy side and creeping both
+  // ways round, laying growth along the edge as they go and ground a little
+  // further out behind them, so the shape is drawn by growing rather than
+  // filled in. Each is its own stroke, so they grow at once.
+  const runnerAlong = function* (from, dir, length) {
     ink.open();
-    const broad = randInt(10, 17);
-    const n = edge.length ? Math.min(120, Math.max(60, Math.round(edge.length / 3))) : broad;
-    const every = Math.max(1, Math.floor(n / broad));
-    let b = 0;
-    for (let i = 0; i < n; i++) {
-      if (i % every === 0 && b < broad) {
-        b++;
-        const d = R * rand(0.05, 0.5);
-        const gx = cx + lx * d + rand(-0.45, 0.45) * w, gy = cy + ly * d + rand(-0.4, 0.45) * h;
-        ink.wash(gx, gy, rand(0.18, 0.38) * R, pick([C.moss, C.lichen, C.spring, C.glacier, C.fern]), rand(0.22, 0.36), rand(0.6, 0.85));
+    const N = outline.length;
+    for (let k = 0; k < length; k++) {
+      const p = outline[(((from + dir * k) % N) + N) % N];
+      const nx = (p.x - cx) / (p.d || 1), ny = (p.y - cy) / (p.d || 1);
+      const wgt = weight(p.x, p.y);
+      const o = rand(1, 6);
+      ink.wash(p.x + nx * o, p.y + ny * o, Math.max(5, R * rand(0.035, 0.075) * (0.7 + 0.5 * wgt)), pick([C.moss, C.fern, C.lichen, C.spring, C.glacier, C.fir]), rand(0.32, 0.46), rand(0.82, 0.95));
+      if (k % 3 === 0) {
+        const f = R * rand(0.05, 0.16) * wgt;
+        ink.wash(p.x + nx * f, p.y + ny * f, R * rand(0.07, 0.14) * (0.6 + 0.6 * wgt), pick(GROUND), rand(0.2, 0.3), rand(0.6, 0.8));
       }
-      if (edge.length) {
-        const e = edgePick();
-        const k = weight(e.x, e.y);
-        ink.wash(e.x + rand(-5, 5), e.y + rand(-5, 5), Math.max(6, rand(0.05, 0.12) * R * (0.6 + 0.6 * k)), pick([C.moss, C.fern, C.lichen, C.spring, C.glacier, C.fir]), rand(0.3, 0.48), rand(0.8, 0.95));
-      }
-      if (i % 3 === 2) yield;
+      if (k % 2) yield;
     }
     ink.close();
   };
-  const out = [{ it: ground(), speed: 1 }];
+  const out = [];
+  if (outline.length > 8) {
+    const N = outline.length;
+    // Start where the outline is heaviest.
+    let start = 0;
+    for (let i = 1; i < N; i++) if (weight(outline[i].x, outline[i].y) > weight(outline[start].x, outline[start].y)) start = i;
+    start = (start + randInt(-N / 10, N / 10) + N) % N;
+    const half = Math.ceil(N * rand(0.52, 0.6));
+    out.push({ it: runnerAlong(start, 1, half), speed: 1 });
+    out.push({ it: runnerAlong(start, -1, N - half + Math.ceil(N * 0.06)), speed: 1 });
+    // The edges inside it (cut-outs) come up in their own time.
+    const inner = edge.filter((e) => !onRing.has(e));
+    if (inner.length) {
+      out.push({ it: (function* () {
+        ink.open();
+        for (let i = 0, n = Math.min(160, Math.round(inner.length / 2)); i < n; i++) {
+          const e = pick(inner);
+          ink.wash(e.x, e.y, Math.max(6, R * rand(0.04, 0.08)), pick([C.moss, C.fern, C.lichen, C.spring, C.glacier]), rand(0.32, 0.46), rand(0.82, 0.95));
+          if (i % 3 === 2) yield;
+        }
+        ink.close();
+      })(), speed: 1 });
+    }
+  }
+  // Ground spreading out from the heavy side.
+  out.push({ it: spread(ink, cx + lx * R * 0.35, cy + ly * R * 0.35, R * 0.6, { origins: 2, walkers: 7 }), speed: 1 });
   for (let i = 0, m = randInt(2, 5); edge.length && i < m; i++) {
     const e = edgePick(2);
     out.push({ it: moss(ink, e.x + lx * rand(0, 12), e.y + ly * rand(0, 12), s * rand(0.4, 0.7)), speed: 4 });

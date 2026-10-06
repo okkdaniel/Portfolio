@@ -234,7 +234,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       if (mem.retracted) return;
       mem.retracted = true;
       growth.retract({
-        duration: reducedMotion ? 0 : 1.2,
+        duration: reducedMotion ? 0 : 0.55,
         erase: (m) => eraseMark(ctx, m, ink.pitch, PAPER),
         onDone: () => { layer.clearScratch(); paper(); },
       });

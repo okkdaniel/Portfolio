@@ -145,7 +145,7 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     retractRef.current = () => {
       leavingNow = true;
       growth.retract({
-        duration: reducedMotion ? 0 : 0.9,
+        duration: reducedMotion ? 0 : 0.7,
         erase: (m) => eraseMark(layer.ctx, m, ink.pitch, null),
         onDone: () => { layer.clearScratch(); layer.size(1, 1, 1); },
       });
@@ -219,50 +219,65 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
   );
 }
 
+// Arrangements for three specimens, as [x, y] fractions of the open paper:
+// each spreads them across its width and height and balances them, with no
+// two at the same height. Landscape ones keep out of the top-left, where the
+// header is; portrait ones sit under it.
+const WIDE = [
+  [[0.16, 0.74], [0.5, 0.3], [0.84, 0.66]],   // zigzag: low, high, low
+  [[0.18, 0.7], [0.52, 0.66], [0.84, 0.26]],  // rising to the right
+  [[0.4, 0.28], [0.17, 0.76], [0.8, 0.6]],    // one high, one low each side
+  [[0.2, 0.72], [0.55, 0.28], [0.82, 0.76]],  // a wide V upside down
+];
+const TALL = [
+  [[0.28, 0.18], [0.72, 0.5], [0.3, 0.83]],
+  [[0.7, 0.17], [0.3, 0.5], [0.68, 0.84]],
+];
+
 /**
- * Where n specimens go: scattered over the whole open paper (the window, less
- * a margin, the footer lines, and the header with room around it), each a
- * different size, loosely apart. Best-candidate placement with a good share
- * of chance in the score, biggest first, on this visit's seed, so it's never
- * a grid and never the same two visits running. Slots are { cx, cy, size },
- * size being the object's longer side.
+ * Where n specimens go: one of the arrangements above, picked by chance each
+ * visit and loosened a little, with the projects dealt to its places at
+ * random and each a slightly different size, as big as the paper allows.
+ * Wide windows use the whole window (the header has a corner to itself);
+ * narrow ones the paper under the header. A place that would touch the
+ * header is moved clear of it. Slots are { cx, cy, size }, size being the
+ * object's longer side.
  */
 function scatter(w, h, head, n, small) {
-  const random = seeded(`works-layout/${VISIT}/${Math.round(w)}x${Math.round(h)}`);
-  const m = small ? 18 : 40;
-  const x0 = m, y0 = m, x1 = w - m, y1 = h - (small ? 60 : 80);
-  const block = head ? { x: head.left - 30, y: head.top - 30, w: head.width + 60, h: head.height + 40 } : null;
-  const free = (x1 - x0) * (y1 - y0) - (block ? block.w * block.h : 0);
-  const base = Math.min(small ? 170 : 300, Math.sqrt(Math.max(1, free) / n) * (small ? 0.55 : 0.45));
+  const random = seeded(`works-layout/${VISIT}`);
   const room = LABEL_GAP + LABEL_H + 12;
-  const sizes = Array.from({ length: n }, () => base * (0.72 + random() * 0.5));
-  const order = sizes.map((size, i) => i).sort((p, q) => sizes[q] - sizes[p]);
-  const hits = (cx, cy, size) => block
-    && cx + size / 2 + 12 > block.x && cx - size / 2 - 12 < block.x + block.w
-    && cy + size / 2 + room > block.y && cy - size / 2 - 12 < block.y + block.h;
-  const out = new Array(n);
-  const placed = [];
-  for (const i of order) {
-    const size = sizes[i];
-    const r = size * 0.6; // room for the patch around it
-    // Never on the header, unless there's truly nowhere else.
-    let best = null, fallback = null;
-    for (let k = 0; k < 200; k++) {
-      const cx = x0 + size / 2 + random() * Math.max(0, x1 - x0 - size);
-      const cy = y0 + size / 2 + random() * Math.max(0, y1 - y0 - size - room);
-      let gap = Infinity;
-      for (const q of placed) gap = Math.min(gap, Math.hypot(cx - q.cx, cy - q.cy) - r - q.r);
-      // Apart enough is enough; past that, chance decides.
-      const score = Math.min(gap, size * 0.5) + random() * size * 0.6;
-      const c = { cx, cy, r, score };
-      if (hits(cx, cy, size)) { if (!fallback || score > fallback.score) fallback = c; continue; }
-      if (!best || score > best.score) best = c;
+  const m = small ? 18 : 44;
+  const below = head ? head.bottom + 24 : m;
+  const wide = !small && w > h * 1.1;
+  const area = wide
+    ? { x0: m, y0: m, x1: w - m, y1: h - 80 }
+    : { x0: m, y0: below, x1: w - m, y1: h - (small ? 60 : 80) };
+  const W = area.x1 - area.x0, H = area.y1 - area.y0;
+  const sets = wide ? WIDE : TALL;
+  const set = n === 3
+    ? sets[Math.floor(random() * sets.length)]
+    : Array.from({ length: n }, (_, i) => [(i + 0.5) / n, i % 2 ? 0.3 : 0.7]);
+  const base = wide
+    ? Math.min(360, W * 0.25, H * 0.4)
+    : Math.min(240, W * 0.55, H * 0.24);
+  // Deal the projects to the places at random.
+  const deal = set.map((_, i) => i).sort(() => random() - 0.5);
+  const block = head ? { x0: head.left - 24, y0: head.top - 24, x1: head.right + 40, y1: head.bottom + 24 } : null;
+  return Array.from({ length: n }, (_, i) => {
+    const [fx, fy] = set[deal[i]];
+    const size = base * (0.85 + random() * 0.3);
+    let cx = area.x0 + W * (fx + (random() - 0.5) * 0.05);
+    let cy = area.y0 + H * (fy + (random() - 0.5) * 0.05);
+    // Keep the whole object (and its label) on the paper.
+    cx = Math.min(area.x1 - size / 2, Math.max(area.x0 + size / 2, cx));
+    cy = Math.min(area.y1 - size / 2 - room, Math.max(area.y0 + size / 2, cy));
+    // Clear of the header: push it right or down, whichever is the shorter way.
+    if (block && cx - size / 2 < block.x1 && cy - size / 2 < block.y1 && cx + size / 2 > block.x0 && cy + size / 2 + room > block.y0) {
+      const right = block.x1 - (cx - size / 2), down = block.y1 - (cy - size / 2);
+      if (right < down) cx += right; else cy += down;
     }
-    best ??= fallback;
-    placed.push(best);
-    out[i] = { cx: best.cx, cy: best.cy, size };
-  }
-  return out;
+    return { cx, cy, size };
+  });
 }
 
 /** Pairs [i, j] joining boxes into one chain, each to its nearest unjoined. */

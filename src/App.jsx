@@ -60,7 +60,7 @@ export default function App() {
     if (!wasOpen.current) return;
     wasOpen.current = false;
     fieldRef.current?.regrow();
-    const t = setTimeout(() => setWorksMounted(false), 1100);
+    const t = setTimeout(() => setWorksMounted(false), 900);
     return () => clearTimeout(t);
   }, [worksOpen]);
 

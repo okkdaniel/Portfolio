@@ -24,9 +24,9 @@ const VISIT = Math.random().toString(36).slice(2);
  * its sheet. Clicking the empty paper closes Works, and `leaving` un-grows it
  * all, newest first.
  *
- * The specimens are scattered over the whole open paper, sized and placed
- * differently each visit (the same within one). On a resize they're redrawn
- * complete for the new layout.
+ * On wide screens they're laid out as in Daniel's sketch (see SKETCH); on
+ * narrow ones under the header. On a resize they're redrawn complete for the
+ * new layout.
  */
 export function Works({ projects, hovered, onHover, onClose, dimmed = false, leaving = false }) {
   const canvasRef = React.useRef(null);
@@ -64,10 +64,9 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
       const w = window.innerWidth, h = window.innerHeight;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       const head = document.querySelector(".ov-head")?.getBoundingClientRect();
-      // Only a change to the window or the header's footprint lays them out
-      // again (and the first layout waits for the fold to finish opening, so
-      // that doesn't cut the growth short).
-      const key = `${w}x${h}@${dpr}/${head ? [head.right, head.bottom].map(Math.round).join(",") : ""}`;
+      // Only a change to the window (or, on narrow screens, to the header
+      // they sit under) lays them out again.
+      const key = `${w}x${h}@${dpr}${isWide(w, h, isSmall) || !head ? "" : "/" + Math.round(head.bottom)}`;
       if (key === laid) return;
       laid = key;
       growth.clear();
@@ -151,14 +150,15 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
       });
     };
 
-    // Start once the renders are in and the fold has finished opening (the
-    // specimens avoid the header, which grows as it opens).
+    // Start as soon as the renders are in, together with the field going
+    // back to paper. On narrow screens, where they sit under the header,
+    // wait for the fold to finish opening first.
     let settle = 0;
     const relay = () => {
       clearTimeout(settle);
       settle = setTimeout(() => lay(true), 150);
     };
-    const opening = new Promise((r) => setTimeout(r, FOLD_MS));
+    const opening = new Promise((r) => setTimeout(r, isWide(window.innerWidth, window.innerHeight, isSmall) ? 0 : FOLD_MS));
     let watcher = null;
     Promise.all([...imgs.map((i) => i.decode().catch(() => {})), opening]).then(() => {
       if (!alive) return;
@@ -219,63 +219,50 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
   );
 }
 
-// Arrangements for three specimens, as [x, y] fractions of the open paper:
-// each spreads them across its width and height and balances them, with no
-// two at the same height. Landscape ones keep out of the top-left, where the
-// header is; portrait ones sit under it.
-const WIDE = [
-  [[0.16, 0.74], [0.5, 0.3], [0.84, 0.66]],   // zigzag: low, high, low
-  [[0.18, 0.7], [0.52, 0.66], [0.84, 0.26]],  // rising to the right
-  [[0.4, 0.28], [0.17, 0.76], [0.8, 0.6]],    // one high, one low each side
-  [[0.2, 0.72], [0.55, 0.28], [0.82, 0.76]],  // a wide V upside down
+// On wide screens, Daniel's layout (from his sketch): left low, middle high
+// just right of the header, right a little lower and the biggest, each about
+// a quarter of the window across, vines running left to middle to right.
+// As [x, y, size]: centres as fractions of the window, size (the object's
+// longer side) as a fraction of its width.
+const SKETCH = [
+  [0.207, 0.712, 0.257],
+  [0.539, 0.284, 0.256],
+  [0.824, 0.617, 0.278],
 ];
+// On narrow ones, under the header: one of these, picked by chance.
 const TALL = [
   [[0.28, 0.18], [0.72, 0.5], [0.3, 0.83]],
   [[0.7, 0.17], [0.3, 0.5], [0.68, 0.84]],
 ];
 
+/** Whether the window lays the specimens out as in the sketch. */
+const isWide = (w, h, small) => !small && w > h * 1.1;
+
 /**
- * Where n specimens go: one of the arrangements above, picked by chance each
- * visit and loosened a little, with the projects dealt to its places at
- * random and each a slightly different size, as big as the paper allows.
- * Wide windows use the whole window (the header has a corner to itself);
- * narrow ones the paper under the header. A place that would touch the
- * header is moved clear of it. Slots are { cx, cy, size }, size being the
- * object's longer side.
+ * Where n specimens go, in order (01, 02, 03 left to right on wide screens).
+ * Wide: the sketch, scaled to the window (sizes capped so they fit its
+ * height). Narrow: the paper under the header, one of the TALL sets, sizes
+ * varied a little. Slots are { cx, cy, size }, size being the object's
+ * longer side.
  */
 function scatter(w, h, head, n, small) {
+  if (isWide(w, h, small) && n === 3) {
+    return SKETCH.map(([fx, fy, fs]) => ({ cx: w * fx, cy: h * fy, size: Math.min(380, w * fs, h * 0.36) }));
+  }
   const random = seeded(`works-layout/${VISIT}`);
   const room = LABEL_GAP + LABEL_H + 12;
   const m = small ? 18 : 44;
-  const below = head ? head.bottom + 24 : m;
-  const wide = !small && w > h * 1.1;
-  const area = wide
-    ? { x0: m, y0: m, x1: w - m, y1: h - 80 }
-    : { x0: m, y0: below, x1: w - m, y1: h - (small ? 60 : 80) };
+  const area = { x0: m, y0: head ? head.bottom + 24 : m, x1: w - m, y1: h - (small ? 60 : 80) };
   const W = area.x1 - area.x0, H = area.y1 - area.y0;
-  const sets = wide ? WIDE : TALL;
   const set = n === 3
-    ? sets[Math.floor(random() * sets.length)]
+    ? TALL[Math.floor(random() * TALL.length)]
     : Array.from({ length: n }, (_, i) => [(i + 0.5) / n, i % 2 ? 0.3 : 0.7]);
-  const base = wide
-    ? Math.min(360, W * 0.25, H * 0.4)
-    : Math.min(240, W * 0.55, H * 0.24);
-  // Deal the projects to the places at random.
-  const deal = set.map((_, i) => i).sort(() => random() - 0.5);
-  const block = head ? { x0: head.left - 24, y0: head.top - 24, x1: head.right + 40, y1: head.bottom + 24 } : null;
+  const base = Math.min(240, W * 0.55, H * 0.24);
   return Array.from({ length: n }, (_, i) => {
-    const [fx, fy] = set[deal[i]];
+    const [fx, fy] = set[i];
     const size = base * (0.85 + random() * 0.3);
-    let cx = area.x0 + W * (fx + (random() - 0.5) * 0.05);
-    let cy = area.y0 + H * (fy + (random() - 0.5) * 0.05);
-    // Keep the whole object (and its label) on the paper.
-    cx = Math.min(area.x1 - size / 2, Math.max(area.x0 + size / 2, cx));
-    cy = Math.min(area.y1 - size / 2 - room, Math.max(area.y0 + size / 2, cy));
-    // Clear of the header: push it right or down, whichever is the shorter way.
-    if (block && cx - size / 2 < block.x1 && cy - size / 2 < block.y1 && cx + size / 2 > block.x0 && cy + size / 2 + room > block.y0) {
-      const right = block.x1 - (cx - size / 2), down = block.y1 - (cy - size / 2);
-      if (right < down) cx += right; else cy += down;
-    }
+    const cx = Math.min(area.x1 - size / 2, Math.max(area.x0 + size / 2, area.x0 + W * fx));
+    const cy = Math.min(area.y1 - size / 2 - room, Math.max(area.y0 + size / 2, area.y0 + H * fy));
     return { cx, cy, size };
   });
 }

@@ -292,10 +292,10 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
 
     /**
      * Take everything drawn back off over `duration` seconds, on the same
-     * 12fps beat, following the growth: `order` "oldest" (the default)
-     * takes it off in the order it grew, roots and first ground first, so it
-     * goes the way it came; "newest" reverses it, tips first, so plants
-     * shrink back toward their roots. Strokes and small marks go one by one
+     * 12fps beat, following the growth: `order` "newest" (the default)
+     * reverses it, tips first, so plants shrink back toward their roots;
+     * "oldest" takes it off in the order it grew, roots and first ground
+     * first, so it goes the way it came. Strokes and small marks go one by one
      * (`erase(mark)`, see eraseMark in ink.js). Broad washes would vanish as
      * whole discs that way, so the ground goes cell by cell: each screen cell
      * they covered is ranked by the first wash (in that order) that covered
@@ -307,7 +307,7 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
      * { w, h } in CSS px. `onDone` runs at the end and should leave it
      * clean.
      */
-    retract({ duration = 1, order = "oldest", erase, wipe, size, onDone } = {}) {
+    retract({ duration = 1, order = "newest", erase, wipe, size, onDone } = {}) {
       const all = order === "newest" ? drawn.reverse() : drawn;
       this.clear();
       const P = ink.pitch;

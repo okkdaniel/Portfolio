@@ -1,5 +1,5 @@
 import React from "react";
-import { C, PAPER, FEATHER, WOBBLE, resistFrom } from "./ink.js";
+import { C, PAPER, FEATHER, WOBBLE, resistFrom, eraseMark } from "./ink.js";
 import { grow, clearing, seeded, setRandom, SPORE_COLORS } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
@@ -42,11 +42,15 @@ const GROWING = 9000;
  * it, and the page opens by growing a clearing over it, so the frog appears
  * as the bare paper the paint couldn't reach.
  *
+ * The whole field can also be taken back: retract() un-grows it, newest
+ * marks first, down to bare paper (Works does this as it opens, so the
+ * projects come up on clean paper); regrow() grows everything back.
+ *
  * Reduced motion: each growth is drawn complete, instantly.
  *
- * Ref: { reset } clears the paper.
+ * Ref: { reset } clears the paper; { retract, regrow } as above.
  */
-export const Field = React.forwardRef(function Field({ dimmed = false, hushed = false }, ref) {
+export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
   const canvasRef = React.useRef(null);
   const veilRef = React.useRef(null);
   const api = React.useRef({ reset() {} });
@@ -54,9 +58,13 @@ export const Field = React.forwardRef(function Field({ dimmed = false, hushed = 
   const isSmall = useMediaQuery("(max-width: 768px)");
   // What has grown, kept outside the effect, which runs again when the
   // screen crosses the phone breakpoint, so that can redraw it too.
-  const memory = React.useRef({ plantings: [], trail: [], salt: Math.random().toString(36).slice(2), n: 0 });
+  const memory = React.useRef({ plantings: [], trail: [], salt: Math.random().toString(36).slice(2), n: 0, retracted: false });
 
-  React.useImperativeHandle(ref, () => ({ reset: () => api.current.reset() }), []);
+  React.useImperativeHandle(ref, () => ({
+    reset: () => api.current.reset(),
+    retract: () => api.current.retract?.(),
+    regrow: () => api.current.regrow?.(),
+  }), []);
 
   React.useEffect(() => {
     const mem = memory.current;
@@ -188,7 +196,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false, hushed = 
       p.seed = `${mem.salt}-${mem.n++}`;
       p.at = performance.now();
       mem.plantings.push(p);
-      plantOne(p, reducedMotion);
+      if (!mem.retracted) plantOne(p, reducedMotion); // else it grows with regrow()
     };
     const growAt = (x, y) => add({ kind: "grow", fx: x / w, fy: y / h, k: 0.75 + Math.random() * 0.5 });
 
@@ -202,14 +210,45 @@ export const Field = React.forwardRef(function Field({ dimmed = false, hushed = 
       sizeTo();
       paper();
       if (frog.complete && frog.naturalWidth) placeFrog();
+      keepoutKey = "";
+      applyKeepouts();
+      if (mem.retracted) return; // taken back: stays bare until regrow()
       const t = performance.now();
       const done = (p) => reducedMotion || t - p.at > GROWING;
       for (const p of mem.plantings) if (done(p)) plantOne(p, true);
-      for (const d of mem.trail) ink.seed(d.fx * w, d.fy * h, d.r, d.col, 0.55);
-      layer.flush();
+      redrawTrail();
       for (const p of mem.plantings) if (!done(p)) plantOne(p, false);
-      keepoutKey = "";
-      applyKeepouts();
+    };
+
+    const redrawTrail = () => {
+      for (const d of mem.trail) {
+        const a = [d.fx * w, d.fy * h, d.r, d.col, 0.55];
+        ink.seed(...a);
+        growth.note("seed", a);
+      }
+      layer.flush();
+    };
+
+    // Un-grow everything, newest first, to bare paper.
+    api.current.retract = () => {
+      if (mem.retracted) return;
+      mem.retracted = true;
+      growth.retract({
+        duration: reducedMotion ? 0 : 1.2,
+        erase: (m) => eraseMark(ctx, m, ink.pitch, PAPER),
+        onDone: () => { layer.clearScratch(); paper(); },
+      });
+    };
+
+    // Grow everything back, from the start.
+    api.current.regrow = () => {
+      if (!mem.retracted) return;
+      mem.retracted = false;
+      growth.clear();
+      layer.clearScratch();
+      paper();
+      for (const p of mem.plantings) plantOne(p, reducedMotion);
+      redrawTrail();
     };
 
     api.current.reset = () => {
@@ -218,6 +257,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false, hushed = 
       paper();
       mem.plantings = [];
       mem.trail = [];
+      mem.retracted = false;
     };
 
     sizeTo();
@@ -289,6 +329,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false, hushed = 
       const col = SPORE_COLORS[Math.floor(Math.random() * SPORE_COLORS.length)];
       const x = e.clientX + Math.cos(a) * d, y = e.clientY + Math.sin(a) * d, r = 0.8 + Math.random() * 1.6;
       ink.seed(x, y, r, col, 0.55);
+      growth.note("seed", [x, y, r, col, 0.55]);
       mem.trail.push({ fx: x / w, fy: y / h, r, col });
       if (mem.trail.length > 4000) mem.trail.shift();
       if (!growth.busy) layer.flush(); // otherwise the running growth loop flushes it
@@ -381,7 +422,7 @@ export const Field = React.forwardRef(function Field({ dimmed = false, hushed = 
     <>
       <canvas
         ref={canvasRef}
-        className={`field${dimmed ? " field--dimmed" : ""}${hushed ? " field--hushed" : ""}`}
+        className={`field${dimmed ? " field--dimmed" : ""}`}
         aria-hidden="true"
       />
       <canvas ref={veilRef} className="veil" aria-hidden="true" />

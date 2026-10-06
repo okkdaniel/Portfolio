@@ -1,6 +1,6 @@
 import React from "react";
-import { resistFrom, opaqueBounds } from "./ink.js";
-import { plot, seeded, setRandom } from "./forms.js";
+import { resistFrom, opaqueBounds, eraseMark } from "./ink.js";
+import { plot, vine, seeded, setRandom } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 
@@ -8,20 +8,29 @@ const SPREAD = 6;       // px of bare paper kept around each silhouette
 const LABEL_GAP = 14;   // px between a silhouette and its label
 const LABEL_H = 16;
 const CHAR_W = 7.1;     // the label's mono characters, 11px with tracking
+const FOLD_MS = 520;    // the Works fold's opening animation, plus a little
+// Each visit lays the specimens out (and grows them) its own way; within a
+// visit they come back the same.
+const VISIT = Math.random().toString(36).slice(2);
 
 /**
- * Works — the projects, surfaced in the paper. While the Works fold is open,
- * each project's cut-out render is laid on a layer over the (dimmed) field as
- * masking fluid, the way the frog is, and a patch of that project's own
- * growth comes up around it, so the object appears as a bare-paper
- * silhouette. Hovering or focusing one fills it in with the render itself;
- * clicking opens its sheet. Clicking the empty paper closes Works.
+ * Works — the projects, surfaced in the paper. While the Works fold is open
+ * (and the field has been taken back to bare paper), each project's cut-out
+ * render is laid on a layer over the paper as masking fluid, the way the frog
+ * is, and a patch of that project's own growth comes up around it, so the
+ * object appears as a bare-paper silhouette. Vines run from one to the next,
+ * opening small plants as they go, so the three grow as one piece. Hovering
+ * or focusing a silhouette fills it in with the render itself; clicking opens
+ * its sheet. Clicking the empty paper closes Works, and `leaving` un-grows it
+ * all, newest first.
  *
- * Each patch is seeded by its project, so the same specimens come back every
- * time. On a resize they're redrawn complete for the new layout.
+ * The specimens are scattered over the whole open paper, sized and placed
+ * differently each visit (the same within one). On a resize they're redrawn
+ * complete for the new layout.
  */
 export function Works({ projects, hovered, onHover, onClose, dimmed = false, leaving = false }) {
   const canvasRef = React.useRef(null);
+  const retractRef = React.useRef(() => {});
   const [spots, setSpots] = React.useState([]);
   const [shown, setShown] = React.useState(false);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -49,18 +58,23 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
 
     // Lay the specimens out for the window as it is. `now` draws them
     // complete instead of growing them.
+    let leavingNow = false;
     const lay = (now) => {
+      if (leavingNow) return;
       const w = window.innerWidth, h = window.innerHeight;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       const head = document.querySelector(".ov-head")?.getBoundingClientRect();
-      const key = `${w}x${h}@${dpr}/${head ? Math.round(head.right) + "," + Math.round(head.bottom) : ""}`;
+      // Only a change to the window or the header's footprint lays them out
+      // again (and the first layout waits for the fold to finish opening, so
+      // that doesn't cut the growth short).
+      const key = `${w}x${h}@${dpr}/${head ? [head.right, head.bottom].map(Math.round).join(",") : ""}`;
       if (key === laid) return;
       laid = key;
       growth.clear();
       layer.clearScratch();
       layer.size(w, h, dpr);
 
-      const slots = arrange(openArea(w, h, head), imgs.length, isSmall);
+      const slots = scatter(w, h, head, imgs.length, isSmall);
       const placed = imgs.map((img, i) => {
         const p = projects[i];
         const slot = slots[i];
@@ -93,29 +107,58 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
       ];
       ink.resist = placed.map((s) => s.mask);
 
-      for (const s of placed) {
-        const random = seeded(`${s.p.slug}/works`);
+      // Slower and more evenly paced than the field's growth, so the
+      // specimens come up steadily rather than mostly in the first moment.
+      const tempo = { now, pace: 1.6, ease: 2 };
+      const edges = placed.map((s) => edgePoints(s.mask));
+      placed.forEach((s, i) => {
+        const random = seeded(`${s.p.slug}/${VISIT}`);
         const scale = Math.min(1, Math.max(0.55, s.box.h / 300));
         let gens;
         setRandom(random);
         try {
-          gens = plot(growth.recorder, s.p.plant, s.box, scale, edgePoints(s.mask));
+          gens = plot(growth.recorder, s.p.plant, s.box, scale, edges[i]);
         } finally {
           setRandom(null);
         }
-        growth.plant(gens, { random, now });
+        growth.plant(gens, { random, ...tempo });
+      });
+
+      // Vines joining them: each to its nearest neighbour not yet joined,
+      // so they make one chain.
+      const random = seeded(`vines/${VISIT}`);
+      const vines = [];
+      setRandom(random);
+      try {
+        for (const [i, j] of chain(placed.map((s) => s.box))) {
+          const path = between(edges[i], edges[j], random);
+          if (path.length > 8) vines.push({ it: vine(growth.recorder, path, Math.min(0.8, Math.max(0.5, placed[i].box.h / 360)), { flowers: 0.08 }), speed: 3 });
+        }
+      } finally {
+        setRandom(null);
       }
+      growth.plant(vines, { random, ...tempo });
       setSpots(placed.map(({ p, img, box, label, text }) => ({ slug: p.slug, title: p.title, hero: p.hero, img, box, label, text })));
     };
 
-    // Start once the renders are in, and (on phones, where the specimens sit
-    // under the header) once the fold has finished opening.
+    // Take it all back off, newest first (as Works closes).
+    retractRef.current = () => {
+      leavingNow = true;
+      growth.retract({
+        duration: reducedMotion ? 0 : 0.9,
+        erase: (m) => eraseMark(layer.ctx, m, ink.pitch, null),
+        onDone: () => { layer.clearScratch(); layer.size(1, 1, 1); },
+      });
+    };
+
+    // Start once the renders are in and the fold has finished opening (the
+    // specimens avoid the header, which grows as it opens).
     let settle = 0;
     const relay = () => {
       clearTimeout(settle);
       settle = setTimeout(() => lay(true), 150);
     };
-    const opening = new Promise((r) => setTimeout(r, isSmall ? 520 : 0));
+    const opening = new Promise((r) => setTimeout(r, FOLD_MS));
     let watcher = null;
     Promise.all([...imgs.map((i) => i.decode().catch(() => {})), opening]).then(() => {
       if (!alive) return;
@@ -135,10 +178,14 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     };
   }, [projects, reducedMotion, isSmall]);
 
+  React.useEffect(() => {
+    if (leaving) retractRef.current();
+  }, [leaving]);
+
   const px = (r) => ({ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
 
   return (
-    <div className={`works-layer${shown && !leaving ? " works-layer--shown" : ""}${dimmed ? " works-layer--dimmed" : ""}`}>
+    <div className={`works-layer${shown && !leaving ? " works-layer--shown" : ""}${leaving ? " works-layer--leaving" : ""}${dimmed ? " works-layer--dimmed" : ""}`}>
       <div className="works-layer__backdrop" onClick={onClose} aria-hidden="true" />
       <canvas ref={canvasRef} className="works-layer__ink" aria-hidden="true" />
       {spots.map((s) => (
@@ -173,43 +220,93 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
 }
 
 /**
- * The open paper the specimens can use, in px: right of the header on wide
- * screens, below it on narrow ones, clear of the footer lines.
+ * Where n specimens go: scattered over the whole open paper (the window, less
+ * a margin, the footer lines, and the header with room around it), each a
+ * different size, loosely apart. Best-candidate placement with a good share
+ * of chance in the score, biggest first, on this visit's seed, so it's never
+ * a grid and never the same two visits running. Slots are { cx, cy, size },
+ * size being the object's longer side.
  */
-function openArea(w, h, head) {
-  const right = head ? head.right + 48 : 40;
-  if (head && w - 40 - right >= 360) return { x0: right, y0: 40, x1: w - 40, y1: h - 80 };
-  return { x0: 20, y0: (head ? head.bottom : 0) + 28, x1: w - 20, y1: h - 64 };
+function scatter(w, h, head, n, small) {
+  const random = seeded(`works-layout/${VISIT}/${Math.round(w)}x${Math.round(h)}`);
+  const m = small ? 18 : 40;
+  const x0 = m, y0 = m, x1 = w - m, y1 = h - (small ? 60 : 80);
+  const block = head ? { x: head.left - 30, y: head.top - 30, w: head.width + 60, h: head.height + 40 } : null;
+  const free = (x1 - x0) * (y1 - y0) - (block ? block.w * block.h : 0);
+  const base = Math.min(small ? 170 : 300, Math.sqrt(Math.max(1, free) / n) * (small ? 0.55 : 0.45));
+  const room = LABEL_GAP + LABEL_H + 12;
+  const sizes = Array.from({ length: n }, () => base * (0.72 + random() * 0.5));
+  const order = sizes.map((size, i) => i).sort((p, q) => sizes[q] - sizes[p]);
+  const hits = (cx, cy, size) => block
+    && cx + size / 2 + 12 > block.x && cx - size / 2 - 12 < block.x + block.w
+    && cy + size / 2 + room > block.y && cy - size / 2 - 12 < block.y + block.h;
+  const out = new Array(n);
+  const placed = [];
+  for (const i of order) {
+    const size = sizes[i];
+    const r = size * 0.6; // room for the patch around it
+    // Never on the header, unless there's truly nowhere else.
+    let best = null, fallback = null;
+    for (let k = 0; k < 200; k++) {
+      const cx = x0 + size / 2 + random() * Math.max(0, x1 - x0 - size);
+      const cy = y0 + size / 2 + random() * Math.max(0, y1 - y0 - size - room);
+      let gap = Infinity;
+      for (const q of placed) gap = Math.min(gap, Math.hypot(cx - q.cx, cy - q.cy) - r - q.r);
+      // Apart enough is enough; past that, chance decides.
+      const score = Math.min(gap, size * 0.5) + random() * size * 0.6;
+      const c = { cx, cy, r, score };
+      if (hits(cx, cy, size)) { if (!fallback || score > fallback.score) fallback = c; continue; }
+      if (!best || score > best.score) best = c;
+    }
+    best ??= fallback;
+    placed.push(best);
+    out[i] = { cx: best.cx, cy: best.cy, size };
+  }
+  return out;
+}
+
+/** Pairs [i, j] joining boxes into one chain, each to its nearest unjoined. */
+function chain(boxes) {
+  const c = boxes.map((b) => [b.x + b.w / 2, b.y + b.h / 2]);
+  const left = c.map((_, i) => i);
+  left.sort((p, q) => c[p][0] - c[q][0]);
+  let at = left.shift();
+  const pairs = [];
+  while (left.length) {
+    const d = (i) => Math.hypot(c[i][0] - c[at][0], c[i][1] - c[at][1]);
+    left.sort((p, q) => d(p) - d(q));
+    const next = left.shift();
+    pairs.push([at, next]);
+    at = next;
+  }
+  return pairs;
 }
 
 /**
- * Slots for n specimens in an area: the grid (3 across, 2, or 1) that lets
- * them be biggest, a little staggered so they don't sit on a ruled line.
- * Each slot is { cx, cy, size } for the object's longer side. On a phone they
- * fill more of their cell; on wider screens each patch needs room around it.
+ * A vine's path from one silhouette's edge to another's: between the two
+ * nearest edge points, bowed to one side and wavering, a few px a step.
  */
-function arrange(a, n, small) {
-  const W = a.x1 - a.x0, H = a.y1 - a.y0;
-  const room = LABEL_GAP + LABEL_H + 12;
-  let best = null;
-  for (const cols of [3, 2, 1]) {
-    const rows = Math.ceil(n / cols);
-    const cw = W / cols, ch = H / rows;
-    const size = Math.min(300, cw * (small ? 0.75 : 0.6), (ch - room) * 0.7);
-    if (!best || size > best.size) best = { cols, rows, cw, ch, size };
-  }
-  const { cols, rows, cw, ch, size } = best;
-  const stagger = [-0.07, 0.09, -0.02];
+function between(ea, eb, random) {
+  if (!ea.length || !eb.length) return [];
+  const mid = (pts) => pts.reduce((m, p) => [m[0] + p.x / pts.length, m[1] + p.y / pts.length], [0, 0]);
+  const [bx, by] = mid(eb), [ax, ay] = mid(ea);
+  const near = (pts, x, y) => pts.reduce((b, p) => (Math.hypot(p.x - x, p.y - y) < Math.hypot(b.x - x, b.y - y) ? p : b));
+  const a = near(ea, bx, by), b = near(eb, ax, ay);
+  const L = Math.hypot(b.x - a.x, b.y - a.y);
+  if (L < 1) return [];
+  const nx = -(b.y - a.y) / L, ny = (b.x - a.x) / L;
+  const bow = (random() - 0.5) * 0.7 * L;
+  const wob = 5 + random() * 8, f = 2 + random() * 3, ph = random() * Math.PI * 2;
+  const side = random() < 0.5 ? 1 : -1;
+  const cx = (a.x + b.x) / 2 + nx * bow, cy = (a.y + b.y) / 2 + ny * bow;
   const out = [];
-  for (let i = 0; i < n; i++) {
-    const r = Math.floor(i / cols);
-    const inRow = Math.min(cols, n - r * cols);
-    const c = i % cols + (cols - inRow) / 2; // centre a short last row
-    out.push({
-      cx: a.x0 + (c + 0.5) * cw,
-      cy: a.y0 + (r + 0.5) * ch - room / 2 + (rows === 1 ? stagger[i % 3] * ch : 0),
-      size,
-    });
+  const steps = Math.max(2, Math.round(L / 3));
+  for (let k = 0; k <= steps; k++) {
+    const t = k / steps, u = 1 - t;
+    const wv = Math.sin(t * f * Math.PI + ph) * wob * Math.sin(Math.PI * t);
+    const x = u * u * a.x + 2 * u * t * cx + t * t * b.x + nx * wv;
+    const y = u * u * a.y + 2 * u * t * cy + t * t * b.y + ny * wv;
+    out.push({ x, y, out: Math.atan2(ny * side, nx * side) });
   }
   return out;
 }

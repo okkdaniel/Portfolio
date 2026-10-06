@@ -267,3 +267,41 @@ export function opaqueBounds(m, inset = 0) {
   if (x1 < 0) return null;
   return { x: m.x + x0 + inset, y: m.y + y0 + inset, w: x1 - x0 - 2 * inset, h: y1 - y0 - 2 * inset };
 }
+
+/**
+ * Take a mark (["wash" | "seed", args], as growth.js records them) back off a
+ * canvas: its footprint wiped in screen dots, most of them, raggedly at the
+ * rim, so taking marks off in reverse reads as the growth dissolving back
+ * rather than discs being cut out. `paper` is the colour to wipe to, or null
+ * to clear to transparent. Draws straight onto `ctx` (in CSS px).
+ */
+export function eraseMark(ctx, [kind, a], pitch = PITCH, paper = PAPER) {
+  const [x, y, r0] = a;
+  const P = pitch;
+  ctx.save();
+  ctx.globalAlpha = 1;
+  if (paper) {
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = paper;
+  } else {
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fillStyle = "#000";
+  }
+  ctx.beginPath();
+  if (kind !== "wash" || r0 < P * 1.5) {
+    ctx.arc(x, y, r0 + 1.5, 0, Math.PI * 2);
+  } else {
+    const r2 = r0 * r0;
+    for (let gy = Math.ceil((y - r0) / P); gy <= Math.floor((y + r0) / P); gy++) {
+      const py = gy * P;
+      for (let gx = Math.ceil((x - r0) / P); gx <= Math.floor((x + r0) / P); gx++) {
+        const px = gx * P;
+        const d2 = ((px - x) ** 2 + (py - y) ** 2) / r2;
+        if (d2 >= 1 || Math.random() > 0.55 + 0.45 * (1 - d2)) continue;
+        ctx.rect(px - P / 2 - 0.3, py - P / 2 - 0.3, P + 0.6, P + 0.6);
+      }
+    }
+  }
+  ctx.fill();
+  ctx.restore();
+}

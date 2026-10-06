@@ -517,55 +517,84 @@ export function specimen(ink, plant, box, s) {
 
 /**
  * A patch of growth around an object's silhouette on the field (the Works
- * view): ground washes over all of it and, most of all, along its outline
- * (`edge`: points on the edge of its masking fluid), so the object reads as
- * a crisp bare-paper shape; moss along its foot, a lichen,
- * the project's own plant beside it (as in specimen()), and spores. Like
- * clearing(), but smaller and without runners, so several can sit side by
- * side without tangling.
+ * view): ground washes over it and, most of all, along its outline (`edge`:
+ * points on the edge of its masking fluid), so the object reads as a crisp
+ * bare-paper shape; moss, maybe a lichen, the project's own plant beside it
+ * (as in specimen()), and spores.
+ *
+ * No two come out alike: each patch leans. It has a heavy side, mostly low
+ * or to one flank, as things grow up from the ground, where the washes are
+ * more and bigger, the moss gathers and the plant stands; the outline thins
+ * away from it but never disappears. Like clearing(), but smaller and without
+ * runners, so several can sit side by side without tangling.
  */
 export function plot(ink, plant, box, s, edge = []) {
   const { x, y, w, h } = box;
+  const cx = x + w / 2, cy = y + h / 2;
   const at = (fx, fy) => [x + fx * w, y + fy * h];
   const R = Math.max(w, h);
+  const lean = rand(-0.15, 1.15) * Math.PI; // 0 right, π/2 down, π left; never straight up
+  const lx = Math.cos(lean), ly = Math.sin(lean);
+  // How much a point sits on the heavy side: 0.5 at the far side (enough to
+  // keep the outline readable), 1 at the heavy one.
+  const weight = (px, py) => {
+    const c = 0.5 + 0.5 * Math.cos(Math.atan2(py - cy, px - cx) - lean);
+    return 0.5 + 0.5 * c * c;
+  };
+  // An edge point, more likely the heavier its side.
+  const edgePick = (bias = 1) => {
+    let e = pick(edge);
+    for (let k = 0; k < 8 && random() > Math.pow(weight(e.x, e.y), bias); k++) e = pick(edge);
+    return e;
+  };
+
+  // Broad ground washes and the outline (all the way round, but thicker on
+  // the heavy side, so the shape comes up sharp), laid down together: the
+  // broad ones spread through the stroke rather than all at its start, so
+  // the ground builds up with the outline instead of landing in one go.
   const ground = function* () {
     ink.open();
-    for (let i = 0; i < 16; i++) {
-      const [gx, gy] = at(rand(-0.05, 1.05), rand(0, 1.05));
-      ink.wash(gx, gy, rand(0.22, 0.36) * R, pick([C.moss, C.lichen, C.spring, C.glacier, C.fern]), rand(0.26, 0.36), rand(0.65, 0.85));
-      yield;
-    }
-    // Then hug the outline, all the way round, so the shape comes up sharp.
-    const n = Math.min(110, Math.max(60, Math.round(edge.length / 3)));
+    const broad = randInt(10, 17);
+    const n = edge.length ? Math.min(120, Math.max(60, Math.round(edge.length / 3))) : broad;
+    const every = Math.max(1, Math.floor(n / broad));
+    let b = 0;
     for (let i = 0; i < n; i++) {
-      const e = edge[Math.floor(((i + random()) / n) * edge.length) % edge.length];
-      ink.wash(e.x + rand(-5, 5), e.y + rand(-5, 5), Math.max(7, rand(0.06, 0.12) * R), pick([C.moss, C.fern, C.lichen, C.spring, C.glacier, C.fir]), rand(0.34, 0.48), rand(0.8, 0.95));
+      if (i % every === 0 && b < broad) {
+        b++;
+        const d = R * rand(0.05, 0.5);
+        const gx = cx + lx * d + rand(-0.45, 0.45) * w, gy = cy + ly * d + rand(-0.4, 0.45) * h;
+        ink.wash(gx, gy, rand(0.18, 0.38) * R, pick([C.moss, C.lichen, C.spring, C.glacier, C.fern]), rand(0.22, 0.36), rand(0.6, 0.85));
+      }
+      if (edge.length) {
+        const e = edgePick();
+        const k = weight(e.x, e.y);
+        ink.wash(e.x + rand(-5, 5), e.y + rand(-5, 5), Math.max(6, rand(0.05, 0.12) * R * (0.6 + 0.6 * k)), pick([C.moss, C.fern, C.lichen, C.spring, C.glacier, C.fir]), rand(0.3, 0.48), rand(0.8, 0.95));
+      }
       if (i % 3 === 2) yield;
     }
     ink.close();
   };
   const out = [{ it: ground(), speed: 1 }];
-  for (const [fx, fy] of [[0.15, 0.95], [0.55, 1], [0.9, 0.9]]) {
-    out.push({ it: moss(ink, ...at(fx + rand(-0.05, 0.05), fy + rand(-0.04, 0.04)), s * rand(0.5, 0.7)), speed: 4 });
+  for (let i = 0, m = randInt(2, 5); edge.length && i < m; i++) {
+    const e = edgePick(2);
+    out.push({ it: moss(ink, e.x + lx * rand(0, 12), e.y + ly * rand(0, 12), s * rand(0.4, 0.7)), speed: 4 });
   }
-  // Moss cushions on the outline too.
-  for (let i = 0; edge.length && i < 3; i++) {
-    const e = pick(edge);
-    out.push({ it: moss(ink, e.x, e.y, s * rand(0.4, 0.55)), speed: 4 });
+  if (edge.length && chance(0.7)) {
+    const e = edgePick(0.5);
+    out.push({ it: lichen(ink, e.x, e.y, s * rand(0.4, 0.6)), speed: 5 });
   }
-  out.push({ it: lichen(ink, ...at(rand(0.6, 0.9), rand(0.1, 0.35)), s * 0.55), speed: 5 });
-  // The plant stands just off one side of the object, on its ground line.
-  const left = chance(0.5);
-  const [px, py] = at(left ? -0.06 : 1.06, 1);
+  // The plant stands just off the heavy flank, on the ground line.
+  const left = lx < 0 || (Math.abs(lx) < 0.2 && chance(0.5));
+  const [px, py] = at(left ? rand(-0.12, -0.02) : rand(1.02, 1.12), rand(0.9, 1.02));
   if (plant === "conifer") {
-    out.push({ it: conifer(ink, px, py, (0.9 * h) / 210), speed: 3 });
+    out.push({ it: conifer(ink, px, py, (rand(0.75, 1) * h) / 210), speed: 3 });
   } else if (plant === "cedar") {
-    out.push({ it: cedar(ink, px, py, UP + (left ? 0.6 : -0.6), Math.min(1.1, (0.5 * w) / 150)), speed: 4 });
+    out.push({ it: cedar(ink, px, py, UP + (left ? rand(0.4, 0.8) : -rand(0.4, 0.8)), Math.min(1.1, (rand(0.4, 0.6) * w) / 150)), speed: 4 });
   } else if (plant === "fern") {
-    out.push({ it: fern(ink, px, py, UP + (left ? -0.4 : 0.4), (0.85 * h) / 215), speed: 4 });
-    out.push({ it: fiddlehead(ink, ...at(left ? 1.02 : -0.02, 0.98), UP, s * 0.8), speed: 3 });
+    out.push({ it: fern(ink, px, py, UP + (left ? -rand(0.2, 0.6) : rand(0.2, 0.6)), (rand(0.7, 0.95) * h) / 215), speed: 4 });
+    if (chance(0.7)) out.push({ it: fiddlehead(ink, ...at(left ? rand(1, 1.06) : rand(-0.06, 0), rand(0.9, 1)), UP, s * rand(0.6, 0.9)), speed: 3 });
   }
-  out.push({ it: spores(ink, x + w / 2, y + h / 2, R * 0.75, 36), speed: 2 });
+  out.push({ it: spores(ink, cx + lx * R * 0.25, cy + ly * R * 0.25, R * rand(0.6, 0.85), randInt(20, 44)), speed: 2 });
   return out;
 }
 

@@ -104,7 +104,11 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
   const { ink } = layer;
   const PER_MARK = 0.022; // seconds of stroke per mark, before easing
   const MIN_STROKE = 0.35;
-  const easeOutInv = (p) => 1 - Math.pow(1 - p, 1 / 4); // inverse of ease-out quart
+  // A planting's tempo: `pace` stretches its strokes (2 = twice as long) and
+  // `ease` is the power of each stroke's ease-out (4, quart, is the field's
+  // own: quick to start, slowing hard; lower is gentler and more even).
+  const TEMPO = { pace: 1, ease: 4 };
+  const easeOutInv = (p, e) => 1 - Math.pow(1 - p, 1 / e); // inverse of ease-out
 
   const recorder = {
     stack: null,
@@ -153,7 +157,7 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
         if (finished) {
           top.stack.pop();
           if (ctx.attach) ctx.attach.s.kids.push({ at: ctx.attach.at, s: ctx.root });
-          else { pending.shift(); emit(ctx.root); }
+          else { pending.shift(); emit(ctx.root, top.tempo); }
         }
         if (performance.now() > deadline) return;
       }
@@ -163,16 +167,24 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
   };
 
   // Flatten a stroke tree into [time, mark] pairs.
-  const schedule = (s, start, out) => {
+  const schedule = (s, start, out, tempo = TEMPO) => {
     const n = s.marks.length;
-    const D = Math.max(MIN_STROKE, n * PER_MARK);
-    const times = s.marks.map((_, j) => start + D * easeOutInv((j + 1) / n));
+    const D = Math.max(MIN_STROKE, n * PER_MARK) * tempo.pace;
+    const times = s.marks.map((_, j) => start + D * easeOutInv((j + 1) / n, tempo.ease));
     s.marks.forEach((m, j) => out.push([times[j], m]));
-    for (const k of s.kids) schedule(k.s, k.at > 0 ? times[k.at - 1] : start, out);
+    for (const k of s.kids) schedule(k.s, k.at > 0 ? times[k.at - 1] : start, out, tempo);
     return out;
   };
 
-  const draw = ([kind, a]) => (kind === "wash" ? ink.wash(...a) : ink.seed(...a));
+  // Every mark drawn, in order, so the growth can be taken back off in
+  // reverse (retract). Cleared whenever the canvas is repainted (clear).
+  let drawn = [];
+  const draw = (m) => {
+    const [kind, a] = m;
+    if (kind === "wash") ink.wash(...a);
+    else ink.seed(...a);
+    drawn.push(m);
+  };
 
   // Each planting is its own timeline of marks sorted by when they land.
   // Drawing is capped at a few milliseconds per frame: whatever's due past
@@ -191,10 +203,11 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
   const BUDGET_DOTS = 9000;
   let growing = [];
   let raf = 0;
+  let back = 0; // a retract's frame loop
   let lastBeat = -Infinity;
   let turn = 0;
-  const play = (root) => {
-    const marks = schedule(root, 0, []).sort((p, q) => p[0] - q[0]);
+  const play = (root, tempo) => {
+    const marks = schedule(root, 0, [], tempo).sort((p, q) => p[0] - q[0]);
     growing.push({ marks, t0: null, i: 0 });
   };
   const frame = (ms) => {
@@ -228,6 +241,7 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
         } else {
           ink.seed(...a);
         }
+        drawn.push(g.marks[g.i][1]);
         g.i++;
         if (spent()) break;
       }
@@ -245,10 +259,12 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
     /**
      * Queue a set of generators to be recorded, timed and played. `random`
      * is the randomness they grow with (default Math.random). `now` draws
-     * them complete at once, as reduced motion always does.
+     * them complete at once, as reduced motion always does. `pace` and
+     * `ease` set their tempo (see TEMPO).
      */
-    plant(gens, { random = null, now = reducedMotion } = {}) {
-      for (const g of gens) pending.push({ stack: [contextFor(g)], random });
+    plant(gens, { random = null, now = reducedMotion, pace = 1, ease = 4 } = {}) {
+      const tempo = { pace, ease };
+      for (const g of gens) pending.push({ stack: [contextFor(g)], random, tempo });
       if (now) {
         advance(Infinity, (root) => schedule(root, 0, []).forEach((m) => draw(m[1])));
         layer.flush();
@@ -269,15 +285,55 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
       return out.sort((p, q) => p[0] - q[0]);
     },
 
+    /** Note a mark drawn outside the loop (it's taken back off with the rest). */
+    note(kind, args) {
+      drawn.push([kind, args]);
+    },
+
+    /**
+     * Take everything drawn back off, last mark first, over `duration`
+     * seconds on the same 12fps beat: quick at first, slowing, so the newest
+     * growth goes first and the oldest last. `erase(mark)` wipes one mark
+     * (see eraseMark in ink.js); `onDone` runs at the end, and should leave
+     * the canvas clean (marks may overlap, and a tight beat skips the rest).
+     */
+    retract({ duration = 1.1, erase, onDone } = {}) {
+      const marks = drawn.reverse();
+      this.clear();
+      const n = marks.length;
+      let i = 0, t0 = null, last = -Infinity;
+      const tick = (ms) => {
+        const now = ms / 1000;
+        if (t0 === null) t0 = now;
+        if (now - last >= 1 / GROWTH_FPS - 0.004) {
+          last = now;
+          const u = Math.min(1, (now - t0) / duration);
+          const to = Math.floor(n * (1 - (1 - u) * (1 - u)));
+          const start = performance.now();
+          while (i < to && performance.now() - start < 14) erase(marks[i++]);
+          if (u >= 1) { back = 0; onDone?.(); return; }
+        }
+        back = requestAnimationFrame(tick);
+      };
+      back = requestAnimationFrame(tick);
+    },
+
     /** Whether the loop is running (it flushes the layer every beat). */
     get busy() { return raf !== 0; },
 
-    /** Drop everything planted that hasn't finished growing. */
+    /**
+     * Drop everything planted that hasn't finished growing, and any retract
+     * under way. The canvas is about to be repainted, so the record of what
+     * was drawn goes too.
+     */
     clear() {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(back);
       raf = 0;
+      back = 0;
       growing = [];
       pending = [];
+      drawn = [];
     },
   };
 }

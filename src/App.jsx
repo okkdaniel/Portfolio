@@ -13,8 +13,10 @@ const PROJECTS = [...SAMPLE_PROJECTS].sort((a, b) => a.index - b.index);
  * else is the field alone. The field stays mounted throughout, so navigating
  * never erases what has grown.
  *
- * Opening the Works fold surfaces the projects in the paper (Works); it stays
- * up under an open sheet, so closing the sheet returns to it.
+ * Opening the Works fold takes the field's growth back to bare paper and
+ * surfaces the projects in it (Works); closing it un-grows the projects and
+ * grows the field back. Works stays up under an open sheet, so closing the
+ * sheet returns to it.
  */
 export default function App() {
   const [hash, setHash] = React.useState(window.location.hash);
@@ -41,13 +43,24 @@ export default function App() {
     document.title = project ? `${project.title} · Daniel Kaliko` : "Daniel Kaliko";
   }, [project]);
 
-  // Works stays mounted for a moment after its fold closes, to fade out.
+  // Works stays mounted for a moment after its fold closes, to un-grow.
+  // The field goes the other way: back to paper as Works opens, growing
+  // again as it closes.
   const worksOpen = open === "works";
   const [worksMounted, setWorksMounted] = React.useState(false);
+  const wasOpen = React.useRef(false);
   React.useEffect(() => {
-    if (worksOpen) { setWorksMounted(true); return; }
+    if (worksOpen) {
+      setWorksMounted(true);
+      fieldRef.current?.retract();
+      wasOpen.current = true;
+      return;
+    }
     setHovered(null);
-    const t = setTimeout(() => setWorksMounted(false), 500);
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
+    fieldRef.current?.regrow();
+    const t = setTimeout(() => setWorksMounted(false), 1100);
     return () => clearTimeout(t);
   }, [worksOpen]);
 
@@ -65,7 +78,7 @@ export default function App() {
 
   return (
     <>
-      <Field ref={fieldRef} dimmed={!!project} hushed={worksOpen && !project} />
+      <Field ref={fieldRef} dimmed={!!project} />
       {worksMounted && (
         <Works
           projects={PROJECTS}

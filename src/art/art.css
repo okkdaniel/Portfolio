@@ -12,8 +12,6 @@
 }
 
 .field--dimmed { opacity: 0.35; }
-/* Further back still while the projects are up in the paper (Works). */
-.field--hushed { opacity: 0.12; }
 
 /* The field as it was when a resize settled, fading out over the redrawn
    field (see Field.jsx). */
@@ -39,19 +37,22 @@
 }
 
 /* The projects surfaced in the paper while Works is open (Works.jsx): a layer
-   over the dimmed field, under the text. Each project is a bare-paper
-   silhouette in its own growth; its render fades in on hover or focus. */
+   over the field (taken back to paper meanwhile), under the text. Each
+   project is a bare-paper silhouette in its own growth; its render fades in
+   on hover or focus. The growth comes and goes by itself; the labels fade. */
 .works-layer {
   position: fixed;
   inset: 0;
   z-index: 2;
-  opacity: 0;
   pointer-events: none;
   transition: opacity 0.5s var(--ease);
 }
-.works-layer--shown { opacity: 1; }
-.works-layer--shown.works-layer--dimmed { opacity: 0.35; }
-/* Fading out, it lets everything through. */
+.works-layer--dimmed { opacity: 0.35; }
+.works-layer__spot,
+.works-layer__render.is-hot { transition: opacity 0.4s var(--ease); }
+.works-layer:not(.works-layer--shown) .works-layer__spot,
+.works-layer:not(.works-layer--shown) .works-layer__render { opacity: 0; }
+/* Arriving or leaving, it lets everything through. */
 .works-layer:not(.works-layer--shown) * { pointer-events: none !important; }
 
 .works-layer__backdrop {

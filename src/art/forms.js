@@ -542,35 +542,36 @@ export function specimen(ink, plant, box, s) {
 
 /**
  * A patch of growth around an object's silhouette on the field (the Works
- * view): ground washes over it and, most of all, along its outline (`edge`:
- * points on the edge of its masking fluid), so the object reads as a crisp
- * bare-paper shape; moss, maybe a lichen, the project's own plant beside it
- * (as in specimen()), and spores.
- *
- * No two come out alike: each patch leans. It has a heavy side, mostly low
- * or to one flank, as things grow up from the ground, where the washes are
- * more and bigger, the moss gathers and the plant stands; the outline thins
- * away from it but never disappears. Like clearing(), but smaller and without
- * runners, so several can sit side by side without tangling.
+ * view), put together the way the frog's clearing is: loosely, from pieces
+ * landing where they land, so it looks grown rather than drawn round the
+ * object. Ground spreads from a few off-centre points; runners creep along
+ * a few stretches of the outline (`edge`: points on the edge of its masking
+ * fluid), unevenly and with gaps, never the whole way round; moss, lichen
+ * and spores fall where they will; the project's own plant stands to one
+ * side, and a couple of other plants come up nearby; sometimes a runner
+ * wanders off and opens more. How much of each, and where, varies patch to
+ * patch. The patch leans: it's heavier on one side, mostly low or to one
+ * flank, as things grow up from the ground. `bounds` ({ w, h }) is the
+ * window, for the runners.
  */
-export function plot(ink, plant, box, s, edge = []) {
+export function plot(ink, plant, box, s, edge = [], bounds = { w: 1e4, h: 1e4 }) {
   const { x, y, w, h } = box;
   const cx = x + w / 2, cy = y + h / 2;
   const at = (fx, fy) => [x + fx * w, y + fy * h];
   const R = Math.max(w, h);
   const lean = rand(-0.15, 1.15) * Math.PI; // 0 right, π/2 down, π left; never straight up
   const lx = Math.cos(lean), ly = Math.sin(lean);
-  // How much a point sits on the heavy side: 0.5 at the far side (enough to
-  // keep the outline readable), 1 at the heavy one.
+  // How much a point sits on the heavy side: 0.4 at the far side, 1 at the heavy one.
   const weight = (px, py) => {
     const c = 0.5 + 0.5 * Math.cos(Math.atan2(py - cy, px - cx) - lean);
-    return 0.5 + 0.5 * c * c;
+    return 0.4 + 0.6 * c * c;
   };
-  // An edge point, more likely the heavier its side.
-  const edgePick = (bias = 1) => {
-    let e = pick(edge);
-    for (let k = 0; k < 8 && random() > Math.pow(weight(e.x, e.y), bias); k++) e = pick(edge);
-    return e;
+  // A point somewhere round the object, more likely on the heavy side.
+  const around = (lo = 0.9, hi = 1.25) => {
+    let a = rand(0, TAU);
+    for (let k = 0; k < 4 && random() > weight(cx + Math.cos(a), cy + Math.sin(a)); k++) a = rand(0, TAU);
+    const d = rand(lo, hi);
+    return [cx + Math.cos(a) * (w / 2) * d, cy + Math.sin(a) * (h / 2) * d];
   };
 
   // The object's outline, in order round it: the outermost edge point at
@@ -581,78 +582,90 @@ export function plot(ink, plant, box, s, edge = []) {
     const a = Math.atan2(e.y - cy, e.x - cx);
     const b = Math.floor(((a + Math.PI) / TAU) * bins) % bins;
     const d = Math.hypot(e.x - cx, e.y - cy);
-    if (!ring[b] || d > ring[b].d) ring[b] = { x: e.x, y: e.y, d, a };
+    if (!ring[b] || d > ring[b].d) ring[b] = { x: e.x, y: e.y, d };
   }
   const outline = ring.filter(Boolean);
   const onRing = new Set(outline);
 
-  // Runners trace the outline, starting on the heavy side and creeping both
-  // ways round, laying growth along the edge as they go and ground a little
-  // further out behind them, so the shape is drawn by growing rather than
-  // filled in. Each is its own stroke, so they grow at once.
-  const runnerAlong = function* (from, dir, length) {
+  const out = [];
+
+  // Ground, spreading from a few points near the heavy side of the middle.
+  out.push({ it: spread(ink, cx + lx * R * rand(0.05, 0.3) + rand(-0.15, 0.15) * w, cy + ly * R * rand(0.05, 0.3) + rand(-0.1, 0.15) * h, R * rand(0.55, 0.72), { origins: randInt(2, 4), walkers: randInt(8, 13), alpha: [0.18, 0.3] }), speed: 1 });
+
+  // Runners along stretches of the outline: a few, of uneven lengths, with
+  // gaps, sizes and distance from the edge all wandering.
+  const along = function* (from, dir, length) {
     ink.open();
     const N = outline.length;
+    let off = rand(1, 6);
     for (let k = 0; k < length; k++) {
       const p = outline[(((from + dir * k) % N) + N) % N];
+      off = Math.max(0, Math.min(16, off + rand(-2, 2)));
+      if (chance(0.22)) { if (k % 2) yield; continue; }
       const nx = (p.x - cx) / (p.d || 1), ny = (p.y - cy) / (p.d || 1);
       const wgt = weight(p.x, p.y);
-      const o = rand(1, 6);
-      ink.wash(p.x + nx * o, p.y + ny * o, Math.max(5, R * rand(0.035, 0.075) * (0.7 + 0.5 * wgt)), pick([C.moss, C.fern, C.lichen, C.spring, C.glacier, C.fir]), rand(0.32, 0.46), rand(0.82, 0.95));
-      if (k % 3 === 0) {
-        const f = R * rand(0.05, 0.16) * wgt;
-        ink.wash(p.x + nx * f, p.y + ny * f, R * rand(0.07, 0.14) * (0.6 + 0.6 * wgt), pick(GROUND), rand(0.2, 0.3), rand(0.6, 0.8));
+      ink.wash(p.x + nx * off, p.y + ny * off, Math.max(4, R * rand(0.025, 0.085) * (0.6 + 0.6 * wgt)), pick([C.moss, C.fern, C.lichen, C.spring, C.glacier, C.fir]), rand(0.28, 0.46), rand(0.75, 0.95));
+      if (chance(0.25)) {
+        const f = R * rand(0.04, 0.2);
+        ink.wash(p.x + nx * f, p.y + ny * f, R * rand(0.06, 0.14) * wgt, pick(GROUND), rand(0.18, 0.3), rand(0.6, 0.8));
       }
       if (k % 2) yield;
     }
     ink.close();
   };
-  const out = [];
   if (outline.length > 8) {
     const N = outline.length;
-    // Start where the outline is heaviest.
-    let start = 0;
-    for (let i = 1; i < N; i++) if (weight(outline[i].x, outline[i].y) > weight(outline[start].x, outline[start].y)) start = i;
-    start = (start + randInt(-N / 10, N / 10) + N) % N;
-    const half = Math.ceil(N * rand(0.52, 0.6));
-    out.push({ it: runnerAlong(start, 1, half), speed: 1 });
-    out.push({ it: runnerAlong(start, -1, N - half + Math.ceil(N * 0.06)), speed: 1 });
-    // The edges inside it (cut-outs) come up in their own time.
+    const cover = rand(0.5, 0.85);
+    const pieces = randInt(2, 4);
+    for (let k = 0; k < pieces; k++) {
+      let from = Math.floor(rand(0, N));
+      for (let t = 0; t < 4 && random() > weight(outline[from].x, outline[from].y); t++) from = Math.floor(rand(0, N));
+      out.push({ it: along(from, chance(0.5) ? 1 : -1, Math.round(((N * cover) / pieces) * rand(0.6, 1.4))), speed: 1 });
+    }
+    // The edges inside it (cut-outs), some of them.
     const inner = edge.filter((e) => !onRing.has(e));
     if (inner.length) {
       out.push({ it: (function* () {
         ink.open();
-        for (let i = 0, n = Math.min(160, Math.round(inner.length / 2)); i < n; i++) {
+        for (let i = 0, n = Math.round(Math.min(160, inner.length / 2) * rand(0.5, 1)); i < n; i++) {
           const e = pick(inner);
-          ink.wash(e.x, e.y, Math.max(6, R * rand(0.04, 0.08)), pick([C.moss, C.fern, C.lichen, C.spring, C.glacier]), rand(0.32, 0.46), rand(0.82, 0.95));
+          ink.wash(e.x, e.y, Math.max(5, R * rand(0.03, 0.08)), pick([C.moss, C.fern, C.lichen, C.spring, C.glacier]), rand(0.28, 0.46), rand(0.8, 0.95));
           if (i % 3 === 2) yield;
         }
         ink.close();
       })(), speed: 1 });
     }
   }
-  // Ground spreading out from the heavy side.
-  out.push({ it: spread(ink, cx + lx * R * 0.35, cy + ly * R * 0.35, R * 0.6, { origins: 2, walkers: 7 }), speed: 1 });
-  for (let i = 0, m = randInt(2, 5); edge.length && i < m; i++) {
-    const e = edgePick(2);
-    out.push({ it: moss(ink, e.x + lx * rand(0, 12), e.y + ly * rand(0, 12), s * rand(0.4, 0.7)), speed: 4 });
+
+  // Moss cushions and lichen, wherever they fall round it.
+  for (let k = 0, m = randInt(2, 6); k < m; k++) {
+    out.push({ it: moss(ink, ...around(0.75, 1.2), s * rand(0.4, 0.85)), speed: 4 });
   }
-  if (edge.length && chance(0.7)) {
-    const e = edgePick(0.5);
-    out.push({ it: lichen(ink, e.x, e.y, s * rand(0.4, 0.6)), speed: 5 });
+  for (let k = 0, m = randInt(0, 2); k < m; k++) {
+    out.push({ it: lichen(ink, ...around(0.8, 1.25), s * rand(0.35, 0.65)), speed: 5 });
   }
-  // The plant stands just off the heavy flank, on the ground line.
+
+  // The project's plant, just off one flank, on or near the ground line.
   const left = lx < 0 || (Math.abs(lx) < 0.2 && chance(0.5));
-  const [px, py] = at(left ? rand(-0.12, -0.02) : rand(1.02, 1.12), rand(0.9, 1.02));
+  const [px, py] = at(left ? rand(-0.16, 0) : rand(1, 1.16), rand(0.82, 1.04));
   if (plant === "conifer") {
-    out.push({ it: conifer(ink, px, py, (rand(0.75, 1) * h) / 210), speed: 3 });
+    out.push({ it: conifer(ink, px, py, (rand(0.6, 1.05) * h) / 210), speed: 3 });
   } else if (plant === "cedar") {
-    out.push({ it: cedar(ink, px, py, UP + (left ? rand(0.4, 0.8) : -rand(0.4, 0.8)), Math.min(1.1, (rand(0.4, 0.6) * w) / 150)), speed: 4 });
+    out.push({ it: cedar(ink, px, py, UP + (left ? rand(0.3, 0.9) : -rand(0.3, 0.9)), Math.min(1.15, (rand(0.35, 0.65) * w) / 150)), speed: 4 });
   } else if (plant === "fern") {
-    out.push({ it: fern(ink, px, py, UP + (left ? -rand(0.2, 0.6) : rand(0.2, 0.6)), (rand(0.7, 0.95) * h) / 215), speed: 4 });
-    if (chance(0.7)) out.push({ it: fiddlehead(ink, ...at(left ? rand(1, 1.06) : rand(-0.06, 0), rand(0.9, 1)), UP, s * rand(0.6, 0.9)), speed: 3 });
+    out.push({ it: fern(ink, px, py, UP + (left ? -rand(0.1, 0.7) : rand(0.1, 0.7)), (rand(0.6, 1) * h) / 215), speed: 4 });
   }
-  out.push({ it: spores(ink, cx + lx * R * 0.25, cy + ly * R * 0.25, R * rand(0.6, 0.85), randInt(20, 44)), speed: 2 });
+  // A couple of other plants nearby, whatever comes up.
+  for (let k = 0, m = randInt(1, 3); k < m; k++) {
+    const [ox, oy] = around(0.95, 1.3);
+    out.push(anyForm(ink, ox, oy, Math.atan2(oy - cy, ox - cx), s * rand(0.45, 0.8)));
+  }
+  // Sometimes a runner wanders off and opens more.
+  if (chance(0.55)) {
+    const [rx, ry] = around(0.9, 1.05);
+    out.push({ it: runner(ink, rx, ry, Math.atan2(ry - cy, rx - cx) + rand(-0.6, 0.6), s * rand(0.6, 0.9), bounds), speed: 3 });
+  }
+  out.push({ it: spores(ink, cx + lx * R * rand(0, 0.35), cy + ly * R * rand(0, 0.35), R * rand(0.55, 0.9), randInt(16, 50)), speed: 2 });
   return out;
 }
 

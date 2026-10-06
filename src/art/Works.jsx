@@ -116,7 +116,7 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
         let gens;
         setRandom(random);
         try {
-          gens = plot(growth.recorder, s.p.plant, s.box, scale, edges[i]);
+          gens = plot(growth.recorder, s.p.plant, s.box, scale, edges[i], { w, h });
         } finally {
           setRandom(null);
         }

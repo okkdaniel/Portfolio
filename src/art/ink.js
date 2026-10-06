@@ -273,13 +273,14 @@ export function opaqueBounds(m, inset = 0) {
  * canvas: its footprint wiped in screen dots, most of them, raggedly at the
  * rim, so taking marks off in reverse reads as the growth dissolving back
  * rather than discs being cut out. `paper` is the colour to wipe to, or null
- * to clear to transparent. Draws straight onto `ctx` (in CSS px).
+ * to clear to transparent; `alpha` how far (1 entirely, less to fade it part
+ * way). Draws straight onto `ctx` (in CSS px).
  */
-export function eraseMark(ctx, [kind, a], pitch = PITCH, paper = PAPER) {
+export function eraseMark(ctx, [kind, a], pitch = PITCH, paper = PAPER, alpha = 1) {
   const [x, y, r0] = a;
   const P = pitch;
   ctx.save();
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = alpha;
   if (paper) {
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = paper;
@@ -309,13 +310,14 @@ export function eraseMark(ctx, [kind, a], pitch = PITCH, paper = PAPER) {
 /**
  * Wipe screen cells off a canvas: `xy` holds cell centres as x, y pairs;
  * cells `from` (inclusive) to `to` (exclusive) go, filled with `paper`, or
- * cleared to transparent if it's null. One path, one fill.
+ * cleared to transparent if it's null, `alpha` of the way. One path, one
+ * fill.
  */
-export function wipeCells(ctx, xy, from, to, pitch = PITCH, paper = PAPER) {
+export function wipeCells(ctx, xy, from, to, pitch = PITCH, paper = PAPER, alpha = 1) {
   if (to <= from) return;
   const P = pitch;
   ctx.save();
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = alpha;
   ctx.globalCompositeOperation = paper ? "source-over" : "destination-out";
   ctx.fillStyle = paper || "#000";
   ctx.beginPath();

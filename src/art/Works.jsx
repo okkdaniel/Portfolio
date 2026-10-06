@@ -146,8 +146,8 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
       growth.retract({
         duration: reducedMotion ? 0 : 0.85,
         size: { w: window.innerWidth, h: window.innerHeight },
-        erase: (m) => eraseMark(layer.ctx, m, ink.pitch, null),
-        wipe: (xy, from, to) => wipeCells(layer.ctx, xy, from, to, ink.pitch, null),
+        erase: (m, alpha) => eraseMark(layer.ctx, m, ink.pitch, null, alpha),
+        wipe: (xy, from, to, alpha) => wipeCells(layer.ctx, xy, from, to, ink.pitch, null, alpha),
         onDone: () => { layer.clearScratch(); layer.size(1, 1, 1); },
       });
     };

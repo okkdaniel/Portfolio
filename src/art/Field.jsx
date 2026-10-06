@@ -236,8 +236,8 @@ export const Field = React.forwardRef(function Field({ dimmed = false }, ref) {
       growth.retract({
         duration: reducedMotion ? 0 : 1,
         size: { w, h },
-        erase: (m) => eraseMark(ctx, m, ink.pitch, PAPER),
-        wipe: (xy, from, to) => wipeCells(ctx, xy, from, to, ink.pitch, PAPER),
+        erase: (m, alpha) => eraseMark(ctx, m, ink.pitch, PAPER, alpha),
+        wipe: (xy, from, to, alpha) => wipeCells(ctx, xy, from, to, ink.pitch, PAPER, alpha),
         onDone: () => { layer.clearScratch(); paper(); },
       });
     };

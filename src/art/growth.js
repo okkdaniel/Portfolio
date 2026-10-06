@@ -300,8 +300,12 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
      * whole discs that way, so the ground goes cell by cell: each screen cell
      * they covered is ranked by the first wash (in that order) that covered
      * it, with a good share of chance, and the cells go in that order
-     * (`wipe(xy, from, to)`, see wipeCells). `size` is the canvas, { w, h }
-     * in CSS px. `onDone` runs at the end and should leave it clean.
+     * (`wipe(xy, from, to, alpha)`, see wipeCells). Nothing goes all at
+     * once: everything fades out in three staggered passes (a third, half
+     * of what's left, the rest), so the receding edge trails a soft band of
+     * half-faded growth rather than cutting off. `size` is the canvas,
+     * { w, h } in CSS px. `onDone` runs at the end and should leave it
+     * clean.
      */
     retract({ duration = 1, order = "oldest", erase, wipe, size, onDone } = {}) {
       const all = order === "newest" ? drawn.reverse() : drawn;
@@ -337,20 +341,29 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
       const xy = buckets.flat();
       const cells = xy.length / 2;
       const ease = (u) => u * u * (3 - 2 * u);
-      let i = 0, c = 0, t0 = null, last = -Infinity;
+      const clamp = (v) => Math.max(0, Math.min(1, v));
+      // The passes: [delay, alpha], as shares of the duration.
+      const LAG = 0.12;
+      const PASSES = [[0, 0.35], [LAG, 0.5], [2 * LAG, 1]];
+      const span = 1 - 2 * LAG;
+      const mi = PASSES.map(() => 0), ci = PASSES.map(() => 0);
+      let t0 = null, last = -Infinity;
       const tick = (ms) => {
         const now = ms / 1000;
         if (t0 === null) t0 = now;
         if (now - last >= 1 / GROWTH_FPS - 0.004) {
           last = now;
           const u = Math.min(1, (now - t0) / duration);
-          // Strokes over the first three quarters; the ground from a fifth
-          // of the way in to the end, overlapping, so it all goes together.
-          const toMarks = Math.floor(small.length * ease(Math.min(1, u / 0.75)));
-          const toCells = Math.floor(cells * ease(Math.max(0, Math.min(1, (u - 0.2) / 0.8))));
           const start = performance.now();
-          while (i < toMarks && performance.now() - start < 10) erase(small[i++]);
-          if (toCells > c) { wipe(xy, c, toCells); c = toCells; }
+          PASSES.forEach(([delay, alpha], p) => {
+            const v = clamp((u - delay) / span);
+            // Strokes over the first three quarters; the ground from a fifth
+            // of the way in to the end, overlapping, so it all goes together.
+            const toMarks = Math.floor(small.length * ease(Math.min(1, v / 0.75)));
+            const toCells = Math.floor(cells * ease(clamp((v - 0.2) / 0.8)));
+            while (mi[p] < toMarks && performance.now() - start < 12) erase(small[mi[p]++], alpha);
+            if (toCells > ci[p]) { wipe(xy, ci[p], toCells, alpha); ci[p] = toCells; }
+          });
           if (u >= 1) { back = 0; onDone?.(); return; }
         }
         back = requestAnimationFrame(tick);

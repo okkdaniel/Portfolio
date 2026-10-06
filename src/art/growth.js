@@ -292,17 +292,19 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
 
     /**
      * Take everything drawn back off over `duration` seconds, on the same
-     * 12fps beat, as the growth reversed. Strokes and small marks go newest
-     * first (`erase(mark)`, see eraseMark in ink.js), so plants shrink back
-     * along themselves toward their roots. Broad washes would vanish as
-     * whole discs that way, so the ground instead recedes cell by cell: each
-     * screen cell they covered is ranked by the newest wash that covered it,
-     * with a good share of chance, and the cells go in that order
+     * 12fps beat, following the growth: `order` "oldest" (the default)
+     * takes it off in the order it grew, roots and first ground first, so it
+     * goes the way it came; "newest" reverses it, tips first, so plants
+     * shrink back toward their roots. Strokes and small marks go one by one
+     * (`erase(mark)`, see eraseMark in ink.js). Broad washes would vanish as
+     * whole discs that way, so the ground goes cell by cell: each screen cell
+     * they covered is ranked by the first wash (in that order) that covered
+     * it, with a good share of chance, and the cells go in that order
      * (`wipe(xy, from, to)`, see wipeCells). `size` is the canvas, { w, h }
      * in CSS px. `onDone` runs at the end and should leave it clean.
      */
-    retract({ duration = 1, erase, wipe, size, onDone } = {}) {
-      const all = drawn.reverse();
+    retract({ duration = 1, order = "oldest", erase, wipe, size, onDone } = {}) {
+      const all = order === "newest" ? drawn.reverse() : drawn;
       this.clear();
       const P = ink.pitch;
       const SMALL = P * 5;

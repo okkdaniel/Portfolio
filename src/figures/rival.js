@@ -18,7 +18,7 @@ const AXIS = new THREE.Vector3(0, -0.539, 0.841).normalize(); // up the elevator
 const PIVOT = new THREE.Vector3(0, 1.037 * IN, 4.684 * IN);    // the wrist's pivot (its 36T pulley), axis along x
 // How far things go, checked against the CAD for clearance all the way
 // (the floor, the drivetrain, the elevator); the elevator's runs are estimates.
-const WRIST_DOWN = 60;     // degrees the intake turns down at the bottom, rollers to the floor
+const WRIST_DOWN = 44;     // degrees the intake turns down at the bottom, short of the drivetrain (it meets it at 48°)
 const WRIST_TOP = 35;      // degrees it tips out as the elevator rises: the least that reaches
                            // furthest forward (14.7 in ahead of the middle, from 35° to 42.5°)
 const STAGE_RUN = 5.5 * IN;  // the moving stage's travel up the elevator

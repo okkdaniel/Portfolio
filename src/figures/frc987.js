@@ -13,7 +13,6 @@ const URL = "/assets/projects/frc-987-lines.glb";
 const SHOULDER = new THREE.Vector3(0, 0, 38.85 * IN);     // the arm's X-contact bearings, axis along x
 const INTAKE = new THREE.Vector3(0, -12.4 * IN, 11.5 * IN); // the intake's pivot bearings, axis along x
 const STOW = 143.686355;                                  // degrees from deployed (as modelled) to stowed
-const TOP = 87.771642 * IN;                               // the arm's tip, elevator out and arm at its angle
 const ARM_TOP = 68.359879;                                // the arm's angle above level, at the top
 const STAGE_RUN = (65 - 38.5) * IN;                       // the elevator's own rise
 const REST = 0.22;
@@ -51,11 +50,10 @@ export async function make(view) {
   };
   const stowSign = heightAt(1) > heightAt(-1) ? 1 : -1;
   b.intake.rotation.x = 0;
-  // How far the carriage rides: far enough that the arm's highest point is
-  // 87.77" with the elevator out and the arm at 68.36°.
-  b.arm.rotation.x = armAngle(ARM_TOP); view.scene.updateMatrixWorld(true);
-  const carriageRun = TOP - new THREE.Box3().setFromObject(b.arm).max.z;
-  b.arm.rotation.x = 0;
+  // The carriage sits at the top of the stage as modelled, so it rides up
+  // with it, the stage's whole run. (Derived from the arm's 87.77" instead,
+  // it came out 7" short and slid down the stage.)
+  const carriageRun = STAGE_RUN;
 
   const pose = (e) => {
     const run = ease((e - 0.24) / 0.76);

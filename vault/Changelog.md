@@ -8,6 +8,7 @@ updated: 2026-10-05
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
 ## 2026-10-07
+- Rival intake down 60° → 44° (it clipped the drivetrain; filled-triangle clearance check). FRC carriage now rides the stage's full 26.5" (was 19.6", sliding down the stage).
 - Rival wrist at the top: 100° → 35°, the least turn for the most forward reach.
 - Rival figure: elevator top 16 → 11 in; at the top the wrist now tips forward/down to 100° (was up 15°); drawn at 0.85 size (new per-figure `config.scale`, optical).
 - Rival robot: real CAD (2025C-LL) replaces the placeholder figure: elevator up its 32.7° incline + intake wrist on the carriage, dimetric view. prepare.mjs --rival, rivaljoints.mjs, plotparts.mjs. Elevator travel is estimated. .gitignore: removed a garbled UTF-16 line, ignores 2025C-LL/. See [[CAD figures]].

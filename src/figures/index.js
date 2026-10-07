@@ -8,6 +8,8 @@
 //   layout()   frames `all` exactly on the canvas as it's now sized, and draws.
 //   silhouette()  the object at rest as an opaque-on-clear canvas, for masking fluid.
 //   hover(on)  the Works preview: move while hovered, settle back after.
+//              Hovered (or under the pointer), a figure also zooms in a little.
+//              It all draws at the site's 12fps, as the growth does.
 //   reveal(to, { duration, delay })  grows the figure in (to 1) or out (to 0),
 //              from the ground up in the site's dots; created hidden.
 //   point(px, py) / leave()  a project page: px, py are 0..1 across and up
@@ -16,7 +18,7 @@
 import * as frc987 from "./frc987.js";
 import * as stand from "./stand.js";
 import * as rival from "./rival.js";
-import { lineView, loadModel, THREE, HALO } from "./lines.js";
+import { lineView, loadModel, THREE, HALO, ZOOM } from "./lines.js";
 export { HALO };
 
 export const KINDS = { "frc-987-offseason": frc987, "low-profile-monitor-stand": stand, "rival-robotics-2024": rival };
@@ -50,16 +52,43 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     view.setReveal(rv.x);
     return rv.x !== rv.to;
   };
+  // The zoom: eases (by the clock) to 1 when hovered, back to 0 after; a CSS
+  // scale about the object's centre at rest, so nothing is cut off.
+  const zm = { x: 0, from: 0, to: 0, start: 0 };
+  let origin = "50% 50%";
+  const stepZoom = () => {
+    if (zm.x === zm.to) return false;
+    const u = Math.min(1, (performance.now() - zm.start) / 1000 / 0.6);
+    zm.x = u >= 1 ? zm.to : zm.from + (zm.to - zm.from) * (1 - Math.pow(1 - u, 3));
+    canvas.style.transformOrigin = origin;
+    canvas.style.transform = zm.x ? `scale(${1 + ZOOM * zm.x})` : "";
+    return zm.x !== zm.to;
+  };
+  const zoom = (on) => {
+    const to = on ? 1 : 0;
+    if (zm.to === to) return;
+    Object.assign(zm, { from: zm.x, to, start: performance.now() });
+    if (reducedMotion) zm.start = -1e9;
+  };
+
+  // Frames come at 12fps; between them the springs step in small steps.
+  const FRAME = 1 / 12, SUB = 1 / 60;
+  let acc = 0;
   const loop = (now) => {
     raf = 0;
     if (!alive) return;
-    const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
-    const moving = reducedMotion ? (fig.jump(), fig.step(0), false) : fig.step(dt);
-    const growing = stepReveal();
+    acc += Math.min(0.25, Math.max(0, (now - last) / 1000)); last = now;
+    if (acc < FRAME) { raf = requestAnimationFrame(loop); return; }
+    let moving = false;
+    if (reducedMotion) { fig.jump(); fig.step(0); }
+    else for (let n = Math.ceil(acc / SUB), i = 0; i < n; i++) moving = fig.step(acc / n);
+    acc = 0;
+    const growing = stepReveal(), zooming = stepZoom();
     view.draw();
-    if (moving || growing) raf = requestAnimationFrame(loop);
+    if (moving || growing || zooming) raf = requestAnimationFrame(loop);
   };
-  const wake = () => { if (!raf && alive) { last = performance.now(); raf = requestAnimationFrame(loop); } };
+  // Woken, the first frame draws at once; then 12fps.
+  const wake = () => { if (!raf && alive) { last = performance.now(); acc = FRAME; raf = requestAnimationFrame(loop); } };
 
   return {
     boxes,
@@ -71,17 +100,19 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
       const s = Math.min((canvas.clientWidth - 2 * HALO) / aw, (canvas.clientHeight - 2 * HALO) / ah);
       const pad = HALO / s;
       view.frameTo(new THREE.Box3(new THREE.Vector3(all.min.x - pad, all.min.y - pad, all.min.z), new THREE.Vector3(all.max.x + pad, all.max.y + pad, all.max.z)));
+      const rest = boxes.rest;
+      origin = `${HALO + ((rest.min.x + rest.max.x) / 2 - all.min.x) * s}px ${HALO + (all.max.y - (rest.min.y + rest.max.y) / 2) * s}px`;
       fig.step(0); view.draw();
     },
     silhouette: () => { fig.step(0); return view.silhouette(); },
-    hover(on) { fig.hover(on); wake(); },
+    hover(on) { fig.hover(on); zoom(on); wake(); },
     reveal(to, { duration = 0, delay = 0 } = {}) {
       if (reducedMotion) duration = delay = 0;
       Object.assign(rv, { from: rv.x, to, start: performance.now(), delay, dur: duration });
       wake();
     },
-    point(px, py) { const r = fig.point(px, py); wake(); return r; },
-    leave() { const r = fig.leave(); wake(); return r; },
+    point(px, py) { const r = fig.point(px, py); zoom(true); wake(); return r; },
+    leave() { const r = fig.leave(); zoom(false); wake(); return r; },
     destroy() { alive = false; cancelAnimationFrame(raf); view.dispose(); },
   };
 }

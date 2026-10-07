@@ -8,6 +8,8 @@
 //   layout()   frames `all` exactly on the canvas as it's now sized, and draws.
 //   silhouette()  the object at rest as an opaque-on-clear canvas, for masking fluid.
 //   hover(on)  the Works preview: move while hovered, settle back after.
+//   reveal(to, { duration, delay })  grows the figure in (to 1) or out (to 0),
+//              from the ground up in the site's dots; created hidden.
 //   point(px, py) / leave()  a project page: px, py are 0..1 across and up
 //              the canvas; each returns the read-out text.
 //   destroy()
@@ -35,13 +37,27 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
   const boxes = fig.boxes();
 
   let raf = 0, last = 0, alive = true;
+  // The reveal: an ease from `from` to `to`, `delay` seconds after `start`
+  // (when it was asked for), over `dur`. Timed by the clock, not by frames,
+  // so a busy first frame (a model decoding) can't hold it back.
+  const rv = { x: 0, from: 0, to: 0, start: 0, delay: 0, dur: 0 };
+  view.setReveal(0);
+  const stepReveal = () => {
+    if (rv.x === rv.to) return false;
+    const t = (performance.now() - rv.start) / 1000;
+    const u = rv.dur > 0 ? Math.min(1, Math.max(0, (t - rv.delay) / rv.dur)) : 1;
+    rv.x = u >= 1 ? rv.to : rv.from + (rv.to - rv.from) * (1 - Math.pow(1 - u, 3));
+    view.setReveal(rv.x);
+    return rv.x !== rv.to;
+  };
   const loop = (now) => {
     raf = 0;
     if (!alive) return;
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
     const moving = reducedMotion ? (fig.jump(), fig.step(0), false) : fig.step(dt);
+    const growing = stepReveal();
     view.draw();
-    if (moving) raf = requestAnimationFrame(loop);
+    if (moving || growing) raf = requestAnimationFrame(loop);
   };
   const wake = () => { if (!raf && alive) { last = performance.now(); raf = requestAnimationFrame(loop); } };
 
@@ -59,6 +75,11 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     },
     silhouette: () => { fig.step(0); return view.silhouette(); },
     hover(on) { fig.hover(on); wake(); },
+    reveal(to, { duration = 0, delay = 0 } = {}) {
+      if (reducedMotion) duration = delay = 0;
+      Object.assign(rv, { from: rv.x, to, start: performance.now(), delay, dur: duration });
+      wake();
+    },
     point(px, py) { const r = fig.point(px, py); wake(); return r; },
     leave() { const r = fig.leave(); wake(); return r; },
     destroy() { alive = false; cancelAnimationFrame(raf); view.dispose(); },

@@ -148,12 +148,16 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
         setRandom(null);
       }
       growth.plant(vines, { random, ...tempo });
+      // The figures grow in with their growth, a beat after it starts (at
+      // once when re-laid for a resize).
+      placed.forEach((s) => figs[projects.indexOf(s.p)]?.reveal(1, now ? {} : { delay: 0.6, duration: 2.6 }));
       setSpots(placed.map(({ p, box, label, text }) => ({ slug: p.slug, title: p.title, box, label, text })));
     };
 
     // Take it all back off, newest first (as Works closes).
     retractRef.current = () => {
       leavingNow = true;
+      figs.forEach((f) => f?.reveal(0, { duration: 0.7 }));
       growth.retract({
         duration: reducedMotion ? 0 : 0.85,
         size: { w: window.innerWidth, h: window.innerHeight },

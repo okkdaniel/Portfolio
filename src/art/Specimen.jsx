@@ -72,6 +72,9 @@ export function Specimen({ project: p }) {
     return () => { alive = false; watcher?.disconnect(); made?.destroy(); canvas.remove(); setFig(null); };
   }, [p.slug, reducedMotion]);
 
+  // Without a plant there's no growth to wait for: show the figure as it is.
+  React.useEffect(() => { if (fig && !p.plant) fig.reveal(1); }, [fig, p.plant]);
+
   React.useEffect(() => {
     if (!inView || !fig || !p.plant) return;
     const canvas = canvasRef.current;
@@ -129,6 +132,7 @@ export function Specimen({ project: p }) {
         setRandom(null);
       }
       growth.plant(gens, { random, now });
+      fig.reveal(1, now ? {} : { delay: 0.3, duration: 2 });
     };
 
     lay(reducedMotion);

@@ -56,13 +56,13 @@ export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper
   });
   const inkMat = new THREE.ShaderMaterial({
     uniforms: {
-      tN: { value: null }, tD: { value: null }, px: { value: new THREE.Vector2() }, unit: { value: 1 },
+      tN: { value: null }, tD: { value: null }, px: { value: new THREE.Vector2() }, unit: { value: 1 }, reveal: { value: 1 },
       paper: { value: new THREE.Color(paper) }, ink: { value: new THREE.Color(ink) },
       span: { value: camera.far - camera.near }, sil: { value: new THREE.Vector2(...sil) },
     },
     vertexShader: full,
     fragmentShader: `
-      uniform sampler2D tN, tD; uniform vec2 px, sil; uniform vec3 paper, ink; uniform float span, unit; varying vec2 vUv;
+      uniform sampler2D tN, tD; uniform vec2 px, sil; uniform vec3 paper, ink; uniform float span, unit, reveal; varying vec2 vUv;
       float D(vec2 o){ return texture2D(tD, vUv + o * px).r; }
       // Whether the object covers a point, o in render pixels from here.
       float on(vec2 o){ return texture2D(tN, vUv + o * px).a; }
@@ -102,6 +102,14 @@ export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper
           float f = near * near * (3.0 - 2.0 * near);
           float keep = (near >= 1.0 || hash(cell) < f * 0.92) ? 1.0 : 0.0;
           c = mix(vec4(ink, a), vec4(mix(paper, ink, a), 1.0), keep);
+        }
+        // Coming in (reveal 0 to 1), the figure grows up from the ground in
+        // the screen's dots: each dot shows once reveal passes its height
+        // plus a little chance. Going out, the same, backwards.
+        if (reveal < 1.0) {
+          vec2 grain = floor(gl_FragCoord.xy / (${PITCH.toFixed(1)} * unit));
+          float when = vUv.y * 0.6 + hash(grain + 7.0) * 0.4;
+          c *= step(when, reveal * 1.02);
         }
         gl_FragColor = vec4(c.rgb * c.a, c.a);   // premultiplied
       }`,
@@ -180,6 +188,9 @@ export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper
       downMat.uniforms.t.value = inked.texture;
       downMat.uniforms.px.value.set(1 / W2, 1 / H2);
     },
+
+    /** How far in the figure has grown, 0..1 (see the ink pass). */
+    setReveal(v) { inkMat.uniforms.reveal.value = v; },
 
     draw() {
       if (!target) return;

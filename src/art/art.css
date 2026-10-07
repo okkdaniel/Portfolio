@@ -48,10 +48,8 @@
   transition: opacity 0.5s var(--ease);
 }
 .works-layer--dimmed { opacity: 0.35; }
-.works-layer__spot,
-.works-layer__render.is-hot { transition: opacity 0.4s var(--ease); }
-.works-layer:not(.works-layer--shown) .works-layer__spot,
-.works-layer:not(.works-layer--shown) .works-layer__render { opacity: 0; }
+.works-layer__spot { transition: opacity 0.4s var(--ease); }
+.works-layer:not(.works-layer--shown) .works-layer__spot { opacity: 0; }
 /* Arriving or leaving, it lets everything through. */
 .works-layer:not(.works-layer--shown) * { pointer-events: none !important; }
 
@@ -70,14 +68,16 @@
   pointer-events: none;
 }
 
-.works-layer__render {
+/* The figures (src/figures): one canvas each, over the growth, under the
+   links. Clear but for the object and its lines. */
+.works-layer__figs { position: absolute; inset: 0; pointer-events: none; }
+.works-layer__fig {
   position: absolute;
   display: block;
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.35s var(--ease);
+  transition: opacity 0.5s var(--ease);
 }
-.works-layer__render.is-hot { opacity: 1; }
+.works-layer:not(.works-layer--shown) .works-layer__fig { opacity: 0; }
 
 .works-layer__spot {
   position: absolute;

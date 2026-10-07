@@ -234,8 +234,7 @@
    sheet's edges and a little above and below the render, behind everything:
    the sheet is its own stacking context, so z-index -1 lands above the
    sheet's paper but under its content. */
-.plate { position: relative; margin-bottom: 56px; }
-.plate--model { margin-bottom: 14px; }
+.plate { position: relative; }
 
 .plate__ink {
   position: absolute;
@@ -254,13 +253,25 @@
   margin-left: auto;
 }
 
-.render {
-  display: block;
-  width: 100%;
-  cursor: zoom-in;
+/* The figure: the object drawn as lines from its CAD (src/figures). It sits
+   at the foot of the object column; its paper covers the growth behind it. */
+.figure {
+  display: flex;
+  justify-content: flex-end;
+  touch-action: pan-y;
   transition: opacity 0.5s var(--ease);
 }
-.render img { display: block; width: 100%; }
+.figure__canvas { display: block; }
+/* What the figure is showing ("L3", "90°"), under it, on the right. */
+.plate__read {
+  margin: 6px 0 34px auto;
+  width: min(80%, 460px);
+  text-align: right;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--faint);
+}
+.plate--model + .plate__read { margin-bottom: 8px; }
 
 /* Picked up: the render gives way to the 3D model in the same box, and the
    growth fades back so the object stands alone. */
@@ -270,7 +281,7 @@
   animation: fade-in 0.6s var(--ease);
 }
 .plate--lifted .plate__ink { opacity: 0.22; }
-.plate--lifted .render { opacity: 0; pointer-events: none; }
+.plate--lifted .figure { opacity: 0; pointer-events: none; }
 
 .plate__lift {
   display: block;

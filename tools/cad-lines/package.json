@@ -1,0 +1,12 @@
+{
+  "name": "cad-lines",
+  "private": true,
+  "type": "module",
+  "description": "Turns a CAD export (.glb) into a small, grouped model the site draws as lines. Dev only.",
+  "dependencies": {
+    "@gltf-transform/core": "^4.1.0",
+    "@gltf-transform/extensions": "^4.1.0",
+    "@gltf-transform/functions": "^4.1.0",
+    "meshoptimizer": "^0.22.0"
+  }
+}

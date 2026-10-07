@@ -3,6 +3,7 @@ import { Clock } from "./Clock.jsx";
 import { decryptEmail } from "../utils/email.js";
 import { usePreloadProject } from "../hooks/usePreloadProject.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
+import { preloadFigure } from "../figures/load.js";
 
 // The previous, professional version of the site (the main branch).
 export const PROFESSIONAL_URL = "https://old.danielkaliko.com";
@@ -15,12 +16,9 @@ export const PROFESSIONAL_URL = "https://old.danielkaliko.com";
 export function Overlay({ open, setOpen, onReset, projects, hovered, onHover }) {
   const isTouch = useMediaQuery("(hover: none)");
   const toggle = (key) => setOpen(open === key ? null : key);
-  // Reaching for Works starts fetching the renders it lays in the paper.
+  // Reaching for Works starts fetching the figures' models.
   const warmWorks = React.useCallback(() => {
-    for (const p of projects) {
-      const img = new Image();
-      img.src = p.hero;
-    }
+    for (const p of projects) preloadFigure(p.slug);
   }, [projects]);
 
   return (

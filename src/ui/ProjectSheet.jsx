@@ -43,7 +43,7 @@ export function ProjectSheet({ project: p, next, onClose }) {
         <h2 id="sheet-title" className="sheet__title">{p.title}</h2>
         <p className="sheet__lede">{p.lede}</p>
 
-        {p.hero && <Specimen key={p.slug} project={p} onZoom={() => setZoom(p.hero)} />}
+        <Specimen key={p.slug} project={p} />
 
         {p.facts && (
           <dl className="sheet__facts">
@@ -119,6 +119,12 @@ function Notes({ p }) {
             <p key={l.href}><a className="link" href={l.href} target="_blank" rel="noopener noreferrer">{l.label} ↗</a></p>
           ))}
         </Block>
+      )}
+
+      {p.hero && (
+        <div className="drawing drawing--still" aria-hidden="true">
+          <img src={p.hero} alt="" loading="lazy" />
+        </div>
       )}
 
       {p.preview && (

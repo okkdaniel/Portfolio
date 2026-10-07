@@ -3,6 +3,7 @@ import { resistFrom, opaqueBounds, eraseMark, wipeCells } from "./ink.js";
 import { plot, vine, seeded, setRandom } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
+import { createFigure } from "../figures/load.js";
 
 const SPREAD = 6;       // px of bare paper kept around each silhouette
 const LABEL_GAP = 14;   // px between a silhouette and its label
@@ -15,14 +16,14 @@ const VISIT = Math.random().toString(36).slice(2);
 
 /**
  * Works — the projects, surfaced in the paper. While the Works fold is open
- * (and the field has been taken back to bare paper), each project's cut-out
- * render is laid on a layer over the paper as masking fluid, the way the frog
- * is, and a patch of that project's own growth comes up around it, so the
- * object appears as a bare-paper silhouette. Vines run from one to the next,
- * opening small plants as they go, so the three grow as one piece. Hovering
- * or focusing a silhouette fills it in with the render itself; clicking opens
- * its sheet. Clicking the empty paper closes Works, and `leaving` un-grows it
- * all, newest first.
+ * (and the field has been taken back to bare paper), each project's figure —
+ * its object drawn as lines from its CAD (src/figures) — stands on the paper,
+ * and its silhouette at rest is laid down as masking fluid, the way the frog
+ * is, so a patch of that project's own growth comes up around it and leaves
+ * it bare. Vines run from one to the next, opening small plants as they go,
+ * so the three grow as one piece. Hovering or focusing one sets its figure
+ * moving; clicking opens its sheet. Clicking the empty paper closes Works,
+ * and `leaving` un-grows it all, newest first.
  *
  * On wide screens they're laid out as in Daniel's sketch (see SKETCH); on
  * narrow ones under the header. On a resize they're redrawn complete for the
@@ -30,6 +31,8 @@ const VISIT = Math.random().toString(36).slice(2);
  */
 export function Works({ projects, hovered, onHover, onClose, dimmed = false, leaving = false }) {
   const canvasRef = React.useRef(null);
+  const figsRef = React.useRef(null);
+  const figures = React.useRef({});
   const retractRef = React.useRef(() => {});
   const [spots, setSpots] = React.useState([]);
   const [shown, setShown] = React.useState(false);
@@ -48,11 +51,15 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     ink.feather = 44;
     ink.wobble = 22;
     const growth = createGrowth(layer, { reducedMotion });
-    const imgs = projects.map((p) => {
-      const i = new Image();
-      i.src = p.hero;
-      return i;
+    // One canvas per figure, in their own layer above the growth.
+    const canvases = projects.map(() => {
+      const c = document.createElement("canvas");
+      c.className = "works-layer__fig";
+      c.setAttribute("aria-hidden", "true");
+      figsRef.current.append(c);
+      return c;
     });
+    let figs = [];
     let alive = true;
     let laid = "";
 
@@ -73,17 +80,17 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
       layer.clearScratch();
       layer.size(w, h, dpr);
 
-      const slots = scatter(w, h, head, imgs.length, isSmall);
-      const placed = imgs.map((img, i) => {
-        const p = projects[i];
-        const slot = slots[i];
-        const nat = naturalBounds(img);
-        // Fit the object itself (not its transparent margins) to the slot.
-        const k = slot.size / Math.max(nat.w, nat.h);
-        const iw = img.naturalWidth * k, ih = img.naturalHeight * k;
-        const ix = slot.cx - (nat.x + nat.w / 2) * k, iy = slot.cy - (nat.y + nat.h / 2) * k;
-        const mask = resistFrom(img, Math.round(ix), Math.round(iy), Math.round(iw), Math.round(ih), SPREAD);
-        const box = opaqueBounds(mask, SPREAD) ?? { x: ix, y: iy, w: iw, h: ih };
+      const slots = scatter(w, h, head, projects.length, isSmall);
+      const placed = projects.map((p, i) => {
+        const slot = slots[i], fig = figs[i], c = canvases[i];
+        if (!fig) return null;
+        // The canvas is laid so the object at rest fills the slot; it reaches
+        // past it wherever a pose can. Its silhouette at rest is the mask.
+        const at = fig.place(slot);
+        Object.assign(c.style, { left: `${at.x}px`, top: `${at.y}px`, width: `${at.w}px`, height: `${at.h}px` });
+        fig.layout();
+        const mask = resistFrom(fig.silhouette(), Math.round(at.x), Math.round(at.y), Math.round(at.w), Math.round(at.h), SPREAD);
+        const box = opaqueBounds(mask, SPREAD) ?? { x: slot.cx - slot.size / 2, y: slot.cy - slot.size / 2, w: slot.size, h: slot.size };
         // On phones the list right above carries the titles; the specimens
         // just take their numbers.
         const n = String(p.index).padStart(2, "0");
@@ -91,8 +98,8 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
         const lw = text.length * CHAR_W;
         const lx = Math.max(8, Math.min(w - 8 - lw, box.x + box.w / 2 - lw / 2));
         const label = { x: lx, y: box.y + box.h + LABEL_GAP, w: lw, h: LABEL_H };
-        return { p, img: { x: ix, y: iy, w: iw, h: ih }, mask, box, label, text };
-      });
+        return { p, mask, box, label, text };
+      }).filter(Boolean);
 
       const pad = (r, n) => ({ x: r.x - n, y: r.y - n, w: r.w + 2 * n, h: r.h + 2 * n });
       const F = 1e4;
@@ -137,7 +144,7 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
         setRandom(null);
       }
       growth.plant(vines, { random, ...tempo });
-      setSpots(placed.map(({ p, img, box, label, text }) => ({ slug: p.slug, title: p.title, hero: p.hero, img, box, label, text })));
+      setSpots(placed.map(({ p, box, label, text }) => ({ slug: p.slug, title: p.title, box, label, text })));
     };
 
     // Take it all back off, newest first (as Works closes).
@@ -152,9 +159,10 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
       });
     };
 
-    // Start as soon as the renders are in, together with the field going
-    // back to paper. On narrow screens, where they sit under the header,
-    // wait for the fold to finish opening first.
+    // Start as soon as the figures are in (they start loading when the Works
+    // fold is reached for), together with the field going back to paper. On
+    // narrow screens, where they sit under the header, wait for the fold to
+    // finish opening first.
     let settle = 0;
     const relay = () => {
       clearTimeout(settle);
@@ -162,8 +170,11 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     };
     const opening = new Promise((r) => setTimeout(r, isWide(window.innerWidth, window.innerHeight, isSmall) ? 0 : FOLD_MS));
     let watcher = null;
-    Promise.all([...imgs.map((i) => i.decode().catch(() => {})), opening]).then(() => {
-      if (!alive) return;
+    const loading = Promise.all(projects.map((p, i) => createFigure(p.slug, canvases[i], { reducedMotion }).catch(() => null)));
+    Promise.all([loading, opening]).then(([made]) => {
+      figs = made;
+      if (!alive) { made.forEach((f) => f?.destroy()); return; }
+      figures.current = Object.fromEntries(projects.map((p, i) => [p.slug, made[i]]));
       lay(reducedMotion);
       watcher = new ResizeObserver(relay);
       const head = document.querySelector(".ov-head");
@@ -177,8 +188,16 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
       watcher?.disconnect();
       window.removeEventListener("resize", relay);
       growth.clear();
+      figs.forEach((f) => f?.destroy());
+      figures.current = {};
+      canvases.forEach((c) => c.remove());
     };
   }, [projects, reducedMotion, isSmall]);
+
+  // The figure hovered (here or in the fold's list) moves; the rest settle.
+  React.useEffect(() => {
+    for (const [slug, f] of Object.entries(figures.current)) f?.hover(slug === hovered && !leaving);
+  }, [hovered, leaving, spots]);
 
   React.useEffect(() => {
     if (leaving) retractRef.current();
@@ -190,15 +209,9 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     <div className={`works-layer${shown && !leaving ? " works-layer--shown" : ""}${leaving ? " works-layer--leaving" : ""}${dimmed ? " works-layer--dimmed" : ""}`}>
       <div className="works-layer__backdrop" onClick={onClose} aria-hidden="true" />
       <canvas ref={canvasRef} className="works-layer__ink" aria-hidden="true" />
+      <div ref={figsRef} className="works-layer__figs" />
       {spots.map((s) => (
         <React.Fragment key={s.slug}>
-          <img
-            className={`works-layer__render${hovered === s.slug ? " is-hot" : ""}`}
-            src={s.hero}
-            alt=""
-            aria-hidden="true"
-            style={px(s.img)}
-          />
           <a
             className={`works-layer__spot${hovered === s.slug ? " is-hot" : ""}`}
             href={`#work/${s.slug}`}
@@ -327,34 +340,4 @@ function edgePoints(m, step = 3) {
     }
   }
   return out;
-}
-
-const boundsCache = new WeakMap();
-
-/** The opaque part of an image, in its natural px (from a small probe). */
-function naturalBounds(img) {
-  if (boundsCache.has(img)) return boundsCache.get(img);
-  const k = Math.min(1, 256 / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
-  const probe = document.createElement("canvas");
-  probe.width = w;
-  probe.height = h;
-  const pc = probe.getContext("2d", { willReadFrequently: true });
-  pc.drawImage(img, 0, 0, w, h);
-  const a = pc.getImageData(0, 0, w, h).data;
-  let x0 = w, y0 = h, x1 = -1, y1 = -1;
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (a[(y * w + x) * 4 + 3] <= 127) continue;
-      if (x < x0) x0 = x;
-      if (x > x1) x1 = x;
-      if (y < y0) y0 = y;
-      y1 = y;
-    }
-  }
-  const b = x1 < 0
-    ? { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight }
-    : { x: x0 / k, y: y0 / k, w: (x1 - x0 + 1) / k, h: (y1 - y0 + 1) / k };
-  boundsCache.set(img, b);
-  return b;
 }

@@ -258,7 +258,7 @@
 .figure {
   display: flex;
   justify-content: flex-end;
-  touch-action: pan-y;
+  touch-action: none; /* a drag drives the figure */
   transition: opacity 0.5s var(--ease);
 }
 .figure__canvas { display: block; }

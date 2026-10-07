@@ -6,15 +6,19 @@ import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { ModelPlate } from "../components/media/ModelPlate.jsx";
 import { createFigure } from "../figures/load.js";
 
-const MAX_H = 560; // px: the tallest a figure gets on the sheet
+const HALO = 22;   // px round the figure for its halo (figures/lines.js HALO)
+// The tallest a figure gets on the sheet: on a phone, short enough to leave
+// room to scroll past it, since a drag on the figure drives it.
+const maxHeight = () => (window.innerWidth <= 768 ? Math.min(420, window.innerHeight * 0.55) : 560);
 
 /**
  * Specimen — a project's figure (its object drawn as lines from its CAD; see
  * src/figures), standing in its own patch of growth on the sheet. Its
  * silhouette at rest is laid on the paper as masking fluid (as the frog is on
  * the field), so once it's scrolled fully into view the ground and the
- * project's plant (`project.plant`) grow around it and leave it bare, with a
- * thin margin of paper all round.
+ * project's plant (`project.plant`) grow around it. The growth comes in under
+ * it too: the figure clears its own space with a halo of paper that dissolves
+ * into the screen's dots, so as it moves nothing is left bare or cut off.
  *
  * The figure answers the pointer: the robot runs its cycle with the
  * pointer's height, a part turns with its position across. A line under it
@@ -54,8 +58,8 @@ export function Specimen({ project: p }) {
       made = f;
       const size = () => {
         const { all } = f.boxes, aw = all.max.x - all.min.x, ah = all.max.y - all.min.y;
-        let w = objRef.current.clientWidth, h = (w * ah) / aw;
-        if (h > MAX_H) { h = MAX_H; w = (h * aw) / ah; }
+        let w = objRef.current.clientWidth, h = ((w - 2 * HALO) * ah) / aw + 2 * HALO;
+        if (h > maxHeight()) { h = maxHeight(); w = ((h - 2 * HALO) * aw) / ah + 2 * HALO; }
         Object.assign(canvas.style, { width: `${w}px`, height: `${h}px` });
         f.layout();
       };
@@ -95,7 +99,9 @@ export function Specimen({ project: p }) {
       layer.size(w, h, Math.min(2, window.devicePixelRatio || 1));
       layer.paper(PAPER);
 
-      ink.resist = resistFrom(fig.silhouette(), Math.round(r.left - c.left), Math.round(r.top - c.top), Math.round(r.width), Math.round(r.height), spread);
+      // The silhouette at rest shapes the growth; it isn't masking fluid.
+      const mask = resistFrom(fig.silhouette(), Math.round(r.left - c.left), Math.round(r.top - c.top), Math.round(r.width), Math.round(r.height), spread);
+      ink.resist = null;
 
       // Keep clear of the text above and below (and the 3D control), and
       // fade out before the canvas's own edges.
@@ -111,7 +117,7 @@ export function Specimen({ project: p }) {
         { x: w, y: -F, w: F, h: 3 * F },
       ];
 
-      const box = opaqueBounds(ink.resist, spread);
+      const box = opaqueBounds(mask, spread);
       if (!box) return;
       const s = Math.min(1.1, Math.max(0.6, box.h / 380));
       const random = seeded(String(p.seed ?? p.slug));
@@ -162,6 +168,7 @@ export function Specimen({ project: p }) {
             className="figure"
             role="img"
             aria-label={`${p.title}, drawn from its CAD`}
+            onPointerDown={point}
             onPointerMove={point}
             onPointerLeave={leave}
           />

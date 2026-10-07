@@ -14,7 +14,8 @@
 import * as frc987 from "./frc987.js";
 import * as stand from "./stand.js";
 import * as rival from "./rival.js";
-import { lineView, loadModel, THREE } from "./lines.js";
+import { lineView, loadModel, THREE, HALO } from "./lines.js";
+export { HALO };
 
 export const KINDS = { "frc-987-offseason": frc987, "low-profile-monitor-stand": stand, "rival-robotics-2024": rival };
 
@@ -48,7 +49,14 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     boxes,
     /** The canvas box that fills a slot with the object at rest (see placeFigure). */
     place: (slot) => placeFigure(boxes, slot),
-    layout() { view.frameTo(boxes.all); fig.step(0); view.draw(); },
+    /** Frames `all` with HALO px of room round it for the halo (the canvas is sized to include it). */
+    layout() {
+      const all = boxes.all, aw = all.max.x - all.min.x, ah = all.max.y - all.min.y;
+      const s = Math.min((canvas.clientWidth - 2 * HALO) / aw, (canvas.clientHeight - 2 * HALO) / ah);
+      const pad = HALO / s;
+      view.frameTo(new THREE.Box3(new THREE.Vector3(all.min.x - pad, all.min.y - pad, all.min.z), new THREE.Vector3(all.max.x + pad, all.max.y + pad, all.max.z)));
+      fig.step(0); view.draw();
+    },
     silhouette: () => { fig.step(0); return view.silhouette(); },
     hover(on) { fig.hover(on); wake(); },
     point(px, py) { const r = fig.point(px, py); wake(); return r; },
@@ -61,17 +69,17 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
  * Where to put a figure's canvas so its object at rest fills a slot: `slot`
  * is { cx, cy, size } in px (size: the rest pose's longer side). Returns the
  * canvas box { x, y, w, h } in px; it reaches past the slot wherever a pose
- * can.
+ * can, and by HALO more all round, for the halo.
  */
 export function placeFigure(boxes, slot) {
   const { rest, all } = boxes;
   const s = slot.size / Math.max(rest.max.x - rest.min.x, rest.max.y - rest.min.y);
   const rcx = (rest.min.x + rest.max.x) / 2, rcy = (rest.min.y + rest.max.y) / 2;
   return {
-    x: slot.cx - (rcx - all.min.x) * s,
-    y: slot.cy - (all.max.y - rcy) * s,
-    w: (all.max.x - all.min.x) * s,
-    h: (all.max.y - all.min.y) * s,
+    x: slot.cx - (rcx - all.min.x) * s - HALO,
+    y: slot.cy - (all.max.y - rcy) * s - HALO,
+    w: (all.max.x - all.min.x) * s + 2 * HALO,
+    h: (all.max.y - all.min.y) * s + 2 * HALO,
     scale: s,
   };
 }

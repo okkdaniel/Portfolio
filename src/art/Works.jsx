@@ -111,7 +111,11 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
         { x: -F, y: -F, w: F, h: 3 * F },
         { x: w, y: -F, w: F, h: 3 * F },
       ];
-      ink.resist = placed.map((s) => s.mask);
+      // No masking fluid: the growth comes in under the figures too. Each
+      // figure clears its own space with its halo, wherever it moves, so
+      // turning or rising never leaves a bare hole or a hard edge. The
+      // silhouettes at rest still shape the growth (plot traces their edges).
+      ink.resist = null;
 
       // Slower and more evenly paced than the field's growth, so the
       // specimens come up steadily rather than mostly in the first moment.
@@ -205,6 +209,37 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
 
   const px = (r) => ({ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
 
+  // Touch has no hover: a drag on a figure drives it (up and down runs the
+  // robot, across turns a part), as the pointer does on its sheet; a tap
+  // still opens the project. Let go, it settles back.
+  const drag = React.useRef(null);
+  const touch = {
+    onPointerDown: (e) => {
+      if (e.pointerType === "mouse") return;
+      drag.current = { x: e.clientX, y: e.clientY, moved: false };
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    onPointerMove: (e) => {
+      const d = drag.current;
+      if (!d || e.pointerType === "mouse") return;
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) d.moved = true;
+      if (!d.moved) return;
+      const slug = e.currentTarget.dataset.slug, r = e.currentTarget.getBoundingClientRect();
+      const clamp = (v) => Math.min(1, Math.max(0, v));
+      figures.current[slug]?.point(clamp((e.clientX - r.left) / r.width), clamp((r.bottom - e.clientY) / r.height));
+    },
+    onPointerUp: (e) => {
+      const d = drag.current;
+      if (!d) return;
+      if (d.moved) figures.current[e.currentTarget.dataset.slug]?.leave();
+      // A drag isn't a tap: keep it from opening the project.
+      drag.current = d.moved ? { cancelClick: true } : null;
+    },
+    onClick: (e) => {
+      if (drag.current?.cancelClick) { e.preventDefault(); drag.current = null; }
+    },
+  };
+
   return (
     <div className={`works-layer${shown && !leaving ? " works-layer--shown" : ""}${leaving ? " works-layer--leaving" : ""}${dimmed ? " works-layer--dimmed" : ""}`}>
       <div className="works-layer__backdrop" onClick={onClose} aria-hidden="true" />
@@ -216,7 +251,9 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
             className={`works-layer__spot${hovered === s.slug ? " is-hot" : ""}`}
             href={`#work/${s.slug}`}
             style={px({ x: Math.min(s.box.x, s.label.x), y: s.box.y, w: Math.max(s.box.w, s.label.w), h: s.label.y + s.label.h - s.box.y })}
-            onPointerEnter={() => onHover(s.slug)}
+            data-slug={s.slug}
+            {...touch}
+            onPointerEnter={(e) => { if (e.pointerType === "mouse") onHover(s.slug); }}
             onPointerLeave={() => onHover(null)}
             onFocus={() => onHover(s.slug)}
             onBlur={() => onHover(null)}

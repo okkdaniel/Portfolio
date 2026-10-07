@@ -5,10 +5,11 @@
 // jumps between neighbouring pixels (outlines, dark) or the surface turns
 // (creases, lighter); hidden lines never show, because what's behind
 // something never makes a depth jump on screen. Inside the object it lays
-// paper, so the figure covers what's behind it; outside, it's clear, so a
-// figure sits over the field's growth with only its outline showing past its
-// edge. Three averages that, drawn at twice the pixels, down to the screen,
-// so lines are smooth.
+// paper, so the figure covers what's behind it; round it, a halo of paper
+// that thins out into halftone dots on the site's screen (as ink gives out
+// near text), so the figure clears its own space in the growth wherever it
+// moves, softly; past that, it's clear. Three averages that, drawn at twice
+// the pixels, down to the screen, so lines are smooth.
 //
 // Everything is in metres, z up, as the models come out of
 // tools/cad-lines/prepare.mjs.
@@ -36,6 +37,9 @@ export function loadModel(url) {
  * outline goes from nothing to full ink (scale it with the model: a robot
  * wants centimetres, a small bracket millimetres).
  */
+export const HALO = 22;   // CSS px of halo round the object
+const PITCH = 3;          // the site's halftone screen, CSS px
+
 export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper = "#f3f0e8", ink = "#262a25" } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, premultipliedAlpha: true });
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
@@ -52,14 +56,17 @@ export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper
   });
   const inkMat = new THREE.ShaderMaterial({
     uniforms: {
-      tN: { value: null }, tD: { value: null }, px: { value: new THREE.Vector2() },
+      tN: { value: null }, tD: { value: null }, px: { value: new THREE.Vector2() }, unit: { value: 1 },
       paper: { value: new THREE.Color(paper) }, ink: { value: new THREE.Color(ink) },
       span: { value: camera.far - camera.near }, sil: { value: new THREE.Vector2(...sil) },
     },
     vertexShader: full,
     fragmentShader: `
-      uniform sampler2D tN, tD; uniform vec2 px, sil; uniform vec3 paper, ink; uniform float span; varying vec2 vUv;
+      uniform sampler2D tN, tD; uniform vec2 px, sil; uniform vec3 paper, ink; uniform float span, unit; varying vec2 vUv;
       float D(vec2 o){ return texture2D(tD, vUv + o * px).r; }
+      // Whether the object covers a point, o in render pixels from here.
+      float on(vec2 o){ return texture2D(tN, vUv + o * px).a; }
+      float hash(vec2 c){ return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453); }
       vec3 N(vec2 o){ return texture2D(tN, vUv + o * px).xyz * 2.0 - 1.0; }
       void main(){
         float d = D(vec2(0)); vec3 n = N(vec2(0));
@@ -74,8 +81,28 @@ export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper
         float outline = (d >= 1.0 && de >= 1.0) ? 1.0 : smoothstep(sil.x, sil.y, de);
         float crease = d >= 1.0 ? 0.0 : smoothstep(0.12, 0.3, ne); // about 30 to 45 degrees
         float a = max(outline, crease * 0.55) * 0.9;
-        // Inside: paper, inked. Outside: clear, but for the outline's ink.
-        vec4 c = d < 1.0 ? vec4(mix(paper, ink, a), 1.0) : vec4(ink, a);
+        vec4 c;
+        if (d < 1.0) {
+          c = vec4(mix(paper, ink, a), 1.0);        // inside: paper, inked
+        } else {
+          // Outside: how near the object is, from rings of samples (unit is
+          // render pixels per CSS px), as paper that thins out into the
+          // screen's dots: each dot is kept with that much chance.
+          float near = 0.0;
+          for (int r = 1; r <= 4; r++) {
+            float rad = float(r) * ${(HALO / 4).toFixed(1)} * unit;
+            float hit = 0.0;
+            for (int k = 0; k < 12; k++) {
+              float t = float(k) * 0.5236;
+              hit = max(hit, on(vec2(cos(t), sin(t)) * rad));
+            }
+            if (hit > 0.5) { near = 1.0 - (float(r) - 1.0) / 4.0; break; }
+          }
+          vec2 cell = floor(gl_FragCoord.xy / (${PITCH.toFixed(1)} * unit));
+          float f = near * near * (3.0 - 2.0 * near);
+          float keep = (near >= 1.0 || hash(cell) < f * 0.92) ? 1.0 : 0.0;
+          c = mix(vec4(ink, a), vec4(mix(paper, ink, a), 1.0), keep);
+        }
         gl_FragColor = vec4(c.rgb * c.a, c.a);   // premultiplied
       }`,
     transparent: true,
@@ -149,6 +176,7 @@ export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper
       inkMat.uniforms.tN.value = target.texture;
       inkMat.uniforms.tD.value = target.depthTexture;
       inkMat.uniforms.px.value.set(1 / W2, 1 / H2);
+      inkMat.uniforms.unit.value = r;
       downMat.uniforms.t.value = inked.texture;
       downMat.uniforms.px.value.set(1 / W2, 1 / H2);
     },

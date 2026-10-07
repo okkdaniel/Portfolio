@@ -20,6 +20,15 @@ export function Overlay({ open, setOpen, onReset, projects, hovered, onHover }) 
   const warmWorks = React.useCallback(() => {
     for (const p of projects) preloadFigure(p.slug);
   }, [projects]);
+  // And so does the home page settling: once it has loaded and the field has
+  // had a few seconds to grow, they're fetched in the background, so Works
+  // can come up as the field goes, not after.
+  React.useEffect(() => {
+    let idle = 0;
+    const warm = () => { idle = (window.requestIdleCallback || setTimeout)(warmWorks); };
+    const t = setTimeout(() => (document.readyState === "complete" ? warm() : window.addEventListener("load", warm, { once: true })), 2500);
+    return () => { clearTimeout(t); window.removeEventListener("load", warm); (window.cancelIdleCallback || clearTimeout)(idle); };
+  }, [warmWorks]);
 
   return (
     <div className="overlay">

@@ -7,8 +7,8 @@
 //
 // One number poses it all, the cycle: 0 is the intake turned down to the
 // floor in front, REST is as modelled, 1 is the elevator out and the wrist
-// tipped out forward, as far as reaches furthest. Shown in the standard dimetric
-// view, drawn a little smaller than the others (it reads large otherwise).
+// tipped out forward, as far as reaches furthest. Shown in isometric view,
+// drawn a little smaller than the others (it reads large otherwise).
 import { spring, THREE } from "./lines.js";
 
 const IN = 0.0254;
@@ -26,10 +26,9 @@ const CARRIAGE_RUN = 5.5 * IN; // the carriage's travel on the stage
 const REST = 0.25;
 const HOVER = 0.85;        // how far a hover in Works runs the cycle
 
-// The standard dimetric view: the front square on but for 7°, the side at
-// 41° (tan 7.18° · tan 41.42° = sin² of the elevation), looking from the
-// front right.
-export const config = { az: -69.3, el: 19.47, sil: [0.004, 0.012], url: URL, scale: 0.85 };
+// Isometric: the front and the side at the same angle, from the front
+// right, looking down 35.26° (atan of 1/√2).
+export const config = { az: -45, el: 35.26, sil: [0.004, 0.012], url: URL, scale: 0.85 };
 
 const ease = (u) => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
 /** A body that turns about an axis along x through point p: outer.rotation.x turns it. */

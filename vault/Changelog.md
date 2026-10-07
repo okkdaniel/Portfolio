@@ -8,6 +8,8 @@ updated: 2026-10-05
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
 ## 2026-10-07
+- Rival figure now isometric (az −45°, el 35.26°), was dimetric.
+- Stand hover reworked: it unfolds where it stands (base on the ground) while the view swings round and rises to look down on the flat pattern square on; the pointer looks round it once open. No more turning the part to face you.
 - Stand unfold smoothed: precomputed eased size/centre (no per-frame re-measuring), steps in turn (tabs, walls, then turn to face up), steady 1.4 s pace instead of a spring.
 - Rival intake down 60° → 44° (it clipped the drivetrain; filled-triangle clearance check). FRC carriage now rides the stage's full 26.5" (was 19.6", sliding down the stage).
 - Rival wrist at the top: 100° → 35°, the least turn for the most forward reach.

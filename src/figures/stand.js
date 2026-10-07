@@ -4,13 +4,13 @@
 // wall bent up at each end of it, and a mounting tab bent in off each wall's
 // sloping front edge.
 //
-// Hovered (or pressed, on touch), it unfolds into its flat pattern: the tabs
-// open first, then the walls come down, and as it nears flat it turns to lie
-// face up at you. Let go, it
-// folds back up. It keeps to the space it takes up folded, the flat pattern
-// drawn smaller to fit and set a little lower, so it never spreads over
-// anything. All the while it
-// tips a little toward the pointer, to look it over.
+// Hovered (or pressed, on touch), it unfolds into its flat pattern where it
+// stands: the base stays on the ground, the tabs open, and the walls fall
+// out flat either side of it. Meanwhile the view swings round a little and
+// rises, as if you leaned over the bench to look down at the sheet, and
+// draws back so the whole pattern fits the space it took up folded. Let go,
+// it folds back up the same way. While open, the pointer turns the view a
+// little round it and up and down, to look it over.
 //
 // Each bend unrolls as sheet metal does: its curve straightens out along the
 // sheet's neutral surface, so the flat pattern comes out its true size (as
@@ -38,17 +38,20 @@ const RI = 0.0015875;  // the bends' inside radius (1/16 in)
 const K = 0.5;         // where the neutral surface sits in the sheet (K-factor; 0.5 gives
                        // the CAD flat pattern to 0.001 in)
 const SLACK = 0.0003;  // m: how far off a face a point can be and still be on it
-const TILT = 22;       // degrees it tips toward the pointer, at most
-const LOWER = 0.3;     // how far down it settles lying flat, as a share of the way
-                       // from its folded middle to its folded ground
-const FOLD_S = 1.4;    // seconds to unfold all the way (or fold back), at a steady pace
+const SPIN = 52;       // degrees the view swings round as it opens, to look at it square on
+const RISE = 48;       // degrees it rises (24° to 72° down), to look down on the sheet
+const LOOK_SPIN = 18;  // degrees the pointer swings the view round, at most, either way
+const LOOK_RISE = 9;   // and up or down
+const LOWER = 0.3;     // how far down it settles open, as a share of the way from its
+                       // folded middle to its folded ground (less the pattern's half height)
+const FOLD_S = 1.6;    // seconds to unfold all the way (or fold back), at a steady pace
 
 const V = (a) => new THREE.Vector3(...a);
 // Eased, gently at both ends.
 const glide = (t) => { t = Math.min(1, Math.max(0, t)); return t * t * t * (t * (6 * t - 15) + 10); };
-// In turn, so each reads: the tabs open, then the walls come down, and as
-// it nears flat it turns to face you and settles.
-const tabsAt = (u) => glide(u / 0.45), wallsAt = (u) => glide((u - 0.2) / 0.55), turnAt = (u) => glide((u - 0.45) / 0.55);
+// The tabs open, then the walls fall (overlapping, so it reads as one
+// motion); the view moves the whole way through, slow at both ends.
+const tabsAt = (u) => glide(u / 0.5), wallsAt = (u) => glide((u - 0.25) / 0.75), viewAt = glide;
 
 /** A bend, ready to use. */
 function prepare(b) {
@@ -157,61 +160,56 @@ export async function make(view) {
     geometry.computeBoundingBox();
   };
 
-  // Lying flat it turns to face the camera square on, the base's front edge
-  // toward you. It turns about the middle of its shape as it is; it's drawn
-  // no bigger than it is folded (the flat pattern, twice as wide, smaller to
-  // fit); and lying flat it sits a little lower than its middle folded,
-  // easing down as it unfolds.
+  // The view's moves are turns of the part about a point the camera looks
+  // at: round the vertical, then about the screen's across.
   const az = THREE.MathUtils.degToRad(config.az), el = THREE.MathUtils.degToRad(config.el);
   const camZ = new THREE.Vector3(Math.cos(el) * Math.cos(az), Math.cos(el) * Math.sin(az), Math.sin(el));
   const camX = new THREE.Vector3(0, 0, 1).cross(camZ).normalize(), camY = camZ.clone().cross(camX);
-  const faceUp = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(camX, camY, camZ));
+  const UP = new THREE.Vector3(0, 0, 1), deg = THREE.MathUtils.degToRad;
   const inner = new THREE.Group(); inner.add(mesh);
-  const middle = new THREE.Group(); middle.add(inner);
-  const group = new THREE.Group(); group.add(middle);
+  const group = new THREE.Group(); group.add(inner);
   view.scene.add(group);
   unfold(0);
-  const anchor = geometry.boundingBox.getCenter(new THREE.Vector3());
-  group.position.copy(anchor);
+  const mid0 = geometry.boundingBox.getCenter(new THREE.Vector3());
+  unfold(1);
+  const mid1 = geometry.boundingBox.getCenter(new THREE.Vector3());
+  const anchor = mid0.clone();
   view.aim(anchor); // before measuring anything on screen
-  const none = new THREE.Quaternion(), tipX = new THREE.Quaternion(), tipY = new THREE.Quaternion();
-  // Where it is and how big, worked out once along the way rather than
-  // measured each frame (which made it slide and swell as the walls swung):
-  // it turns about a point eased from its middle folded to its middle flat,
-  // and its size eases down from as made to the flat pattern's, smaller to
-  // fit. The size never grows back once it has shrunk, so it settles as one.
-  unfold(0); const mid0 = geometry.boundingBox.getCenter(new THREE.Vector3());
-  unfold(1); const mid1 = geometry.boundingBox.getCenter(new THREE.Vector3());
-  const arrange = (u) => {
+  const spin = new THREE.Quaternion(), rise = new THREE.Quaternion();
+  // It turns about its middle, eased from folded to flat, which stays put on
+  // screen but for settling a little lower; the size, worked out once along
+  // the way, eases down to fit.
+  let drop = 0;
+  const arrange = (u, lx, ly, k) => {
     unfold(u);
-    inner.position.copy(mid0).lerp(mid1, turnAt(u)).negate();
-    middle.quaternion.slerpQuaternions(none, faceUp, turnAt(u));
-    group.quaternion.identity(); group.scale.setScalar(1); group.position.copy(anchor);
+    const g = viewAt(u);
+    inner.position.copy(mid0).lerp(mid1, g).negate();
+    spin.setFromAxisAngle(UP, deg(SPIN * g - LOOK_SPIN * lx));
+    rise.setFromAxisAngle(camX, deg(RISE * g + LOOK_RISE * ly));
+    group.quaternion.copy(rise).multiply(spin);
+    group.position.copy(anchor).addScaledVector(camY, -drop * g);
+    group.scale.setScalar(k);
   };
-  arrange(0);
+  arrange(0, 0, 0, 1);
   const restBox = view.box(), RW = restBox.max.x - restBox.min.x, RH = restBox.max.y - restBox.min.y;
   const N = 32, fit = [];
-  for (let i = 0; i <= N; i++) { arrange(i / N); const bx = view.box(); fit.push(Math.min(1, RW / (bx.max.x - bx.min.x), RH / (bx.max.y - bx.min.y))); }
+  for (let i = 0; i <= N; i++) {
+    let w = 0, h = 0;
+    for (const [lx, ly] of [[0, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      arrange(i / N, lx * Math.min(1, i / N * 2), ly * Math.min(1, i / N * 2), 1);
+      const bx = view.box(); w = Math.max(w, bx.max.x - bx.min.x); h = Math.max(h, bx.max.y - bx.min.y);
+    }
+    fit.push(Math.min(1, RW / w, RH / h));
+  }
+  // Never growing back once it has drawn back, and smooth.
   for (let i = 1; i <= N; i++) fit[i] = Math.min(fit[i], fit[i - 1]);
-  for (let pass = 0; pass < 4; pass++) for (let i = 1; i < N; i++) fit[i] = (fit[i - 1] + 2 * fit[i] + fit[i + 1]) / 4;
+  for (let pass = 0; pass < 6; pass++) for (let i = 1; i < N; i++) fit[i] = Math.min(fit[i], (fit[i - 1] + 2 * fit[i] + fit[i + 1]) / 4);
   const scaleAt = (u) => { const x = Math.min(N, Math.max(0, u * N)), i = Math.min(N - 1, Math.floor(x)); return fit[i] + (fit[i + 1] - fit[i]) * (x - i); };
-  let drop = 0;
-  const pose = (u, tx = 0, ty = 0) => {
-    arrange(u);
-    group.scale.setScalar(scaleAt(u));
-    // Down (along the screen's up), the same way every time, by how flat it is.
-    group.position.addScaledVector(camY, -drop * turnAt(u));
-    // Tipped toward the pointer, about the screen's own axes.
-    tipX.setFromAxisAngle(camX, THREE.MathUtils.degToRad(-ty * TILT));
-    tipY.setFromAxisAngle(camY, THREE.MathUtils.degToRad(tx * TILT));
-    group.quaternion.copy(tipY).multiply(tipX);
-  };
-
-  // How far down it settles: a share of the way from its middle to its
-  // ground, folded, less the flat pattern's own half height (drawn).
+  // The pointer looks round it only as far as it's open.
+  const pose = (u, lx = 0, ly = 0) => { const o = Math.min(1, u * 2); arrange(u, lx * o, ly * o, scaleAt(u)); };
   pose(1);
-  { const bx = view.box(), half = (bx.max.y - bx.min.y) / 2;
-    drop = Math.max(0, LOWER * (RH / 2 - half)); }
+  { const bx = view.box(); drop = Math.max(0, LOWER * (RH / 2 - (bx.max.y - bx.min.y) / 2)); }
+
   unfold(1);
   const IN = 0.0254, flat = geometry.boundingBox;
   const size = `${((flat.max.x - flat.min.x) / IN).toFixed(2)} × ${((flat.max.y - flat.min.y) / IN).toFixed(2)} in`;
@@ -241,7 +239,7 @@ export async function make(view) {
     },
     jump() { fold.jump(fold.t); tx.jump(tx.t); ty.jump(ty.t); },
     hover(on) { fold.t = on ? 1 : 0; tx.t = ty.t = 0; },
-    /** The pointer on it, 0..1 across and up: it unfolds, and tips toward it. */
+    /** The pointer on it, 0..1 across and up: it unfolds, and the view follows the pointer a little. */
     point(px, py) {
       fold.t = 1;
       tx.t = Math.max(-1, Math.min(1, (px - 0.5) * 2));

@@ -8,6 +8,7 @@ updated: 2026-10-05
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
 ## 2026-10-07
+- Stand: unfolding dropped for a turntable (pointer turns it round, a little up and down; same size, stays on the ground). Daniel wanted the interaction reworked from the ground up.
 - Rival figure now isometric (az −45°, el 35.26°), was dimetric.
 - Stand hover reworked: it unfolds where it stands (base on the ground) while the view swings round and rises to look down on the flat pattern square on; the pointer looks round it once open. No more turning the part to face you.
 - Stand unfold smoothed: precomputed eased size/centre (no per-frame re-measuring), steps in turn (tabs, walls, then turn to face up), steady 1.4 s pace instead of a spring.

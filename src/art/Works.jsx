@@ -202,9 +202,11 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     };
   }, [projects, reducedMotion, isSmall]);
 
-  // The figure hovered (here or in the fold's list) moves; the rest settle.
+  // The figure hovered in the fold's list (or focused) moves on its own; one
+  // under the mouse follows the mouse instead (below). The rest settle.
+  const underMouse = React.useRef(null);
   React.useEffect(() => {
-    for (const [slug, f] of Object.entries(figures.current)) f?.hover(slug === hovered && !leaving);
+    for (const [slug, f] of Object.entries(figures.current)) if (slug !== underMouse.current) f?.hover(slug === hovered && !leaving);
   }, [hovered, leaving, spots]);
 
   React.useEffect(() => {
@@ -213,9 +215,10 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
 
   const px = (r) => ({ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
 
-  // Touch has no hover: a drag on a figure drives it (up and down runs the
-  // robot, across turns a part), as the pointer does on its sheet; a tap
-  // still opens the project. Let go, it settles back.
+  // The pointer drives a figure, as on its sheet (up and down runs the
+  // robot, across turns a part): a mouse just by moving over it; touch, which
+  // has no hover, by dragging on it, so a tap still opens the project. Let
+  // go, it settles back.
   const drag = React.useRef(null);
   const touch = {
     onPointerDown: (e) => {
@@ -225,9 +228,11 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     },
     onPointerMove: (e) => {
       const d = drag.current;
-      if (!d || e.pointerType === "mouse") return;
-      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) d.moved = true;
-      if (!d.moved) return;
+      if (e.pointerType !== "mouse") {
+        if (!d) return;
+        if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) d.moved = true;
+        if (!d.moved) return;
+      }
       const slug = e.currentTarget.dataset.slug, r = e.currentTarget.getBoundingClientRect();
       const clamp = (v) => Math.min(1, Math.max(0, v));
       figures.current[slug]?.point(clamp((e.clientX - r.left) / r.width), clamp((r.bottom - e.clientY) / r.height));
@@ -257,8 +262,11 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
             style={px({ x: Math.min(s.box.x, s.label.x), y: s.box.y, w: Math.max(s.box.w, s.label.w), h: s.label.y + s.label.h - s.box.y })}
             data-slug={s.slug}
             {...touch}
-            onPointerEnter={(e) => { if (e.pointerType === "mouse") onHover(s.slug); }}
-            onPointerLeave={() => onHover(null)}
+            onPointerEnter={(e) => { if (e.pointerType === "mouse") { underMouse.current = s.slug; touch.onPointerMove(e); onHover(s.slug); } }}
+            onPointerLeave={(e) => {
+              if (e.pointerType === "mouse") { underMouse.current = null; figures.current[s.slug]?.leave(); }
+              onHover(null);
+            }}
             onFocus={() => onHover(s.slug)}
             onBlur={() => onHover(null)}
           >

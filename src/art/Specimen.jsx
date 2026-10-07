@@ -57,7 +57,7 @@ export function Specimen({ project: p }) {
       if (!f) return;
       made = f;
       const size = () => {
-        const { all } = f.boxes, aw = all.max.x - all.min.x, ah = all.max.y - all.min.y;
+        const { span: all } = f.boxes, aw = all.max.x - all.min.x, ah = all.max.y - all.min.y;
         let w = objRef.current.clientWidth, h = ((w - 2 * HALO) * ah) / aw + 2 * HALO;
         if (h > maxHeight()) { h = maxHeight(); w = ((h - 2 * HALO) * aw) / ah + 2 * HALO; }
         Object.assign(canvas.style, { width: `${w}px`, height: `${h}px` });

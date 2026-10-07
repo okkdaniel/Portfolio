@@ -44,8 +44,7 @@ const PITCH = 3;          // the site's halftone screen, CSS px
 export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper = "#f3f0e8", ink = "#262a25" } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, premultipliedAlpha: true });
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
-  // Drawn with room for the hover zoom (a CSS scale), so it stays sharp zoomed.
-  renderer.setPixelRatio(Math.min(2, devicePixelRatio) * (1 + ZOOM));
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio));
   renderer.setClearColor(0x000000, 0);
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 50);

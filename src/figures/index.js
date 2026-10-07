@@ -8,7 +8,8 @@
 //   layout()   frames `all` exactly on the canvas as it's now sized, and draws.
 //   silhouette()  the object at rest as an opaque-on-clear canvas, for masking fluid.
 //   hover(on)  the Works preview: move while hovered, settle back after.
-//              Hovered (or under the pointer), a figure also zooms in a little.
+//              Hovered (or under the pointer), a figure also zooms in a little:
+//              the camera closes in, so the halo stays its size round it.
 //              It all draws at the site's 12fps, as the growth does.
 //   reveal(to, { duration, delay })  grows the figure in (to 1) or out (to 0),
 //              from the ground up in the site's dots; created hidden.
@@ -37,6 +38,13 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
   if (look) view.aim(new THREE.Vector3(...look));
   const fig = await kind.make(view);
   const boxes = fig.boxes();
+  // `span`: `all` zoomed about the rest pose's centre, the room a pose can
+  // take up at full zoom. The canvas covers it.
+  const rc = new THREE.Vector2((boxes.rest.min.x + boxes.rest.max.x) / 2, (boxes.rest.min.y + boxes.rest.max.y) / 2);
+  const out = (v, c) => c + (v - c) * (1 + ZOOM);
+  boxes.span = new THREE.Box3(
+    new THREE.Vector3(out(boxes.all.min.x, rc.x), out(boxes.all.min.y, rc.y), boxes.all.min.z),
+    new THREE.Vector3(out(boxes.all.max.x, rc.x), out(boxes.all.max.y, rc.y), boxes.all.max.z));
 
   let raf = 0, last = 0, alive = true;
   // The reveal: an ease from `from` to `to`, `delay` seconds after `start`
@@ -52,16 +60,22 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     view.setReveal(rv.x);
     return rv.x !== rv.to;
   };
-  // The zoom: eases (by the clock) to 1 when hovered, back to 0 after; a CSS
-  // scale about the object's centre at rest, so nothing is cut off.
+  // The zoom: eases (by the clock) to 1 when hovered, back to 0 after, by
+  // closing the camera in on the rest pose's centre. The halo is drawn after,
+  // at its own size, from the figure as it now is.
   const zm = { x: 0, from: 0, to: 0, start: 0 };
-  let origin = "50% 50%";
+  let base = null; // the frame at no zoom
+  const frameZoom = (x) => {
+    if (!base) return;
+    const z = 1 + ZOOM * x;
+    view.frame = { cx: rc.x + (base.cx - rc.x) / z, cy: rc.y + (base.cy - rc.y) / z, h: base.h / z };
+    view.project();
+  };
   const stepZoom = () => {
     if (zm.x === zm.to) return false;
     const u = Math.min(1, (performance.now() - zm.start) / 1000 / 0.6);
     zm.x = u >= 1 ? zm.to : zm.from + (zm.to - zm.from) * (1 - Math.pow(1 - u, 3));
-    canvas.style.transformOrigin = origin;
-    canvas.style.transform = zm.x ? `scale(${1 + ZOOM * zm.x})` : "";
+    frameZoom(zm.x);
     return zm.x !== zm.to;
   };
   const zoom = (on) => {
@@ -94,17 +108,18 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     boxes,
     /** The canvas box that fills a slot with the object at rest (see placeFigure). */
     place: (slot) => placeFigure(boxes, slot),
-    /** Frames `all` with HALO px of room round it for the halo (the canvas is sized to include it). */
+    /** Frames `span` with HALO px of room round it for the halo (the canvas is sized to include it). */
     layout() {
-      const all = boxes.all, aw = all.max.x - all.min.x, ah = all.max.y - all.min.y;
+      const all = boxes.span, aw = all.max.x - all.min.x, ah = all.max.y - all.min.y;
       const s = Math.min((canvas.clientWidth - 2 * HALO) / aw, (canvas.clientHeight - 2 * HALO) / ah);
       const pad = HALO / s;
       view.frameTo(new THREE.Box3(new THREE.Vector3(all.min.x - pad, all.min.y - pad, all.min.z), new THREE.Vector3(all.max.x + pad, all.max.y + pad, all.max.z)));
-      const rest = boxes.rest;
-      origin = `${HALO + ((rest.min.x + rest.max.x) / 2 - all.min.x) * s}px ${HALO + (all.max.y - (rest.min.y + rest.max.y) / 2) * s}px`;
+      base = { ...view.frame };
+      frameZoom(zm.x);
       fig.step(0); view.draw();
     },
-    silhouette: () => { fig.step(0); return view.silhouette(); },
+    /** The figure's shape as it stands, at no zoom (for the growth to plant round). */
+    silhouette: () => { fig.step(0); frameZoom(0); const m = view.silhouette(); frameZoom(zm.x); return m; },
     hover(on) { fig.hover(on); zoom(on); wake(); },
     reveal(to, { duration = 0, delay = 0 } = {}) {
       if (reducedMotion) duration = delay = 0;
@@ -124,7 +139,7 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
  * can, and by HALO more all round, for the halo.
  */
 export function placeFigure(boxes, slot) {
-  const { rest, all } = boxes;
+  const { rest, span: all } = boxes;
   const s = slot.size / Math.max(rest.max.x - rest.min.x, rest.max.y - rest.min.y);
   const rcx = (rest.min.x + rest.max.x) / 2, rcy = (rest.min.y + rest.max.y) / 2;
   return {

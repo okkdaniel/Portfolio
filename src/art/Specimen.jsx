@@ -60,6 +60,8 @@ export function Specimen({ project: p }) {
         const { span: all } = f.boxes, aw = all.max.x - all.min.x, ah = all.max.y - all.min.y;
         let w = objRef.current.clientWidth, h = ((w - 2 * HALO) * ah) / aw + 2 * HALO;
         if (h > maxHeight()) { h = maxHeight(); w = ((h - 2 * HALO) * aw) / ah + 2 * HALO; }
+        // At its optical size (some figures read large at full size).
+        w = (w - 2 * HALO) * f.optical + 2 * HALO; h = (h - 2 * HALO) * f.optical + 2 * HALO;
         Object.assign(canvas.style, { width: `${w}px`, height: `${h}px` });
         f.layout();
       };

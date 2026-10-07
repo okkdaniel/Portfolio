@@ -107,8 +107,10 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
 
   return {
     boxes,
-    /** The canvas box that fills a slot with the object at rest (see placeFigure). */
-    place: (slot) => placeFigure(boxes, slot),
+    /** How big it's drawn against the others: its kind's config.scale, by eye. */
+    optical: kind.config.scale ?? 1,
+    /** The canvas box that fills a slot with the object at rest (see placeFigure), at its optical size. */
+    place: (slot) => placeFigure(boxes, { ...slot, size: slot.size * (kind.config.scale ?? 1) }),
     /** Frames `span` with HALO px of room round it for the halo (the canvas is sized to include it). */
     layout() {
       const all = boxes.span, aw = all.max.x - all.min.x, ah = all.max.y - all.min.y;

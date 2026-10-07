@@ -8,6 +8,7 @@ updated: 2026-10-05
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
 ## 2026-10-07
+- Stand unfold smoothed: precomputed eased size/centre (no per-frame re-measuring), steps in turn (tabs, walls, then turn to face up), steady 1.4 s pace instead of a spring.
 - Rival intake down 60° → 44° (it clipped the drivetrain; filled-triangle clearance check). FRC carriage now rides the stage's full 26.5" (was 19.6", sliding down the stage).
 - Rival wrist at the top: 100° → 35°, the least turn for the most forward reach.
 - Rival figure: elevator top 16 → 11 in; at the top the wrist now tips forward/down to 100° (was up 15°); drawn at 0.85 size (new per-figure `config.scale`, optical).

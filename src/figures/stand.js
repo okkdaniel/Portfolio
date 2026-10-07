@@ -5,7 +5,8 @@
 // sloping front edge.
 //
 // Hovered (or pressed, on touch), it unfolds into its flat pattern: the tabs
-// open first, then the walls, as it turns to lie face up at you. Let go, it
+// open first, then the walls come down, and as it nears flat it turns to lie
+// face up at you. Let go, it
 // folds back up. It keeps to the space it takes up folded, the flat pattern
 // drawn smaller to fit and set a little lower, so it never spreads over
 // anything. All the while it
@@ -40,10 +41,14 @@ const SLACK = 0.0003;  // m: how far off a face a point can be and still be on i
 const TILT = 22;       // degrees it tips toward the pointer, at most
 const LOWER = 0.3;     // how far down it settles lying flat, as a share of the way
                        // from its folded middle to its folded ground
-const PACE = 0.45;     // the fold's speed, against the site's springs (slower, to watch)
+const FOLD_S = 1.4;    // seconds to unfold all the way (or fold back), at a steady pace
 
 const V = (a) => new THREE.Vector3(...a);
-const ease = (t) => { t = Math.min(1, Math.max(0, t)); return t * t * (3 - 2 * t); };
+// Eased, gently at both ends.
+const glide = (t) => { t = Math.min(1, Math.max(0, t)); return t * t * t * (t * (6 * t - 15) + 10); };
+// In turn, so each reads: the tabs open, then the walls come down, and as
+// it nears flat it turns to face you and settles.
+const tabsAt = (u) => glide(u / 0.45), wallsAt = (u) => glide((u - 0.2) / 0.55), turnAt = (u) => glide((u - 0.45) / 0.55);
 
 /** A bend, ready to use. */
 function prepare(b) {
@@ -131,7 +136,6 @@ export async function make(view) {
   }
 
   // u: 0 folded (as made) to 1 flat; the tabs open first, then the walls.
-  const tabsAt = (u) => ease(u / 0.6), wallsAt = (u) => ease((u - 0.3) / 0.7);
   const unfold = (u) => {
     const tabs = tabsAt(u), walls = wallsAt(u);
     const out = position.array, p = new THREE.Vector3();
@@ -171,35 +175,55 @@ export async function make(view) {
   group.position.copy(anchor);
   view.aim(anchor); // before measuring anything on screen
   const none = new THREE.Quaternion(), tipX = new THREE.Quaternion(), tipY = new THREE.Quaternion();
-  let restBox = null, drop = 0;
-  const pose = (u, tx = 0, ty = 0) => {
+  // Where it is and how big, worked out once along the way rather than
+  // measured each frame (which made it slide and swell as the walls swung):
+  // it turns about a point eased from its middle folded to its middle flat,
+  // and its size eases down from as made to the flat pattern's, smaller to
+  // fit. The size never grows back once it has shrunk, so it settles as one.
+  unfold(0); const mid0 = geometry.boundingBox.getCenter(new THREE.Vector3());
+  unfold(1); const mid1 = geometry.boundingBox.getCenter(new THREE.Vector3());
+  const arrange = (u) => {
     unfold(u);
-    inner.position.copy(geometry.boundingBox.getCenter(new THREE.Vector3())).negate();
-    middle.quaternion.slerpQuaternions(none, faceUp, ease(u));
+    inner.position.copy(mid0).lerp(mid1, turnAt(u)).negate();
+    middle.quaternion.slerpQuaternions(none, faceUp, turnAt(u));
     group.quaternion.identity(); group.scale.setScalar(1); group.position.copy(anchor);
-    const b = view.box(), w = b.max.x - b.min.x, h = b.max.y - b.min.y;
-    restBox ||= b.clone();
-    const k = Math.min(1, (restBox.max.x - restBox.min.x) / w, (restBox.max.y - restBox.min.y) / h);
-    group.scale.setScalar(k);
+  };
+  arrange(0);
+  const restBox = view.box(), RW = restBox.max.x - restBox.min.x, RH = restBox.max.y - restBox.min.y;
+  const N = 32, fit = [];
+  for (let i = 0; i <= N; i++) { arrange(i / N); const bx = view.box(); fit.push(Math.min(1, RW / (bx.max.x - bx.min.x), RH / (bx.max.y - bx.min.y))); }
+  for (let i = 1; i <= N; i++) fit[i] = Math.min(fit[i], fit[i - 1]);
+  for (let pass = 0; pass < 4; pass++) for (let i = 1; i < N; i++) fit[i] = (fit[i - 1] + 2 * fit[i] + fit[i + 1]) / 4;
+  const scaleAt = (u) => { const x = Math.min(N, Math.max(0, u * N)), i = Math.min(N - 1, Math.floor(x)); return fit[i] + (fit[i + 1] - fit[i]) * (x - i); };
+  let drop = 0;
+  const pose = (u, tx = 0, ty = 0) => {
+    arrange(u);
+    group.scale.setScalar(scaleAt(u));
     // Down (along the screen's up), the same way every time, by how flat it is.
-    group.position.addScaledVector(camY, -drop * ease(u));
+    group.position.addScaledVector(camY, -drop * turnAt(u));
     // Tipped toward the pointer, about the screen's own axes.
     tipX.setFromAxisAngle(camX, THREE.MathUtils.degToRad(-ty * TILT));
     tipY.setFromAxisAngle(camY, THREE.MathUtils.degToRad(tx * TILT));
     group.quaternion.copy(tipY).multiply(tipX);
   };
-  pose(0);
 
   // How far down it settles: a share of the way from its middle to its
   // ground, folded, less the flat pattern's own half height (drawn).
   pose(1);
-  { const b = view.box(), rest = restBox, half = (b.max.y - b.min.y) / 2;
-    drop = Math.max(0, LOWER * ((rest.max.y - rest.min.y) / 2 - half)); }
+  { const bx = view.box(), half = (bx.max.y - bx.min.y) / 2;
+    drop = Math.max(0, LOWER * (RH / 2 - half)); }
   unfold(1);
   const IN = 0.0254, flat = geometry.boundingBox;
   const size = `${((flat.max.x - flat.min.x) / IN).toFixed(2)} × ${((flat.max.y - flat.min.y) / IN).toFixed(2)} in`;
   pose(0);
-  const fold = spring(0), tx = spring(0), ty = spring(0);
+  // The fold goes at a steady pace, not on a spring (which rushes the
+  // middle, where the walls come down); each step eases on its own.
+  const fold = {
+    x: 0, t: 0,
+    step(dt) { const d = this.t - this.x; if (Math.abs(d) < 1e-4) { this.x = this.t; return false; } this.x += Math.sign(d) * Math.min(Math.abs(d), dt / FOLD_S); return true; },
+    jump(v) { this.x = this.t = v; },
+  };
+  const tx = spring(0), ty = spring(0);
   const read = () => (fold.t >= 0.5 ? `flat pattern, ${size}` : "rest");
 
   return {
@@ -211,7 +235,7 @@ export async function make(view) {
       return { rest, all };
     },
     step(dt) {
-      const m = [fold.step(dt * PACE), tx.step(dt), ty.step(dt)].some(Boolean);
+      const m = [fold.step(dt), tx.step(dt), ty.step(dt)].some(Boolean);
       pose(fold.x, tx.x, ty.x);
       return m;
     },

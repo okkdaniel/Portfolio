@@ -45,16 +45,24 @@ export default function App() {
 
   // Works stays mounted for a moment after its fold closes, to un-grow.
   // The field goes the other way: back to paper as Works opens, growing
-  // again as it closes.
+  // again as it closes. One goes as the other comes, at the same moment
+  // (see vault/Rules.md): Works gets itself ready first (its figures, its
+  // layout), then says so, and the field starts back as Works starts to
+  // grow. Should Works not manage it, the field goes anyway, after a bit.
   const worksOpen = open === "works";
   const [worksMounted, setWorksMounted] = React.useState(false);
+  const [worksVisit, setWorksVisit] = React.useState(0);
   const wasOpen = React.useRef(false);
+  const openRef = React.useRef(false);
+  openRef.current = worksOpen;
+  const worksReady = React.useCallback(() => { if (openRef.current) fieldRef.current?.retract(); }, []);
   React.useEffect(() => {
     if (worksOpen) {
+      setWorksVisit((v) => v + 1); // each opening grows a fresh Works
       setWorksMounted(true);
-      fieldRef.current?.retract();
       wasOpen.current = true;
-      return;
+      const t = setTimeout(worksReady, 1500);
+      return () => clearTimeout(t);
     }
     setHovered(null);
     if (!wasOpen.current) return;
@@ -81,7 +89,9 @@ export default function App() {
       <Field ref={fieldRef} dimmed={!!project} />
       {worksMounted && (
         <Works
+          key={worksVisit}
           projects={PROJECTS}
+          onReady={worksReady}
           hovered={hovered}
           onHover={setHovered}
           onClose={closeWorks}

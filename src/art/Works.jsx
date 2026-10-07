@@ -3,7 +3,7 @@ import { resistFrom, opaqueBounds, eraseMark, wipeCells } from "./ink.js";
 import { plot, vine, seeded, setRandom } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
-import { createFigure } from "../figures/load.js";
+import { takeFigure, prepareFigures } from "../figures/load.js";
 
 const SPREAD = 6;       // px of bare paper kept around each silhouette
 const LABEL_GAP = 14;   // px between a silhouette and its label
@@ -29,11 +29,13 @@ const VISIT = Math.random().toString(36).slice(2);
  * narrow ones under the header. On a resize they're redrawn complete for the
  * new layout.
  */
-export function Works({ projects, hovered, onHover, onClose, dimmed = false, leaving = false }) {
+export function Works({ projects, hovered, onHover, onClose, onReady, dimmed = false, leaving = false }) {
   const canvasRef = React.useRef(null);
   const figsRef = React.useRef(null);
   const figures = React.useRef({});
   const retractRef = React.useRef(() => {});
+  const readyRef = React.useRef(onReady);
+  readyRef.current = onReady;
   const [spots, setSpots] = React.useState([]);
   const [shown, setShown] = React.useState(false);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -51,14 +53,9 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     ink.feather = 44;
     ink.wobble = 22;
     const growth = createGrowth(layer, { reducedMotion });
-    // One canvas per figure, in their own layer above the growth.
-    const canvases = projects.map(() => {
-      const c = document.createElement("canvas");
-      c.className = "works-layer__fig";
-      c.setAttribute("aria-hidden", "true");
-      figsRef.current.append(c);
-      return c;
-    });
+    // One canvas per figure, in their own layer above the growth. They come
+    // made ahead, as a rule (figures/load.js).
+    const canvases = [];
     let figs = [];
     let alive = true;
     let laid = "";
@@ -178,12 +175,19 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
     };
     const opening = new Promise((r) => setTimeout(r, isWide(window.innerWidth, window.innerHeight, isSmall) ? 0 : FOLD_MS));
     let watcher = null;
-    const loading = Promise.all(projects.map((p, i) => createFigure(p.slug, canvases[i], { reducedMotion }).catch(() => null)));
+    const loading = Promise.all(projects.map((p, i) => takeFigure(p.slug).then((got) => {
+      if (!got) return null;
+      canvases[i] = got.canvas;
+      if (alive) figsRef.current?.append(got.canvas);
+      return got.fig;
+    })));
     Promise.all([loading, opening]).then(([made]) => {
       figs = made;
       if (!alive) { made.forEach((f) => f?.destroy()); return; }
       figures.current = Object.fromEntries(projects.map((p, i) => [p.slug, made[i]]));
       lay(reducedMotion);
+      // Laid out and growing: whatever was on the paper can go now.
+      readyRef.current?.();
       watcher = new ResizeObserver(relay);
       const head = document.querySelector(".ov-head");
       if (head) watcher.observe(head);
@@ -198,7 +202,9 @@ export function Works({ projects, hovered, onHover, onClose, dimmed = false, lea
       growth.clear();
       figs.forEach((f) => f?.destroy());
       figures.current = {};
-      canvases.forEach((c) => c.remove());
+      canvases.forEach((c) => c?.remove());
+      // Make the next set while nothing's happening.
+      setTimeout(() => (window.requestIdleCallback || setTimeout)(() => prepareFigures(projects.map((p) => p.slug))), 1500);
     };
   }, [projects, reducedMotion, isSmall]);
 

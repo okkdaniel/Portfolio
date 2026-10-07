@@ -234,17 +234,37 @@ export function resistFrom(img, x, y, w, h, spread = 0) {
   probe.height = mh;
   const pc = probe.getContext("2d", { willReadFrequently: true });
   pc.drawImage(img, pad, pad, w, h);
-  if (spread > 0) {
-    for (const r of [spread / 2, spread]) {
-      for (let i = 0; i < 16; i++) {
-        const a = (i / 16) * Math.PI * 2;
-        pc.drawImage(img, pad + Math.cos(a) * r, pad + Math.sin(a) * r, w, h);
+  const px = pc.getImageData(0, 0, mw, mh).data;
+  const src = new Uint8Array(mw * mh);
+  for (let i = 0; i < src.length; i++) src[i] = px[i * 4 + 3];
+  if (!(spread > 0)) return { x: x - pad, y: y - pad, w: mw, h: mh, a: src };
+  // Spread: the shape laid again at offsets round two rings (half the
+  // spread, and all of it), keeping the most of each. Done on the numbers,
+  // and only from the shape's edge (a pixel inside, all its neighbours as
+  // full as it, adds nothing a nearer edge doesn't), since drawing it over
+  // and over, or offsetting every pixel, is slow.
+  const a = src.slice();
+  const offs = new Map();
+  for (const r of [spread / 2, spread]) {
+    for (let i = 0; i < 16; i++) {
+      const t = (i / 16) * Math.PI * 2, dx = Math.round(Math.cos(t) * r), dy = Math.round(Math.sin(t) * r);
+      offs.set(dy * mw + dx, [dx, dy]);
+    }
+  }
+  const list = [...offs.values()];
+  for (let y = 0; y < mh; y++) {
+    for (let x = 0; x < mw; x++) {
+      const i = y * mw + x, v = src[i];
+      if (!v) continue;
+      if (x > 0 && x < mw - 1 && y > 0 && y < mh - 1 && src[i - 1] >= v && src[i + 1] >= v && src[i - mw] >= v && src[i + mw] >= v) continue;
+      for (const [dx, dy] of list) {
+        const X = x + dx, Y = y + dy;
+        if (X < 0 || Y < 0 || X >= mw || Y >= mh) continue;
+        const k = Y * mw + X;
+        if (v > a[k]) a[k] = v;
       }
     }
   }
-  const px = pc.getImageData(0, 0, mw, mh).data;
-  const a = new Uint8Array(mw * mh);
-  for (let i = 0; i < a.length; i++) a[i] = px[i * 4 + 3];
   return { x: x - pad, y: y - pad, w: mw, h: mh, a };
 }
 

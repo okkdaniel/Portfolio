@@ -193,6 +193,19 @@ export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper
     /** How far in the figure has grown, 0..1 (see the ink pass). */
     setReveal(v) { inkMat.uniforms.reveal.value = v; },
 
+    /**
+     * Compiles the passes' shaders ahead of the first draw, off the main
+     * thread where the browser can, so that draw doesn't hold up the page.
+     */
+    /** One throwaway draw, tiny, so the model is on the GPU before the first real one. */
+    prime() {
+      const t = new THREE.WebGLRenderTarget(4, 4);
+      renderer.setRenderTarget(t); renderer.render(scene, camera); renderer.render(post, flat); renderer.render(down, flat);
+      renderer.setRenderTarget(null); t.dispose();
+    },
+
+    warm: () => Promise.all([renderer.compileAsync(scene, camera), renderer.compileAsync(post, flat), renderer.compileAsync(down, flat)]).catch(() => {}),
+
     draw() {
       if (!target) return;
       renderer.setRenderTarget(target); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(scene, camera);
@@ -213,7 +226,9 @@ export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper
       const w = canvas.clientWidth, h = canvas.clientHeight;
       const out = document.createElement("canvas");
       out.width = W2; out.height = H2;
-      const c = out.getContext("2d"), img = c.createImageData(W2, H2);
+      // Kept in memory, not on the GPU: it's read straight back (resistFrom
+      // draws it many times over to spread it), which on the GPU would stall.
+      const c = out.getContext("2d", { willReadFrequently: true }), img = c.createImageData(W2, H2);
       for (let y = 0; y < H2; y++) {
         for (let x = 0; x < W2; x++) {
           const a = px[((H2 - 1 - y) * W2 + x) * 4 + 3];
@@ -223,7 +238,7 @@ export function lineView(canvas, { az = -38, el = 24, sil = [0.012, 0.03], paper
       c.putImageData(img, 0, 0);
       const small = document.createElement("canvas");
       small.width = Math.round(w); small.height = Math.round(h);
-      small.getContext("2d").drawImage(out, 0, 0, small.width, small.height);
+      small.getContext("2d", { willReadFrequently: true }).drawImage(out, 0, 0, small.width, small.height);
       return small;
     },
 

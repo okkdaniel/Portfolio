@@ -37,6 +37,7 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
   const view = lineView(canvas, { az, el, sil });
   if (look) view.aim(new THREE.Vector3(...look));
   const fig = await kind.make(view);
+  await view.warm();
   const boxes = fig.boxes();
   // `span`: `all` zoomed about the rest pose's centre, the room a pose can
   // take up at full zoom. The canvas covers it.
@@ -120,6 +121,8 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     },
     /** The figure's shape as it stands, at no zoom (for the growth to plant round). */
     silhouette: () => { fig.step(0); frameZoom(0); const m = view.silhouette(); frameZoom(zm.x); return m; },
+    /** Gets the model onto the GPU now, so the first real draw is quick. */
+    prime() { view.prime(); },
     hover(on) { fig.hover(on); zoom(on); wake(); },
     reveal(to, { duration = 0, delay = 0 } = {}) {
       if (reducedMotion) duration = delay = 0;

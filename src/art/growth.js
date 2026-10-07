@@ -306,6 +306,11 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
      * half-faded growth rather than cutting off. `size` is the canvas,
      * { w, h } in CSS px. `onDone` runs at the end and should leave it
      * clean.
+     *
+     * It never skips ahead or cuts short: time only counts while it's
+     * drawing (a busy moment on the page pauses it, rather than it jumping
+     * on after), and it isn't done until every pass has taken off every
+     * mark, however long that runs past `duration`.
      */
     retract({ duration = 1, order = "newest", erase, wipe, size, onDone } = {}) {
       const all = order === "newest" ? drawn.reverse() : drawn;
@@ -347,24 +352,27 @@ export function createGrowth(layer, { reducedMotion = false } = {}) {
       const PASSES = [[0, 0.35], [LAG, 0.5], [2 * LAG, 1]];
       const span = 1 - 2 * LAG;
       const mi = PASSES.map(() => 0), ci = PASSES.map(() => 0);
-      let t0 = null, last = -Infinity;
+      let t = 0, last = null;
       const tick = (ms) => {
         const now = ms / 1000;
-        if (t0 === null) t0 = now;
-        if (now - last >= 1 / GROWTH_FPS - 0.004) {
+        if (last === null || now - last >= 1 / GROWTH_FPS - 0.004) {
+          // At most two beats' worth of time a beat, so a stall pauses it.
+          if (last !== null) t += Math.min(now - last, 2 / GROWTH_FPS);
           last = now;
-          const u = Math.min(1, (now - t0) / duration);
-          const start = performance.now();
+          const u = duration > 0 ? Math.min(1, t / duration) : 1;
           PASSES.forEach(([delay, alpha], p) => {
             const v = clamp((u - delay) / span);
             // Strokes over the first three quarters; the ground from a fifth
             // of the way in to the end, overlapping, so it all goes together.
             const toMarks = Math.floor(small.length * ease(Math.min(1, v / 0.75)));
             const toCells = Math.floor(cells * ease(clamp((v - 0.2) / 0.8)));
-            while (mi[p] < toMarks && performance.now() - start < 12) erase(small[mi[p]++], alpha);
+            // Each pass gets its own share of the beat, so none falls behind.
+            const start = performance.now();
+            while (mi[p] < toMarks && performance.now() - start < 8) erase(small[mi[p]++], alpha);
             if (toCells > ci[p]) { wipe(xy, ci[p], toCells, alpha); ci[p] = toCells; }
           });
-          if (u >= 1) { back = 0; onDone?.(); return; }
+          const finished = mi.every((m) => m >= small.length) && ci.every((c) => c >= cells);
+          if (u >= 1 && finished) { back = 0; onDone?.(); return; }
         }
         back = requestAnimationFrame(tick);
       };

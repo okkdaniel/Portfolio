@@ -3,7 +3,7 @@ import { Clock } from "./Clock.jsx";
 import { decryptEmail } from "../utils/email.js";
 import { usePreloadProject } from "../hooks/usePreloadProject.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
-import { preloadFigure } from "../figures/load.js";
+import { prepareFigures } from "../figures/load.js";
 
 // The previous, professional version of the site (the main branch).
 export const PROFESSIONAL_URL = "https://old.danielkaliko.com";
@@ -16,13 +16,14 @@ export const PROFESSIONAL_URL = "https://old.danielkaliko.com";
 export function Overlay({ open, setOpen, onReset, projects, hovered, onHover }) {
   const isTouch = useMediaQuery("(hover: none)");
   const toggle = (key) => setOpen(open === key ? null : key);
-  // Reaching for Works starts fetching the figures' models.
+  // Reaching for Works starts making its figures (fetching their models,
+  // compiling, putting them on the GPU).
   const warmWorks = React.useCallback(() => {
-    for (const p of projects) preloadFigure(p.slug);
+    prepareFigures(projects.map((p) => p.slug));
   }, [projects]);
   // And so does the home page settling: once it has loaded and the field has
-  // had a few seconds to grow, they're fetched in the background, so Works
-  // can come up as the field goes, not after.
+  // had a few seconds to grow, they're made in the background, so Works can
+  // come up as the field goes, not after.
   React.useEffect(() => {
     let idle = 0;
     const warm = () => { idle = (window.requestIdleCallback || setTimeout)(warmWorks); };

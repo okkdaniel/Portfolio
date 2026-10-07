@@ -7,7 +7,7 @@
 //
 // One number poses it all, the cycle: 0 is the intake turned down to the
 // floor in front, REST is as modelled, 1 is the elevator out and the wrist
-// tipped forward and down over the front. Shown in the standard dimetric
+// tipped out forward, as far as reaches furthest. Shown in the standard dimetric
 // view, drawn a little smaller than the others (it reads large otherwise).
 import { spring, THREE } from "./lines.js";
 
@@ -19,7 +19,8 @@ const PIVOT = new THREE.Vector3(0, 1.037 * IN, 4.684 * IN);    // the wrist's pi
 // How far things go, checked against the CAD for clearance all the way
 // (the floor, the drivetrain, the elevator); the elevator's runs are estimates.
 const WRIST_DOWN = 60;     // degrees the intake turns down at the bottom, rollers to the floor
-const WRIST_TOP = 100;     // degrees it tips forward and down as the elevator rises
+const WRIST_TOP = 35;      // degrees it tips out as the elevator rises: the least that reaches
+                           // furthest forward (14.7 in ahead of the middle, from 35° to 42.5°)
 const STAGE_RUN = 5.5 * IN;  // the moving stage's travel up the elevator
 const CARRIAGE_RUN = 5.5 * IN; // the carriage's travel on the stage
 const REST = 0.25;

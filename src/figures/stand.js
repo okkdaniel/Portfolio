@@ -7,8 +7,8 @@
 // Hovered (or pressed, on touch), it unfolds into its flat pattern: the tabs
 // open first, then the walls, as it turns to lie face up at you. Let go, it
 // folds back up. It keeps to the space it takes up folded, the flat pattern
-// drawn smaller to fit and set down on the same ground, so it never spreads
-// over anything. All the while it
+// drawn smaller to fit and set a little lower, so it never spreads over
+// anything. All the while it
 // tips a little toward the pointer, to look it over.
 //
 // Each bend unrolls as sheet metal does: its curve straightens out along the
@@ -38,6 +38,8 @@ const K = 0.5;         // where the neutral surface sits in the sheet (K-factor;
                        // the CAD flat pattern to 0.001 in)
 const SLACK = 0.0003;  // m: how far off a face a point can be and still be on it
 const TILT = 22;       // degrees it tips toward the pointer, at most
+const LOWER = 0.3;     // how far down it settles lying flat, as a share of the way
+                       // from its folded middle to its folded ground
 const PACE = 0.45;     // the fold's speed, against the site's springs (slower, to watch)
 
 const V = (a) => new THREE.Vector3(...a);
@@ -154,7 +156,8 @@ export async function make(view) {
   // Lying flat it turns to face the camera square on, the base's front edge
   // toward you. It turns about the middle of its shape as it is; it's drawn
   // no bigger than it is folded (the flat pattern, twice as wide, smaller to
-  // fit); and it sits as low as it does folded, on the same ground.
+  // fit); and lying flat it sits a little lower than its middle folded,
+  // easing down as it unfolds.
   const az = THREE.MathUtils.degToRad(config.az), el = THREE.MathUtils.degToRad(config.el);
   const camZ = new THREE.Vector3(Math.cos(el) * Math.cos(az), Math.cos(el) * Math.sin(az), Math.sin(el));
   const camX = new THREE.Vector3(0, 0, 1).cross(camZ).normalize(), camY = camZ.clone().cross(camX);
@@ -168,7 +171,7 @@ export async function make(view) {
   group.position.copy(anchor);
   view.aim(anchor); // before measuring anything on screen
   const none = new THREE.Quaternion(), tipX = new THREE.Quaternion(), tipY = new THREE.Quaternion();
-  let restBox = null;
+  let restBox = null, drop = 0;
   const pose = (u, tx = 0, ty = 0) => {
     unfold(u);
     inner.position.copy(geometry.boundingBox.getCenter(new THREE.Vector3())).negate();
@@ -178,9 +181,8 @@ export async function make(view) {
     restBox ||= b.clone();
     const k = Math.min(1, (restBox.max.x - restBox.min.x) / w, (restBox.max.y - restBox.min.y) / h);
     group.scale.setScalar(k);
-    // Down (along the screen's up) to the ground it stands on folded.
-    const bottom = (b.min.y + b.max.y) / 2 - (h / 2) * k;
-    group.position.addScaledVector(camY, restBox.min.y - bottom);
+    // Down (along the screen's up), the same way every time, by how flat it is.
+    group.position.addScaledVector(camY, -drop * ease(u));
     // Tipped toward the pointer, about the screen's own axes.
     tipX.setFromAxisAngle(camX, THREE.MathUtils.degToRad(-ty * TILT));
     tipY.setFromAxisAngle(camY, THREE.MathUtils.degToRad(tx * TILT));
@@ -188,6 +190,11 @@ export async function make(view) {
   };
   pose(0);
 
+  // How far down it settles: a share of the way from its middle to its
+  // ground, folded, less the flat pattern's own half height (drawn).
+  pose(1);
+  { const b = view.box(), rest = restBox, half = (b.max.y - b.min.y) / 2;
+    drop = Math.max(0, LOWER * ((rest.max.y - rest.min.y) / 2 - half)); }
   unfold(1);
   const IN = 0.0254, flat = geometry.boundingBox;
   const size = `${((flat.max.x - flat.min.x) / IN).toFixed(2)} × ${((flat.max.y - flat.min.y) / IN).toFixed(2)} in`;

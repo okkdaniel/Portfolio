@@ -8,6 +8,7 @@ updated: 2026-10-05
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
 ## 2026-10-07
+- "Bishop" lettered in the anura frog's hand: public/assets/brand/bishop.svg (black), bishop.png and bishop-white.png (2400 × 1239, transparent). Made by tools/lettering/anura-type.mjs (hand-placed centre lines per letter, leaned 0.2, wandering width, smooth lumpy edges, taper/blob ends; seed "bishop").
 - Added public/assets/brand/anura-white.png: the frog logo alone, white on transparent, 2568 × 2524 (4× the SVG), rendered from anura.svg for use on dark backgrounds/videos.
 - Stand: baseline drop was too far (clipped the label) and slid unevenly; now a fixed drop of 30% of the gap (LOWER), eased in with the unfold.
 - Stand: the flat pattern now sits on the folded stand's baseline (lower, nearer its label) instead of centred; tilt 15° → 22°.

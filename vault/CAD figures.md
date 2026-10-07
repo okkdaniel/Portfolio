@@ -1,0 +1,37 @@
+---
+tags: [figures, cad, code]
+updated: 2026-10-06
+---
+
+# CAD figures
+
+Line drawings of Daniel's robots made from his actual CAD, animated. **On the site** (2026-10-06): Works previews and each project sheet, from `src/figures/` (`index.js` createFigure / place / hover / point; `lines.js` renderer with transparent background + `silhouette()` for masking fluid; `frc987.js`, `stand.js`, `rival.js` (placeholder), `turntable.js`; `load.js` lazy-loads three.js). The `figures/` dev pages are superseded. See [[Home]], [[Ideas and open threads]].
+
+## History
+
+- First tried **Hairline** (hairline.lucasmarkes.com, MIT): hand-built isometric figures in `figures/*.js` → `hairline-*.html` (elevator, stand, drive). Daniel: "these dont look anything like my renders/models." Even rebuilt from measured dimensions, Hairline's rounded-primitive style can't look like the real robot.
+- Chosen instead (**option 2**): draw the CAD itself as lines.
+
+## Shared renderer — `figures/lines.js`
+
+`lineView(canvas, { az, el, sil })` (three passes: normals+depth, ink, 2× downsample), `spring()`, frame helpers (`box`, `frameFor`, `ease`, `project`). `sil` = depth jump in metres for full ink: robot [0.012, 0.03], small part [0.0012, 0.0035]. Each figure page sets `window.__fig.set(...)` for screenshots.
+
+## Monitor stand — `figures/monitor-stand/`
+
+- CAD: `public/assets/projects/monitor-stand/Monitor Stand.glb` (one sheet-metal part, 12k triangles, ~5.8 × 4 × 4.2 in) + six view screenshots. Prepared with `prepare.mjs ... --single` → `monitor-stand-lines.glb` (72 KB, unsimplified).
+- History: turntable → 75% semi-flat unfold → pointer-distance mapping (middle folded, edges flat, corners tip). Daniel on the last: "its a little difficult to use the hover, make it wayyy more intuitive and also the unfolded version of the stand is huge, scaling over the text and the other project preview."
+- **Now (2026-10-07):** hover (or press/drag on touch) unfolds it, slowly (fold spring at 0.45× speed); leaving folds it back. Position doesn't change the fold, it only tips the part up to 22° toward the pointer (card-style tilt), folded or flat. While unfolding it turns face-up and is **scaled to stay within its folded size on screen** (per pose: measured unscaled, then scaled to fit), turning about its current middle, and eased a fixed 30% of the way down toward its folded ground (LOWER; the full baseline clipped the label and slid unevenly as the walls swung). So its canvas is the folded size and nothing gets covered. Read-out: `flat pattern, 12.43 × 4.74 in`. Lesson: one gesture = one meaning; don't map pointer position to state the user can't see coming.
+- Unrolling is real sheet metal: each bend's curve straightens along the neutral surface (K = 0.5, SolidWorks' default; matches the CAD flat pattern `Monitor Stand unfolded.glb` to 0.001 in on every side, checked with `tools/cad-lines/flatref.mjs` + an overlay). The CAD flat pattern is the folded part turned 180° about z.
+- How: `src/figures/stand.js` unpacks the quantized mesh to float model coords, classifies each vertex per side (x sign) by the base→wall bend, then (wall side only) the wall→tab bend: in the staying flange's plate (within its thickness, past the tangent) = stays; in the bend's curve = turns by how far round it is; else swings. Each pose turns vertices about the bend axes (tab first, then wall) and rewrites the position buffer.
+- Bends measured from the CAD faces: `tools/cad-lines/planes.mjs` (lists flat/curved faces; the Onshape GLB has one primitive per CAD face) and `tools/cad-lines/bends.mjs` (axis C/D, flange directions e/f, inside face n/d, thickness t, angle). 1/16 in inside radius, 1/8 in sheet. Lesson: classifying by "which side of the bend" alone fails because the walls lean (base points far inboard read as wall side); a point only stays if it's in the staying plate.
+- Verifying: headless screenshots of the sheet after interaction came back stale (old frames, even old DOM text). Reliable: draw the mesh yourself on a 2D canvas, or read the figure canvas with `preserveDrawingBuffer` on (temporary flag) and `toDataURL`.
+
+## FRC 987 (2025 offseason) — `figures/frc-987/`
+
+- Source CAD: `public/assets/projects/frc-987-offseason/2025O-987.glb` (148 MB, Onshape export, 8.8M triangles) plus his front/back/left/right/top screenshots. **Not committed; must not be pushed from `public/`** (deployed, and over GitHub's 100 MB limit) — move to a git-ignored `cad/`.
+- `tools/cad-lines/` (own package.json, dev only): `inspect.mjs` (assembly tree, triangles, bounds), `parts.mjs` (an assembly's parts with bounds), `prepare.mjs` (drops hardware and 25000; sorts parts into bodies; merges per body in world space; weld, simplify 12%, quantize, meshopt) → `public/assets/projects/frc-987-lines.glb` (3.4 MB, ~766k triangles).
+- Bodies: **static** (chassis 1000, elevator frame 21100, intake mount 23100, 24000), **stage** (21200), **carriage** (21300 + 22000V2 plates/pivot drive), **arm** (22000V2 parts below 30" or named tube/shoulder mount/bevel gears/endcap/246T belt), **intake** (23200).
+- Daniel's facts: 1000 chassis, 20000 superstructure, 21000 elevator, 22000V2 carriage/arm, 23000 intake, 24000 unimportant, 25000 omit. Elevator 38.5" retracted, 65" extended; arm tip 87.771642" at 68.359879° with elevator out; intake stowed perpendicular to ground, deployed 143.686355° from stowed (the CAD is modelled deployed).
+- Measured: shoulder axis along x at y 0, z 38.85" (X-contact bearings); intake pivot along x at y −12.4", z 11.5". Carriage run derived = 19.65" (unconfirmed with Daniel), stage run 26.5".
+- Viewer (`main.js`, three.js 0.170): orthographic camera from front-right; pass 1 view-space flat normals + depth, pass 2 inks depth jumps (outlines) and normal turns (creases, lighter), 2× supersampled then averaged. Camera follows the pose (rest box ∪ current), easing out as it rises.
+- Interaction: pointer height. Bottom 15% = intake fully out, up to 40% = intake swinging, above = elevator + arm through L1–L4. Arm swings **up over the back** (+y) — Daniel corrected an earlier front swing. Intake stows to upright (pick the rotation direction that ends highest; the other way folds into the elevator).

@@ -1,7 +1,11 @@
-// node prepare.mjs <in.glb> <out.glb> [--single]
+// node prepare.mjs <in.glb> <out.glb> [--single | --rival]
 //
 // --single: a one-piece part (the monitor stand). Everything goes into one
 // body, "part", and nothing is simplified.
+// --rival: Rival Robotics' 2025C-LL (FTC): static (drivetrain 100, the struts,
+// the elevator's fixed stage 211), stage (212, the moving stage), carriage
+// (213), wrist (220, the intake, which turns on the carriage). It's small and
+// its drivetrain is dense, so it's simplified harder, to a finer error.
 //
 // Turns the FRC 987 offseason robot's CAD export into a small model the site
 // draws as lines: hardware dropped, every part sorted into the body it moves
@@ -19,13 +23,13 @@ import { MeshoptSimplifier, MeshoptEncoder } from "meshoptimizer";
 import { writeFileSync } from "node:fs";
 
 const [src, out, mode] = process.argv.slice(2);
-const SINGLE = mode === "--single";
+const SINGLE = mode === "--single", RIVAL = mode === "--rival";
 await MeshoptSimplifier.ready;
 await MeshoptEncoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ "meshopt.encoder": MeshoptEncoder });
 const doc = await io.read(src);
 
-const DROP = /screw|bolt|\bnut\b|locknut|washer|spacer|standoff|bearing|rivet|\bHSI\b|BHCS|SHCS|insert|collar|e-clip|retaining|1\/2" Hex \(|3\/8" Hex \(|Hex \(\d|Round Shaft|Shoulder \(|Origin Cat/i;
+const DROP = /screw|bolt|\bnut\b|locknut|washer|spacer|standoff|bearing|rivet|\bHSI\b|BHCS|SHCS|insert|collar|e-clip|retaining|1\/2" Hex \(|3\/8" Hex \(|Hex \(\d|Round Shaft|Shoulder \(|Origin Cat|693-2Z|7804K|Hex Drive Fl/i;
 const ARM = /CarbonTube|ShoulderArmMount|ShoulderBevelGear|BilletEndcap|BearingSleeve|Bevel Gear|18t x 9mm|246T/;
 
 const ancestors = (n) => { const a = []; for (let p = n; p; p = p.getParentNode()) a.push(p.getName()); return a; };
@@ -44,6 +48,14 @@ const IN = 0.0254;
 
 function bodyOf(n) {
   if (SINGLE) return "part";
+  if (RIVAL) {
+    const names = ancestors(n), all = names.join(" / ");
+    if (names.some((s) => DROP.test(s))) return null;
+    if (all.includes("2025C-220")) return "wrist";
+    if (all.includes("2025C-213")) return "carriage";
+    if (all.includes("2025C - 212")) return "stage";
+    return "static";
+  }
   const names = ancestors(n), all = names.join(" / ");
   if (names.some((s) => DROP.test(s))) return null;
   if (all.includes("2025O-25000")) return null;
@@ -94,7 +106,7 @@ for (const [name, b] of Object.entries(bodies)) {
 
 await outDoc.transform(
   weld({ tolerance: 0.00005 }),
-  ...(SINGLE ? [] : [simplify({ simplifier: MeshoptSimplifier, ratio: 0.12, error: 0.0004 })]),
+  ...(SINGLE ? [] : [simplify({ simplifier: MeshoptSimplifier, ratio: RIVAL ? 0.05 : 0.12, error: RIVAL ? 0.00025 : 0.0004 })]),
   dedup(), prune(),
   quantize({ quantizePosition: 16 }),
 );

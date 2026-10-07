@@ -28,3 +28,4 @@ Floated but not done. None are commitments; check with Daniel before starting. S
 - Growth actually moves around the figures as theyre rotating / changing positions in 3d space. Like for example when pixels approach growth, the growth could get squeezed in that direction or something like that, where the growth itself adapts to the movement of the figure instead of the figure just having a transparent outline with a gradient that's static.
 
 - 
+- Rival (2025C-LL): confirm the elevator's real travel (estimated 8 in stage + 8 in carriage) and the wrist's range; the sheet's text still describes a VEX soccer robot, not this one.

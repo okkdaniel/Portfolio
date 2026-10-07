@@ -1,43 +1,87 @@
-// A PLACEHOLDER for the Rival Robotics 2024 robot until its CAD exists: a
-// plain six-wheel drivetrain built here from boxes and cylinders, in metres,
-// with a kicker block and the two Limelight cameras, on a turntable. Replace
-// it with the real model (tools/cad-lines/prepare.mjs) once there is one.
-import { THREE } from "./lines.js";
-import { turnable, turntable } from "./turntable.js";
+// Rival Robotics' 2025C-LL, an FTC robot, from its CAD (public/assets/
+// projects/rival-2025c-lines.glb, made by tools/cad-lines/prepare.mjs
+// --rival): four bodies in world space, metres, z up. A mecanum drivetrain
+// with an elevator leaning forward 32.7° (static: the drivetrain, the struts
+// and the elevator's fixed stage), its moving stage, the carriage riding it,
+// and the intake on the carriage, which turns on its pivot: the wrist.
+//
+// One number poses it all, the cycle: 0 is the intake turned down to the
+// floor in front, REST is as modelled, 1 is the elevator out and the wrist
+// turned up. Shown in the standard dimetric view.
+import { spring, THREE } from "./lines.js";
 
-export const config = { az: -38, el: 24, sil: [0.004, 0.012] };
+const IN = 0.0254;
+const URL = "/assets/projects/rival-2025c-lines.glb";
+// Measured from the CAD by tools/cad-lines/rivaljoints.mjs.
+const AXIS = new THREE.Vector3(0, -0.539, 0.841).normalize(); // up the elevator (its stage tubes' long axis)
+const PIVOT = new THREE.Vector3(0, 1.037 * IN, 4.684 * IN);    // the wrist's pivot (its 36T pulley), axis along x
+// How far things go. The wrist's limits are where it meets the floor and the
+// elevator (checked against the CAD); the elevator's runs are estimates.
+const WRIST_DOWN = 60;     // degrees the intake turns down, rollers to the floor
+const WRIST_UP = -15;      // degrees it turns up, short of the elevator
+const STAGE_RUN = 8 * IN;  // the moving stage's travel up the elevator
+const CARRIAGE_RUN = 8 * IN; // the carriage's travel on the stage
+const REST = 0.25;
+const HOVER = 0.85;        // how far a hover in Works runs the cycle
 
-function robot(material) {
-  const g = new THREE.Group();
-  const add = (geo, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.rotation.x = rx; g.add(m); return m; };
-  const box = (w, d, h, x, y, z) => add(new THREE.BoxGeometry(w, d, h), x, y, z);
-  // The chassis: two side rails and a belly pan, wheels outboard.
-  box(0.04, 0.42, 0.05, -0.17, 0, 0.06);
-  box(0.04, 0.42, 0.05, 0.17, 0, 0.06);
-  box(0.30, 0.40, 0.012, 0, 0, 0.045);
-  box(0.30, 0.04, 0.05, 0, -0.19, 0.06);
-  box(0.30, 0.04, 0.05, 0, 0.19, 0.06);
-  // Six wheels, three down each side, the middle pair dropped a little.
-  for (const x of [-0.215, 0.215]) {
-    for (const [y, z] of [[-0.15, 0.052], [0, 0.048], [0.15, 0.052]]) {
-      const w = add(new THREE.CylinderGeometry(0.052, 0.052, 0.035, 28), x, y, z);
-      w.rotation.z = Math.PI / 2;
-    }
-  }
-  // The kicker and the roller ahead of it.
-  box(0.22, 0.10, 0.10, 0, -0.08, 0.14);
-  const roller = add(new THREE.CylinderGeometry(0.025, 0.025, 0.28, 20), 0, -0.2, 0.11);
-  roller.rotation.z = Math.PI / 2;
-  // The two cameras: one on a short mast at the back, one low at the front.
-  box(0.03, 0.03, 0.14, 0.06, 0.13, 0.15);
-  box(0.09, 0.05, 0.06, 0.06, 0.13, 0.25);
-  box(0.09, 0.05, 0.06, -0.08, -0.17, 0.12);
-  return g;
+// The standard dimetric view: the front square on but for 7°, the side at
+// 41° (tan 7.18° · tan 41.42° = sin² of the elevation), looking from the
+// front right.
+export const config = { az: -69.3, el: 19.47, sil: [0.004, 0.012], url: URL };
+
+const ease = (u) => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
+/** A body that turns about an axis along x through point p: outer.rotation.x turns it. */
+function hinge(obj, p) {
+  const outer = new THREE.Group(), inner = new THREE.Group();
+  outer.position.copy(p); inner.position.copy(p).negate();
+  inner.add(obj); outer.add(inner);
+  return outer;
 }
 
 export async function make(view) {
-  const { group, centre } = turnable(robot(view.material));
-  view.scene.add(group);
-  view.aim(centre);
-  return turntable(view, group);
+  const root = await view.model(URL);
+  const take = (n) => { const o = root.getObjectByName(n); o.removeFromParent(); const g = new THREE.Group(); g.add(o); return g; };
+  const b = { static: take("static"), stage: take("stage"), carriage: take("carriage"), wrist: hinge(take("wrist"), PIVOT) };
+  // The wrist rides with the carriage.
+  b.wristRide = new THREE.Group(); b.wristRide.add(b.wrist);
+  view.scene.add(b.static, b.stage, b.carriage, b.wristRide);
+  view.scene.updateMatrixWorld(true);
+  view.aim(new THREE.Box3().setFromObject(view.scene).getCenter(new THREE.Vector3()));
+
+  const deg = THREE.MathUtils.degToRad;
+  const pose = (e) => {
+    const up = ease((e - REST) / (1 - REST));
+    b.stage.position.copy(AXIS).multiplyScalar(STAGE_RUN * up);
+    b.carriage.position.copy(AXIS).multiplyScalar((STAGE_RUN + CARRIAGE_RUN) * up);
+    b.wristRide.position.copy(b.carriage.position);
+    b.wrist.rotation.x = e < REST ? deg(WRIST_DOWN) * (1 - ease(e / REST)) : deg(WRIST_UP) * up;
+  };
+
+  const cycle = spring(REST);
+  // The pointer's height, bottom (0) to top (1): the lower 40% is the
+  // intake's (all the way down in the bottom 15%), above runs the elevator.
+  const INTAKE_OUT = 0.15, INTAKE_ZONE = 0.4;
+  const cycleAt = (p) => p < INTAKE_ZONE
+    ? REST * Math.max(0, (p - INTAKE_OUT) / (INTAKE_ZONE - INTAKE_OUT))
+    : REST + (1 - REST) * Math.min(1, (p - INTAKE_ZONE) / (0.95 - INTAKE_ZONE));
+  const read = (e) => e < REST - 0.001 ? "intake"
+    : e <= REST + 0.001 ? "rest"
+    : `elevator ${Math.round(((STAGE_RUN + CARRIAGE_RUN) * ease((e - REST) / (1 - REST))) / IN)} in`;
+
+  return {
+    /** Camera-space boxes: at rest, and round every pose. */
+    boxes() {
+      pose(0); const all = view.box();
+      for (let k = 1; k <= 8; k++) { pose(k / 8); view.box(all); }
+      pose(REST); const rest = view.box();
+      view.box(all);
+      return { rest, all };
+    },
+    step(dt) { const m = cycle.step(dt); pose(cycle.x); return m; },
+    jump() { cycle.jump(cycle.t); },
+    /** Hovered in Works: the elevator most of the way up; let go, back to rest. */
+    hover(on) { cycle.t = on ? HOVER : REST; },
+    point(_px, py) { cycle.t = cycleAt(py); return read(cycle.t); },
+    leave() { cycle.t = REST; return "rest"; },
+  };
 }

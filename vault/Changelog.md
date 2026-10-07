@@ -8,6 +8,7 @@ updated: 2026-10-05
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
 ## 2026-10-07
+- Rival robot: real CAD (2025C-LL) replaces the placeholder figure: elevator up its 32.7° incline + intake wrist on the carriage, dimetric view. prepare.mjs --rival, rivaljoints.mjs, plotparts.mjs. Elevator travel is estimated. .gitignore: removed a garbled UTF-16 line, ignores 2025C-LL/. See [[CAD figures]].
 - "Bishop" lettered in the anura frog's hand: public/assets/brand/bishop.svg (black), bishop.png and bishop-white.png (2400 × 1239, transparent). Made by tools/lettering/anura-type.mjs (hand-placed centre lines per letter, leaned 0.2, wandering width, smooth lumpy edges, taper/blob ends; seed "bishop").
 - Added public/assets/brand/anura-white.png: the frog logo alone, white on transparent, 2568 × 2524 (4× the SVG), rendered from anura.svg for use on dark backgrounds/videos.
 - Stand: baseline drop was too far (clipped the label) and slid unevenly; now a fixed drop of 30% of the gap (LOWER), eased in with the unfold.

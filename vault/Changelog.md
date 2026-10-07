@@ -8,6 +8,7 @@ updated: 2026-10-05
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
 ## 2026-10-07
+- Added public/assets/brand/anura-white.png: the frog logo alone, white on transparent, 2568 × 2524 (4× the SVG), rendered from anura.svg for use on dark backgrounds/videos.
 - Stand: baseline drop was too far (clipped the label) and slid unevenly; now a fixed drop of 30% of the gap (LOWER), eased in with the unfold.
 - Stand: the flat pattern now sits on the folded stand's baseline (lower, nearer its label) instead of centred; tilt 15° → 22°.
 - Monitor stand reworked again: hover unfolds (slowly), leave folds; pointer only tilts (15°); the flat pattern is scaled to its folded footprint so it never covers text or other previews.

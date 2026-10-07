@@ -9,6 +9,8 @@ const SPREAD = 6;       // px of bare paper kept around each silhouette
 const LABEL_GAP = 14;   // px between a silhouette and its label
 const LABEL_H = 16;
 const CHAR_W = 7.1;     // the label's mono characters, 11px with tracking
+const HALO = 22;        // px of halo round each figure on its canvas (figures/lines.js HALO)
+const EDGE = 12;        // px a figure's furthest reach keeps from the screen's edge
 const FOLD_MS = 520;    // the Works fold's opening animation, plus a little
 // Each visit lays the specimens out (and grows them) its own way; within a
 // visit they come back the same.
@@ -83,7 +85,14 @@ export function Works({ projects, hovered, onHover, onClose, onReady, dimmed = f
         if (!fig) return null;
         // The canvas is laid so the object at rest fills the slot; it reaches
         // past it wherever a pose can. Its silhouette at rest is the mask.
-        const at = fig.place(slot);
+        let at = fig.place(slot);
+        // Every pose, zoomed, stays on screen (below the header, on narrow
+        // screens, where they sit under it): a figure that would reach past
+        // the top or the sides moves in until it doesn't.
+        const top = (isWide(w, h, isSmall) || !head ? 0 : head.bottom) + EDGE;
+        const dx = Math.max(0, EDGE - (at.x + HALO)) - Math.max(0, at.x + at.w - HALO - (w - EDGE));
+        const dy = Math.max(0, top - (at.y + HALO));
+        if (dx || dy) { slot.cx += dx; slot.cy += dy; at = fig.place(slot); }
         Object.assign(c.style, { left: `${at.x}px`, top: `${at.y}px`, width: `${at.w}px`, height: `${at.h}px` });
         fig.layout();
         const mask = resistFrom(fig.silhouette(), Math.round(at.x), Math.round(at.y), Math.round(at.w), Math.round(at.h), SPREAD);

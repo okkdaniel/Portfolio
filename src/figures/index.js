@@ -10,7 +10,7 @@
 //   hover(on)  the Works preview: move while hovered, settle back after.
 //              Hovered (or under the pointer), a figure also zooms in a little:
 //              the camera closes in, so the halo stays its size round it.
-//              It all draws at the site's 12fps, as the growth does.
+//              It all draws at 20fps.
 //   reveal(to, { duration, delay })  grows the figure in (to 1) or out (to 0),
 //              from the ground up in the site's dots; created hidden.
 //   point(px, py) / leave()  a project page: px, py are 0..1 across and up
@@ -86,8 +86,8 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     if (reducedMotion) zm.start = -1e9;
   };
 
-  // Frames come at 12fps; between them the springs step in small steps.
-  const FRAME = 1 / 12, SUB = 1 / 60;
+  // Frames come at 20fps; between them the springs step in small steps.
+  const FRAME = 1 / 20, SUB = 1 / 60;
   let acc = 0;
   const loop = (now) => {
     raf = 0;
@@ -102,7 +102,7 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     view.draw();
     if (moving || growing || zooming) raf = requestAnimationFrame(loop);
   };
-  // Woken, the first frame draws at once; then 12fps.
+  // Woken, the first frame draws at once; then 20fps.
   const wake = () => { if (!raf && alive) { last = performance.now(); acc = FRAME; raf = requestAnimationFrame(loop); } };
 
   return {

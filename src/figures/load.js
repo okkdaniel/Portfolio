@@ -12,9 +12,9 @@ export const preloadFigure = (slug) => { figures().then((m) => m.preloadFigure(s
 // Works takes them (takeFigure); once it has closed, another set is made.
 const pool = new Map(); // slug -> Promise<{ fig, canvas } | null>
 const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-function makeFigure(slug) {
+function makeFigure(slug, className = "works-layer__fig") {
   const canvas = document.createElement("canvas");
-  canvas.className = "works-layer__fig";
+  canvas.className = className;
   canvas.setAttribute("aria-hidden", "true");
   return createFigure(slug, canvas, { reducedMotion: reduced() })
     .then((fig) => { if (!fig) return null; fig.prime(); return { fig, canvas }; })
@@ -26,3 +26,17 @@ export const takeFigure = (slug) => {
   pool.delete(slug);
   return got;
 };
+
+// Project pages' figures, made ahead the same way (a page's figure is its
+// own, drawn larger), so opening a project only has to lay it out: made
+// when Works has come up, when a project is reached for, and for the next
+// project while one is open.
+const pagePool = new Map();
+export const preparePageFigure = (slug) => { if (!pagePool.has(slug)) pagePool.set(slug, makeFigure(slug, "page__canvas")); };
+export const takePageFigure = (slug) => {
+  const got = pagePool.get(slug) ?? makeFigure(slug, "page__canvas");
+  pagePool.delete(slug);
+  return got;
+};
+/** Runs fn once the page has had a moment and is idle. */
+export const whenIdle = (fn, ms = 1200) => { setTimeout(() => (window.requestIdleCallback || setTimeout)(fn), ms); };

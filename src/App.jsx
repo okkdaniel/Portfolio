@@ -4,6 +4,7 @@ import { Overlay } from "./ui/Overlay.jsx";
 import { ProjectPage } from "./ui/ProjectPage.jsx";
 import { Works } from "./art/Works.jsx";
 import { SAMPLE_PROJECTS } from "./data.js";
+import { preparePageFigure, whenIdle } from "./figures/load.js";
 
 const PROJECTS = [...SAMPLE_PROJECTS].sort((a, b) => a.index - b.index);
 const FALLBACK_MS = 1500; // the outgoing side goes anyway if the incoming one never says it's ready
@@ -116,7 +117,11 @@ export default function App() {
   const worksReady = React.useCallback(() => {
     retractField();
     if (!now.current.slug) leavePages(null);
+    // With Works up, make the projects' page figures, so one opens at once.
+    whenIdle(() => PROJECTS.forEach((p) => preparePageFigure(p.slug)), 1500);
   }, [retractField, leavePages]);
+  // A project reached for (in the list or in Works): make its page figure.
+  React.useEffect(() => { if (hovered) preparePageFigure(hovered); }, [hovered]);
   React.useEffect(() => {
     if (worksWanted) {
       setWorksVisit((v) => v + 1);
@@ -140,6 +145,14 @@ export default function App() {
   }, [worksOpen, project]);
 
   const close = React.useCallback(() => { window.location.hash = ""; }, []);
+  // With a project open, any fold opened or closed leaves it for what the
+  // folds now say: Works opened (or "all works" on the page) brings Works
+  // back, Works closed goes home.
+  const fold = React.useCallback((key) => {
+    setOpen(key);
+    if (now.current.slug) window.location.hash = "";
+  }, []);
+  const toWorks = React.useCallback(() => fold("works"), [fold]);
   const closeWorks = React.useCallback(() => setOpen(null), []);
   const reset = React.useCallback(() => fieldRef.current?.reset(), []);
 
@@ -168,10 +181,11 @@ export default function App() {
             leaving={pg.leaving}
             onReady={pageReady}
             onClose={close}
+            onWorks={toWorks}
           />
         );
       })}
-      <Overlay open={open} setOpen={setOpen} onReset={reset} projects={PROJECTS} hovered={hovered} onHover={setHovered} current={project?.slug ?? null} />
+      <Overlay open={open} setOpen={fold} onReset={reset} projects={PROJECTS} hovered={hovered} onHover={setHovered} current={project?.slug ?? null} />
     </>
   );
 }

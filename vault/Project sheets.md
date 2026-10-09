@@ -14,7 +14,7 @@ The page is the paper itself, laid out like a specimen plate: the object large, 
 ## Layout
 
 - A full-window scrolling layer (`.page`, z 2) over the field, under the head (z 3). On desktop the head keeps its column on the left (content starts at `--page-left`, 420px) and stays usable; the reset control is hidden (no field to clear). On phones (≤768) the head and footers hide and the page has the screen.
-- **Bar** (sticky): `02 · ROBOTICS · OFFSEASON` and `close [×]`. Clear at the top so a raised pose can show through it; paper once the page scrolls.
+- **Bar** (sticky): `02 · ROBOTICS · OFFSEASON`, then `all works` (back to Works) and `close [×]` (back to Works if its fold is open, else home). Clear at the top so a raised pose can show through it; paper once the page scrolls.
 - **Plate**: the stage (the figure's room) takes the window height less the caption. The figure is sized by its **rest** pose (about 84% of the stage height, at its optical scale), standing on the stage floor; poses that rise may reach up into the bar's space, no further, and nothing may reach past the stage's sides. Its growth is `plot()` (as in Works), seeded by slug, over the whole plate out to the window edges, keeping clear of the labels, caption, side and head.
 - **Labels** (wide screens, stage ≥ 820px): each part's label sits beside the figure's room, level with the part at rest, spread so none overlap; a hairline leader (level shoulder, then straight) runs to a dot on the part and follows it every frame as the figure moves. **Hovering or focusing a label poses the figure to show that part** (and updates the read-out). Narrow: numbered markers on the parts and a key under the figure (tap to show).
 - **Foot**: the title (Cormorant, up to 62px) and lede on the left; on the right the read-out, `3d model (+)` (the model takes the figure's box, growth fades to 22%), and the facts.
@@ -30,6 +30,14 @@ Each figure kind returns `notes: [{ id, label, sub, obj, at }]` and `show(id)`. 
 ## Transitions (App.jsx)
 
 Per [[Rules]]: the incoming side lays out, says it's ready, and starts growing as the outgoing one goes back (1.5s fallback). Works → page: page ready, Works un-grows. Field → page: page ready, field retracts. Page → page (Next, or the list): new page ready, old one un-grows (stays mounted 1.2s). Page → Works (closing with the fold open): Works regrows fresh, then the page un-grows. Page → field: page un-grows as the field regrows. The page's text fades in a beat after the growth starts and goes first.
+
+## Navigation (2026-10-08 fix)
+
+Daniel: "closing the works tab doesnt bring me back to the home page, and theres no way to get back to the works page from the specified project". Now, with a project open, any fold opened or closed leaves the project for what the folds say (`fold()` in App.jsx): Works opened brings Works back, Works closed goes home, About/Contact opened goes home with that fold. `all works` in the bar does the same as opening Works (also the only way back on phones, where the head hides).
+
+## Made ahead (2026-10-08 fix)
+
+Daniel: clicking a project "kind of just snaps to that project instead of the transition". The page made its figure on click (model clone, shader compile, first upload), stalling the main thread so Works' retraction couldn't play, and its text faded in before its growth. Now page figures come from a pool like Works' (`preparePageFigure` / `takePageFigure` in `figures/load.js`): made when Works is ready (idle), when a project is hovered in the list or in Works, and for the next project while one is open; a page that's done re-makes its own. The page's text shows only once it's laid out and growing. Laying out still costs ~75–170 ms (silhouette readback, resist spread, plot) but before it says it's ready, so before anything starts going back.
 
 ## Notes
 

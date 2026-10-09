@@ -209,6 +209,7 @@
   text-transform: uppercase;
   color: var(--dim);
 }
+.page__nav { display: flex; gap: 22px; }
 .page__close { color: var(--dim); transition: color 0.25s; }
 .page__close:hover { color: var(--accent); }
 

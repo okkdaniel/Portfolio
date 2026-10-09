@@ -5,7 +5,7 @@ import { inkLayer, createGrowth } from "../art/growth.js";
 import { edgePoints } from "../art/Works.jsx";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { ModelPlate } from "../components/media/ModelPlate.jsx";
-import { createFigure } from "../figures/load.js";
+import { takePageFigure, preparePageFigure, whenIdle } from "../figures/load.js";
 
 const HALO = 22;      // px round the figure for its halo (figures/lines.js HALO)
 const LABEL_W = 190;  // px a label takes beside the figure
@@ -30,7 +30,7 @@ const SPREAD = 6;     // px of bare paper the growth keeps round the figure
  * On narrow screens the labels become numbers on the object, with a key
  * under it.
  */
-export function ProjectPage({ project: p, next, leaving = false, onReady, onClose }) {
+export function ProjectPage({ project: p, next, leaving = false, onReady, onClose, onWorks }) {
   const plateRef = React.useRef(null);
   const stageRef = React.useRef(null);
   const inkRef = React.useRef(null);
@@ -51,11 +51,8 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const isPhone = useMediaQuery("(max-width: 768px)");
 
-  React.useEffect(() => {
-    const r = requestAnimationFrame(() => setShown(true));
-    closeRef.current?.focus({ preventScroll: true });
-    return () => cancelAnimationFrame(r);
-  }, []);
+  // The text comes in with the growth (shown once laid out), not before.
+  React.useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
 
   React.useEffect(() => {
     if (leaving) return;
@@ -64,22 +61,25 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, leaving]);
 
-  // The figure, on a canvas of its own.
+  // The figure, on a canvas of its own, made ahead as a rule (figures/
+  // load.js). Once this page is done with it, another is made for next time.
   React.useEffect(() => {
-    let alive = true, made = null;
-    const canvas = document.createElement("canvas");
-    canvas.className = "page__canvas";
-    canvas.setAttribute("aria-hidden", "true");
-    figRef.current.append(canvas);
-    createFigure(p.slug, canvas, { reducedMotion }).then((f) => {
-      if (!alive) { f?.destroy(); return; }
-      if (!f) { readyRef.current?.(p.slug); return; }
-      made = f;
+    let alive = true, made = null, canvas = null;
+    takePageFigure(p.slug).then((got) => {
+      if (!alive) { got?.fig.destroy(); got?.canvas.remove(); return; }
+      if (!got) { setShown(true); readyRef.current?.(p.slug); return; }
+      ({ fig: made, canvas } = got);
+      figRef.current.append(canvas);
       setRead("rest");
-      setFig(f);
+      setFig(made);
     });
-    return () => { alive = false; made?.destroy(); canvas.remove(); setFig(null); };
-  }, [p.slug, reducedMotion]);
+    return () => {
+      alive = false; made?.destroy(); canvas?.remove(); setFig(null);
+      whenIdle(() => preparePageFigure(p.slug), 1500);
+    };
+  }, [p.slug]);
+  // And the next project's, for its link.
+  React.useEffect(() => { if (next && fig) whenIdle(() => preparePageFigure(next.slug)); }, [next, fig]);
 
   const notes = fig?.notes ?? [];
   const compact = isPhone || (layout?.compact ?? false);
@@ -203,6 +203,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
         growth.plant(gens, { random, now: now || again, pace: 1.6, ease: 2 });
         if (!again) {
           fig.reveal(1, now ? {} : { delay: 0.6, duration: 2.6 });
+          setShown(true);
           readyRef.current?.(p.slug);
         } else fig.reveal(1);
       }));
@@ -290,7 +291,10 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
     >
       <div className="page__bar">
         <span className="page__meta">{n} · {p.discipline} · {p.year}</span>
-        <button ref={closeRef} type="button" className="page__close" onClick={onClose}>close [×]</button>
+        <span className="page__nav">
+          <button type="button" className="page__close" onClick={onWorks}>all works</button>
+          <button ref={closeRef} type="button" className="page__close" onClick={onClose}>close [×]</button>
+        </span>
       </div>
 
       <section ref={plateRef} className={`page__plate${compact ? " page__plate--compact" : ""}`}>

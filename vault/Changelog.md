@@ -8,7 +8,8 @@ updated: 2026-10-05
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
 ## 2026-10-09
-- Works figures arrive moving (Daniel's idea, "lets try it"): each starts in its hover pose, zoomed in 8%, holds 1.1 s as it grows in, then eases back to rest and zooms out over ~1.9 s (springs run at 0.38x while settling). `arrive()` in figures/index.js; any hover or pointer takes over.
+- Works figures let go as the growth starts revealing them (hold 1.1 s → 0.6 s, the reveal's delay), so they fall into place while being revealed (Daniel: "a littttleeee bit earlier… falling into place as theyre getting revealed by the growth").
+- Works figures arrive moving (Daniel's idea, "lets try it"): each starts in its hover pose, zoomed in 8%, holds 0.8 s as it grows in (was 1.1; Daniel: "a littttleeee bit earlier"), then eases back to rest and zooms out over ~1.9 s (springs run at 0.38x while settling). `arrive()` in figures/index.js; any hover or pointer takes over.
 
 ## 2026-10-08
 - Project pages keep the leader lines on narrower windows (labels narrow down to 128px); numbers only on phones and very narrow stages.

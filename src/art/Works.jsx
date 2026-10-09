@@ -157,11 +157,13 @@ export function Works({ projects, hovered, onHover, onClose, onReady, dimmed = f
       // The figures grow in with their growth, a beat after it starts (at
       // once when re-laid for a resize).
       // Each comes in moving: in its hover pose and zoomed in a little,
-      // easing back to rest and zooming out as it grows in.
+      // falling back to rest and zooming out as the growth reveals it (it
+      // lets go as the reveal starts).
+      const REVEAL = { delay: 0.6, duration: 2.6 };
       placed.forEach((s) => {
         const f = figs[projects.indexOf(s.p)];
-        f?.reveal(1, now ? {} : { delay: 0.6, duration: 2.6 });
-        if (!now) f?.arrive({ hold: 1.1, settle: 1.9 });
+        f?.reveal(1, now ? {} : REVEAL);
+        if (!now) f?.arrive({ hold: REVEAL.delay, settle: 1.9 });
       });
       setSpots(placed.map(({ p, box, label, text }) => ({ slug: p.slug, title: p.title, box, label, text })));
     };

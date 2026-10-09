@@ -3,7 +3,7 @@ import { resistFrom, opaqueBounds, eraseMark, wipeCells } from "./ink.js";
 import { plot, vine, seeded, setRandom } from "./forms.js";
 import { inkLayer, createGrowth } from "./growth.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
-import { takeFigure, prepareFigures } from "../figures/load.js";
+import { takeFigure, putBackFigure, prepareFigures } from "../figures/load.js";
 
 const SPREAD = 6;       // px of bare paper kept around each silhouette
 const LABEL_GAP = 14;   // px between a silhouette and its label
@@ -184,15 +184,18 @@ export function Works({ projects, hovered, onHover, onClose, onReady, dimmed = f
     };
     const opening = new Promise((r) => setTimeout(r, isWide(window.innerWidth, window.innerHeight, isSmall) ? 0 : FOLD_MS));
     let watcher = null;
-    const loading = Promise.all(projects.map((p, i) => takeFigure(p.slug).then((got) => {
+    const takings = projects.map((p) => takeFigure(p.slug));
+    const loading = Promise.all(takings.map((taking, i) => taking.then((got) => {
       if (!got) return null;
       canvases[i] = got.canvas;
       if (alive) figsRef.current?.append(got.canvas);
       return got.fig;
     })));
     Promise.all([loading, opening]).then(([made]) => {
+      // A dropped run (React may run this, drop it and run it again) hands
+      // its figures back unused, for the next.
+      if (!alive) { projects.forEach((p, i) => putBackFigure(p.slug, takings[i])); return; }
       figs = made;
-      if (!alive) { made.forEach((f) => f?.destroy()); return; }
       figures.current = Object.fromEntries(projects.map((p, i) => [p.slug, made[i]]));
       lay(reducedMotion);
       // Laid out and growing: whatever was on the paper can go now.

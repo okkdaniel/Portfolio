@@ -27,6 +27,12 @@ export const takeFigure = (slug) => {
   return got;
 };
 
+/** Returns taken figures, unused, to the pool (or, where one's there already, destroys them). */
+export const putBackFigure = (slug, got) => {
+  if (!pool.has(slug)) { pool.set(slug, got); return; }
+  got.then((g) => { g?.fig.destroy(); g?.canvas.remove(); });
+};
+
 // Project pages' figures, made ahead the same way (a page's figure is its
 // own, drawn larger), so opening a project only has to lay it out: made
 // when Works has come up, when a project is reached for, and for the next
@@ -37,6 +43,11 @@ export const takePageFigure = (slug) => {
   const got = pagePool.get(slug) ?? makeFigure(slug, "page__canvas");
   pagePool.delete(slug);
   return got;
+};
+/** Returns a taken figure, unused, to the pool (or, if one's there already, destroys it). */
+export const putBackPageFigure = (slug, got) => {
+  if (!pagePool.has(slug)) { pagePool.set(slug, got); return; }
+  got.then((g) => { g?.fig.destroy(); g?.canvas.remove(); });
 };
 /** Runs fn once the page has had a moment and is idle. */
 export const whenIdle = (fn, ms = 1200) => { setTimeout(() => (window.requestIdleCallback || setTimeout)(fn), ms); };

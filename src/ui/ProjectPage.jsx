@@ -5,7 +5,7 @@ import { inkLayer, createGrowth } from "../art/growth.js";
 import { edgePoints } from "../art/Works.jsx";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { ModelPlate } from "../components/media/ModelPlate.jsx";
-import { takePageFigure, preparePageFigure, whenIdle } from "../figures/load.js";
+import { takePageFigure, preparePageFigure, putBackPageFigure, whenIdle } from "../figures/load.js";
 
 const HALO = 22;      // px round the figure for its halo (figures/lines.js HALO)
 const LABEL_W = 190;  // px a label takes beside the figure
@@ -65,8 +65,10 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
   // load.js). Once this page is done with it, another is made for next time.
   React.useEffect(() => {
     let alive = true, made = null, canvas = null;
-    takePageFigure(p.slug).then((got) => {
-      if (!alive) { got?.fig.destroy(); got?.canvas.remove(); return; }
+    const taking = takePageFigure(p.slug);
+    taking.then((got) => {
+      // A dropped run hands its figure back, still unused, for the next.
+      if (!alive) { if (got) putBackPageFigure(p.slug, taking); return; }
       if (!got) { setShown(true); readyRef.current?.(p.slug); return; }
       ({ fig: made, canvas } = got);
       figRef.current.append(canvas);
@@ -74,8 +76,9 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
       setFig(made);
     });
     return () => {
+      const used = !!made;
       alive = false; made?.destroy(); canvas?.remove(); setFig(null);
-      whenIdle(() => preparePageFigure(p.slug), 1500);
+      if (used) whenIdle(() => preparePageFigure(p.slug), 1500);
     };
   }, [p.slug]);
   // And the next project's, for its link.
@@ -94,7 +97,9 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
     layer.ink.feather = 40;
     layer.ink.wobble = 20;
     const growth = createGrowth(layer, { reducedMotion });
-    let laid = "", leavingNow = false;
+    // `alive`: this run of the effect is current (React may run it, drop
+    // it and run it again; a dropped run must not lay out or grow anything).
+    let laid = "", leavingNow = false, alive = true;
 
     // Where everything goes: the stage (the figure's room, with the labels
     // either side of it on wide screens), the figure fitted in at its
@@ -159,7 +164,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
     };
 
     const lay = (now) => {
-      if (leavingNow) return;
+      if (leavingNow || !alive) return;
       const foot = plate.querySelector(".page__foot")?.offsetHeight ?? 0;
       const key = `${window.innerWidth}x${window.innerHeight}/${plate.clientWidth}/${foot}`;
       if (key === laid) return;
@@ -169,7 +174,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
       // The growth: the plot round the figure, over the whole plate and out
       // to the window's edges.
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (leavingNow) return;
+        if (leavingNow || !alive) return;
         const c = ink.getBoundingClientRect(), W = c.width, H = c.height;
         const r = canvas.getBoundingClientRect();
         growth.clear();
@@ -233,6 +238,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
     watcher.observe(plate);
     window.addEventListener("resize", relay);
     return () => {
+      alive = false;
       clearTimeout(settle);
       watcher.disconnect();
       window.removeEventListener("resize", relay);

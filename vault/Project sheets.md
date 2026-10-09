@@ -39,6 +39,10 @@ Daniel: "closing the works tab doesnt bring me back to the home page, and theres
 
 Daniel: clicking a project "kind of just snaps to that project instead of the transition". The page made its figure on click (model clone, shader compile, first upload), stalling the main thread so Works' retraction couldn't play, and its text faded in before its growth. Now page figures come from a pool like Works' (`preparePageFigure` / `takePageFigure` in `figures/load.js`): made when Works is ready (idle), when a project is hovered in the list or in Works, and for the next project while one is open; a page that's done re-makes its own. The page's text shows only once it's laid out and growing. Laying out still costs ~75–170 ms (silhouette readback, resist spread, plot) but before it says it's ready, so before anything starts going back.
 
+## The snap, again (2026-10-08)
+
+Daniel: "the growth will retract, then midway through the retraction it snaps to the new page". Cause: StrictMode's dropped first run of the page's layout effect still laid out once fonts were ready, grew, set "grown" and said ready (so Works started back); the real run then saw "grown" and drew the page complete. It also destroyed the pooled figure, so the real run built a new one (the stall). Fixed with `alive` checks and handing unused figures back to the pool (same fix in Works). Measured: Works' ink drains over ~0.5 s from ~0.4 s after the click while the page's grows steadily over ~2.5 s; closing, the page drains as Works regrows from the same moment.
+
 ## Notes
 
 - The layout waits for `document.fonts.ready` (the caption's height sets the stage's) and re-lays on resize; any lay-out after the first draws the growth complete.

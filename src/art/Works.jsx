@@ -163,9 +163,9 @@ export function Works({ projects, hovered, onHover, onClose, onReady, dimmed = f
     // Take it all back off, newest first (as Works closes).
     retractRef.current = () => {
       leavingNow = true;
-      figs.forEach((f) => f?.reveal(0, { duration: 0.7 }));
+      figs.forEach((f) => f?.reveal(0, { duration: 1 }));
       growth.retract({
-        duration: reducedMotion ? 0 : 0.85,
+        duration: reducedMotion ? 0 : 1, // as the field's
         size: { w: window.innerWidth, h: window.innerHeight },
         erase: (m, alpha) => eraseMark(layer.ctx, m, ink.pitch, null, alpha),
         wipe: (xy, from, to, alpha) => wipeCells(layer.ctx, xy, from, to, ink.pitch, null, alpha),

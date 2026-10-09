@@ -173,6 +173,9 @@
 }
 
 /* The text comes in a beat after the growth starts, and goes first. */
+/* Coming in, after the growth has started, as on Works: the bar and the
+   caption (and what's below) from about a second in, the labels once the
+   figure has mostly grown in. */
 .page__bar,
 .page__note,
 .page__leaders,
@@ -181,8 +184,11 @@
 .write,
 .page__next {
   opacity: 0;
-  transition: opacity 0.7s var(--ease) 0.35s;
+  transition: opacity 1s var(--ease) 0.9s;
 }
+.page__note,
+.page__leaders,
+.page__key { transition-delay: 1.9s; }
 .page--shown :is(.page__bar, .page__note, .page__leaders, .page__key, .page__foot, .write, .page__next) { opacity: 1; }
 .page--leaving { pointer-events: none; }
 .page--leaving :is(.page__bar, .page__note, .page__leaders, .page__key, .page__foot, .write, .page__next) {
@@ -198,7 +204,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 0 16px;
-  transition: background-color 0.3s var(--ease), opacity 0.7s var(--ease) 0.35s;
+  transition: background-color 0.3s var(--ease), opacity 1s var(--ease) 0.9s;
 }
 /* Clear at the top, so a figure reaching up shows through; paper once the
    page scrolls under it. */
@@ -209,7 +215,7 @@
   text-transform: uppercase;
   color: var(--dim);
 }
-.page__nav { display: flex; gap: 22px; }
+.page__nav { display: flex; gap: 26px; align-items: baseline; }
 .page__close { color: var(--dim); transition: color 0.25s; }
 .page__close:hover { color: var(--accent); }
 

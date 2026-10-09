@@ -14,7 +14,7 @@ The page is the paper itself, laid out like a specimen plate: the object large, 
 ## Layout
 
 - A full-window scrolling layer (`.page`, z 2) over the field, under the head (z 3). On desktop the head keeps its column on the left (content starts at `--page-left`, 420px) and stays usable; the reset control is hidden (no field to clear). On phones (≤768) the head and footers hide and the page has the screen.
-- **Bar** (sticky): `02 · ROBOTICS · OFFSEASON`, then `all works` (back to Works) and `close [×]` (back to Works if its fold is open, else home). Clear at the top so a raised pose can show through it; paper once the page scrolls.
+- **Bar** (sticky): `← works` (always back to Works) and `02 · ROBOTICS · OFFSEASON` on the left, `close [×]` (always home, Works fold closed) on the right. Escape goes back where you came from (Works if its fold is open, else home). Clear at the top so a raised pose can show through it; paper once the page scrolls.
 - **Plate**: the stage (the figure's room) takes the window height less the caption. The figure is sized by its **rest** pose (about 84% of the stage height, at its optical scale), standing on the stage floor; poses that rise may reach up into the bar's space, no further, and nothing may reach past the stage's sides. Its growth is `plot()` (as in Works), seeded by slug, over the whole plate out to the window edges, keeping clear of the labels, caption, side and head.
 - **Labels** (wide screens, stage ≥ 820px): each part's label sits beside the figure's room, level with the part at rest, spread so none overlap; a hairline leader (level shoulder, then straight) runs to a dot on the part and follows it every frame as the figure moves. **Hovering or focusing a label poses the figure to show that part** (and updates the read-out). Narrow: numbered markers on the parts and a key under the figure (tap to show).
 - **Foot**: the title (Cormorant, up to 62px) and lede on the left; on the right the read-out, `3d model (+)` (the model takes the figure's box, growth fades to 22%), and the facts.
@@ -42,6 +42,10 @@ Daniel: clicking a project "kind of just snaps to that project instead of the tr
 ## The snap, again (2026-10-08)
 
 Daniel: "the growth will retract, then midway through the retraction it snaps to the new page". Cause: StrictMode's dropped first run of the page's layout effect still laid out once fonts were ready, grew, set "grown" and said ready (so Works started back); the real run then saw "grown" and drew the page complete. It also destroyed the pooled figure, so the real run built a new one (the stall). Fixed with `alive` checks and handing unused figures back to the pool (same fix in Works). Measured: Works' ink drains over ~0.5 s from ~0.4 s after the click while the page's grows steadily over ~2.5 s; closing, the page drains as Works regrows from the same moment.
+
+## Paced like home ↔ Works (2026-10-08)
+
+Daniel, after the fixes above: "it still snaps to the page… the growth doesnt happen on the page its opening, only the retraction" and the back-and-forth wasn't intuitive. A screencast showed why: Works' figures vanished in ~150 ms (the reveal eased out, front-loading it), and the page's big caption, labels and facts faded in as one block by ~0.75 s, before its growth showed. Now: reveal out eases in-out; Works' and pages' retractions run 1 s like the field's; the page's bar/caption fade in from 0.9 s over 1 s and its labels from 1.9 s. See the motion rule in [[Rules]].
 
 ## Notes
 

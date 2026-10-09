@@ -153,6 +153,7 @@ export default function App() {
     if (now.current.slug) window.location.hash = "";
   }, []);
   const toWorks = React.useCallback(() => fold("works"), [fold]);
+  const toHome = React.useCallback(() => fold(null), [fold]);
   const closeWorks = React.useCallback(() => setOpen(null), []);
   const reset = React.useCallback(() => fieldRef.current?.reset(), []);
 
@@ -180,8 +181,9 @@ export default function App() {
             next={next.slug !== pg.slug ? next : null}
             leaving={pg.leaving}
             onReady={pageReady}
-            onClose={close}
+            onBack={close}
             onWorks={toWorks}
+            onHome={toHome}
           />
         );
       })}

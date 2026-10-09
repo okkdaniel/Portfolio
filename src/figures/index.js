@@ -63,7 +63,10 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     if (rv.x === rv.to) return false;
     const t = (performance.now() - rv.start) / 1000;
     const u = rv.dur > 0 ? Math.min(1, Math.max(0, (t - rv.delay) / rv.dur)) : 1;
-    rv.x = u >= 1 ? rv.to : rv.from + (rv.to - rv.from) * (1 - Math.pow(1 - u, 3));
+    // Coming in it eases out (quick, then settling); going out it eases in
+    // and out, so it doesn't vanish in the first moment.
+    const k = rv.to > rv.from ? 1 - Math.pow(1 - u, 3) : u * u * (3 - 2 * u);
+    rv.x = u >= 1 ? rv.to : rv.from + (rv.to - rv.from) * k;
     view.setReveal(rv.x);
     return rv.x !== rv.to;
   };

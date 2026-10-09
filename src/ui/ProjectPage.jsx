@@ -30,7 +30,7 @@ const SPREAD = 6;     // px of bare paper the growth keeps round the figure
  * On narrow screens the labels become numbers on the object, with a key
  * under it.
  */
-export function ProjectPage({ project: p, next, leaving = false, onReady, onClose, onWorks }) {
+export function ProjectPage({ project: p, next, leaving = false, onReady, onBack, onWorks, onHome }) {
   const plateRef = React.useRef(null);
   const stageRef = React.useRef(null);
   const inkRef = React.useRef(null);
@@ -56,10 +56,10 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
 
   React.useEffect(() => {
     if (leaving) return;
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e) => { if (e.key === "Escape") onBack(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, leaving]);
+  }, [onBack, leaving]);
 
   // The figure, on a canvas of its own, made ahead as a rule (figures/
   // load.js). Once this page is done with it, another is made for next time.
@@ -217,10 +217,10 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
 
     retractRef.current = () => {
       leavingNow = true;
-      fig.reveal(0, { duration: 0.7 });
+      fig.reveal(0, { duration: 1 });
       const c = ink.getBoundingClientRect();
       growth.retract({
-        duration: reducedMotion ? 0 : 0.85,
+        duration: reducedMotion ? 0 : 1, // as the field's and Works'
         size: { w: c.width, h: c.height },
         erase: (m, alpha) => eraseMark(layer.ctx, m, layer.ink.pitch, null, alpha),
         wipe: (xy, from, to, alpha) => wipeCells(layer.ctx, xy, from, to, layer.ink.pitch, null, alpha),
@@ -296,11 +296,11 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onClos
       aria-labelledby={`page-title-${p.slug}`}
     >
       <div className="page__bar">
-        <span className="page__meta">{n} · {p.discipline} · {p.year}</span>
         <span className="page__nav">
-          <button type="button" className="page__close" onClick={onWorks}>all works</button>
-          <button ref={closeRef} type="button" className="page__close" onClick={onClose}>close [×]</button>
+          <button ref={closeRef} type="button" className="page__close" onClick={onWorks}>← works</button>
+          <span className="page__meta">{n} · {p.discipline} · {p.year}</span>
         </span>
+        <button type="button" className="page__close" onClick={onHome}>close [×]</button>
       </div>
 
       <section ref={plateRef} className={`page__plate${compact ? " page__plate--compact" : ""}`}>

@@ -8,7 +8,9 @@ import { ModelPlate } from "../components/media/ModelPlate.jsx";
 import { takePageFigure, preparePageFigure, putBackPageFigure, whenIdle } from "../figures/load.js";
 
 const HALO = 22;      // px round the figure for its halo (figures/lines.js HALO)
-const LABEL_W = 190;  // px a label takes beside the figure
+const LABEL_W = 190;  // px a label takes beside the figure, at most
+const LABEL_MIN = 128; // and at least (narrower stages get narrower labels)
+const FIG_MIN = 340;  // px the figure keeps between the labels, at least
 const LABEL_GAP = 18; // px between a label and the figure's room
 const SHOULDER = 14;  // px a leader runs level out of its label before turning
 const SPREAD = 6;     // px of bare paper the growth keeps round the figure
@@ -27,7 +29,8 @@ const SPREAD = 6;     // px of bare paper the growth keeps round the figure
  * at the same moment (vault/Rules.md). `leaving` takes it back off: the
  * growth un-grows, newest first, as the figure and the text fade.
  *
- * On narrow screens the labels become numbers on the object, with a key
+ * Only on phones (and stages too narrow for labels either side) do the
+ * labels become numbers on the object, with a key
  * under it.
  */
 export function ProjectPage({ project: p, next, leaving = false, onReady, onBack, onWorks, onHome }) {
@@ -89,24 +92,31 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
   React.useEffect(() => { if (next && fig) whenIdle(() => preparePageFigure(next.slug)); }, [next, fig]);
 
   const notes = fig?.notes ?? [];
-  // Narrow: numbers on the parts and the caption over the facts. Known
-  // before anything is measured (from the stage's width, as soon as it's in
-  // the page), so the first lay-out is measured as it will stay.
-  const [narrow, setNarrow] = React.useState(null);
+  // How the plate fits the stage's width: `stacked` (under 820px) puts the
+  // caption over the facts; `numbered` (too narrow for labels either side)
+  // puts numbers on the parts and a key under it. Known before anything is
+  // measured (from the stage's width, as soon as it's in the page), so the
+  // first lay-out is measured as it will stay.
+  const [fit, setFit] = React.useState(null);
   React.useLayoutEffect(() => {
     const el = stageRef.current;
-    const check = () => setNarrow(el.clientWidth < 820);
+    const check = () => {
+      const w = el.clientWidth;
+      const next = { stacked: w < 820, numbered: w < 2 * (LABEL_MIN + LABEL_GAP) + FIG_MIN };
+      setFit((f) => (f && f.stacked === next.stacked && f.numbered === next.numbered ? f : next));
+    };
     check();
     const ro = new ResizeObserver(check);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const compact = isPhone || !!narrow;
+  const compact = isPhone || !!fit?.stacked;
+  const numbered = isPhone || !!fit?.numbered;
 
   // Lay the plate out for the window as it is, then grow its plot. `now`
   // draws the growth complete (a resize) instead of growing it.
   React.useEffect(() => {
-    if (!fig || narrow === null) return;
+    if (!fig || !fit) return;
     const canvas = figRef.current.querySelector("canvas");
     const ink = inkRef.current, stage = stageRef.current, plate = plateRef.current;
     const layer = inkLayer(ink, isPhone ? 2.2 : 3);
@@ -123,9 +133,10 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
     const place = () => {
       const W = stage.clientWidth;
       const compactNow = compact;
+      const labelW = Math.round(Math.max(LABEL_MIN, Math.min(LABEL_W, (W - FIG_MIN) / 2 - LABEL_GAP)));
       const foot = plate.querySelector(".page__foot")?.offsetHeight ?? 0;
       const bar = plate.parentElement.querySelector(".page__bar")?.offsetHeight ?? 0;
-      const roomW = compactNow ? W : W - 2 * (LABEL_W + LABEL_GAP);
+      const roomW = numbered ? W : W - 2 * (labelW + LABEL_GAP);
       const stageH = compactNow
         ? Math.min(isPhone ? 420 : 540, window.innerHeight * (isPhone ? 0.5 : 0.6))
         : Math.max(380, window.innerHeight - bar - foot - 56);
@@ -153,7 +164,8 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
       // Labels beside the figure's room, level with the parts they name,
       // as they are now (at rest), spread so none overlap.
       let labels = [];
-      if (!compactNow && notes.length) {
+      if (!numbered && notes.length) {
+        const step = labelW < 170 ? 68 : 58; // narrower labels wrap to more lines
         const at = fig.anchors().map((a) => ({ ...a, x: a.x + box.x, y: a.y + box.y }));
         const mid = box.x + w / 2;
         at.forEach((a) => { a.side = a.x < mid ? "left" : "right"; });
@@ -164,18 +176,18 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
         for (const side of ["left", "right"]) {
           const mine = at.filter((a) => a.side === side).sort((a, b) => a.y - b.y);
           let y = 12;
-          for (const a of mine) { a.ly = Math.max(y, Math.min(stageH - 44, a.y - 10)); y = a.ly + 58; }
+          for (const a of mine) { a.ly = Math.max(y, Math.min(stageH - 44, a.y - 10)); y = a.ly + step; }
           for (let i = mine.length - 1; i >= 0; i--) {
             const below = mine[i + 1];
-            if (below && mine[i].ly > below.ly - 58) mine[i].ly = below.ly - 58;
+            if (below && mine[i].ly > below.ly - step) mine[i].ly = below.ly - step;
           }
         }
         labels = at.map((a) => ({
           id: a.id, side: a.side, y: a.ly,
-          x: Math.max(0, Math.min(W - LABEL_W, a.side === "left" ? box.x + HALO - LABEL_GAP - LABEL_W : box.x + w - HALO + LABEL_GAP)),
+          x: Math.max(0, Math.min(W - labelW, a.side === "left" ? box.x + HALO - LABEL_GAP - labelW : box.x + w - HALO + LABEL_GAP)),
         }));
       }
-      setLayout({ compact: compactNow, stageH, fig: box, labels });
+      setLayout({ compact: compactNow, numbered, labelW, stageH, fig: box, labels });
       return { box, labels, compactNow };
     };
 
@@ -261,7 +273,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
       window.removeEventListener("resize", relay);
       growth.clear();
     };
-  }, [fig, compact, isPhone, narrow === null, reducedMotion, p.slug, p.plant, p.seed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fig, compact, numbered, isPhone, !fit, reducedMotion, p.slug, p.plant, p.seed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => { if (leaving) retractRef.current(); }, [leaving]);
 
@@ -275,14 +287,14 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
       const at = fig.anchors();
       at.forEach((a, i) => {
         const ax = a.x + box.x, ay = a.y + box.y;
-        if (layout.compact) {
+        if (layout.numbered) {
           const m = svg.querySelector(`[data-mark="${a.id}"]`);
           m?.setAttribute("transform", `translate(${ax.toFixed(1)} ${ay.toFixed(1)})`);
           return;
         }
         const l = layout.labels.find((q) => q.id === a.id);
         if (!l) return;
-        const sx = l.side === "left" ? l.x + LABEL_W + 6 : l.x - 6, sy = l.y + 9;
+        const sx = l.side === "left" ? l.x + layout.labelW + 6 : l.x - 6, sy = l.y + 9;
         const kx = sx + (l.side === "left" ? SHOULDER : -SHOULDER);
         svg.querySelector(`[data-line="${a.id}"]`)?.setAttribute("d", `M${sx.toFixed(1)} ${sy.toFixed(1)}H${kx.toFixed(1)}L${ax.toFixed(1)} ${ay.toFixed(1)}`);
         svg.querySelector(`[data-dot="${a.id}"]`)?.setAttribute("transform", `translate(${ax.toFixed(1)} ${ay.toFixed(1)})`);
@@ -348,7 +360,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
           )}
           <svg ref={leadersRef} className="page__leaders" aria-hidden="true">
             {layout && notes.map((m, i) => (
-              layout.compact ? (
+              layout.numbered ? (
                 <g key={m.id} data-mark={m.id} className={active === m.id ? "is-on" : undefined}>
                   <circle r="8" />
                   <text dy="3.5">{i + 1}</text>
@@ -361,7 +373,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
               )
             ))}
           </svg>
-          {layout && !layout.compact && notes.map((m) => {
+          {layout && !layout.numbered && notes.map((m) => {
             const l = layout.labels.find((q) => q.id === m.id);
             if (!l) return null;
             return (
@@ -369,7 +381,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
                 key={m.id}
                 type="button"
                 className={`page__note page__note--${l.side}${active === m.id ? " is-on" : ""}`}
-                style={{ left: l.x, top: l.y, width: LABEL_W }}
+                style={{ left: l.x, top: l.y, width: layout.labelW }}
                 onPointerEnter={() => show(m.id)}
                 onPointerLeave={leave}
                 onFocus={() => show(m.id)}
@@ -382,7 +394,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
           })}
         </div>
 
-        {compact && notes.length > 0 && (
+        {numbered && notes.length > 0 && (
           <ol className="page__key">
             {notes.map((m, i) => (
               <li key={m.id}>

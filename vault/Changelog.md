@@ -8,6 +8,7 @@ updated: 2026-10-05
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
 ## 2026-10-08
+- Project pages keep the leader lines on narrower windows (labels narrow down to 128px); numbers only on phones and very narrow stages.
 - Project pages grow in Dia / narrow windows too: the compact layout is decided before the first measurement, and an early re-layout regrows instead of drawing complete (that was the snap).
 - Project pages paced like home ↔ Works: figures dissolve evenly over 1 s, retractions 1 s, the page's caption and labels come in after its growth. Bar: `← works` (back to Works) and `close [×]` (home).
 - Opening a project no longer snaps midway: a dropped StrictMode effect run was growing the page early (now guarded); unused pooled figures go back to the pool (pages and Works).

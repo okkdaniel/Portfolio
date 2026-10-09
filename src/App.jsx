@@ -1,22 +1,34 @@
 import React from "react";
 import { Field } from "./art/Field.jsx";
 import { Overlay } from "./ui/Overlay.jsx";
-import { ProjectSheet } from "./ui/ProjectSheet.jsx";
+import { ProjectPage } from "./ui/ProjectPage.jsx";
 import { Works } from "./art/Works.jsx";
 import { SAMPLE_PROJECTS } from "./data.js";
 
 const PROJECTS = [...SAMPLE_PROJECTS].sort((a, b) => a.index - b.index);
+const FALLBACK_MS = 1500; // the outgoing side goes anyway if the incoming one never says it's ready
+const GONE_MS = 1200;     // a page that's leaving stays this long, to un-grow
 
 /**
  * App — one sheet of paper that things grow on, with a little text over it.
- * The only route is '#work/<slug>', which opens that project's sheet; anything
+ * The only route is '#work/<slug>', which opens that project's page; anything
  * else is the field alone. The field stays mounted throughout, so navigating
  * never erases what has grown.
  *
- * Opening the Works fold takes the field's growth back to bare paper and
- * surfaces the projects in it (Works); closing it un-grows the projects and
- * grows the field back. Works stays up under an open sheet, so closing the
- * sheet returns to it.
+ * Three things can be on the paper: the field's growth, Works (the projects
+ * surfaced in it, while its fold is open), and a project's page. One at a
+ * time, and when one goes and another comes they run at the same moment
+ * (vault/Rules.md): the incoming one gets itself ready (its figures, its
+ * layout), says so, and starts growing as the outgoing one starts going
+ * back. Should it never say so, the outgoing one goes anyway, after a bit.
+ *
+ *   field → Works      Works ready: the field retracts.
+ *   Works → project    the page ready: Works un-grows.
+ *   field → project    the page ready: the field retracts.
+ *   project → project  the new page ready: the old one un-grows.
+ *   project → Works    (closing it with the fold open) Works ready: the page un-grows.
+ *   project → field    the page un-grows as the field regrows.
+ *   Works → field      Works un-grows as the field regrows.
  */
 export default function App() {
   const [hash, setHash] = React.useState(window.location.hash);
@@ -33,7 +45,6 @@ export default function App() {
   const slug = hash.startsWith("#work/") ? hash.slice("#work/".length) : null;
   const at = PROJECTS.findIndex((p) => p.slug === slug);
   const project = at >= 0 ? PROJECTS[at] : null;
-  const next = project ? PROJECTS[(at + 1) % PROJECTS.length] : null;
 
   React.useEffect(() => {
     if (slug && !project) window.location.hash = "";
@@ -43,36 +54,84 @@ export default function App() {
     document.title = project ? `${project.title} · Daniel Kaliko` : "Daniel Kaliko";
   }, [project]);
 
-  // Works stays mounted for a moment after its fold closes, to un-grow.
-  // The field goes the other way: back to paper as Works opens, growing
-  // again as it closes. One goes as the other comes, at the same moment
-  // (see vault/Rules.md): Works gets itself ready first (its figures, its
-  // layout), then says so, and the field starts back as Works starts to
-  // grow. Should Works not manage it, the field goes anyway, after a bit.
   const worksOpen = open === "works";
-  const [worksMounted, setWorksMounted] = React.useState(false);
-  const [worksVisit, setWorksVisit] = React.useState(0);
-  const wasOpen = React.useRef(false);
-  const openRef = React.useRef(false);
-  openRef.current = worksOpen;
-  const worksReady = React.useCallback(() => { if (openRef.current) fieldRef.current?.retract(); }, []);
+  const now = React.useRef({});
+  now.current = { worksOpen, slug: project?.slug ?? null };
+
+  // The field: bare while Works or a page is up, grown otherwise.
+  const bare = worksOpen || !!project;
+  const retractField = React.useCallback(() => {
+    if (now.current.worksOpen || now.current.slug) fieldRef.current?.retract();
+  }, []);
   React.useEffect(() => {
-    if (worksOpen) {
-      setWorksVisit((v) => v + 1); // each opening grows a fresh Works
-      setWorksMounted(true);
-      wasOpen.current = true;
-      const t = setTimeout(worksReady, 1500);
+    if (bare) {
+      const t = setTimeout(retractField, FALLBACK_MS);
       return () => clearTimeout(t);
     }
-    setHovered(null);
-    if (!wasOpen.current) return;
-    wasOpen.current = false;
     fieldRef.current?.regrow();
+  }, [bare, retractField]);
+
+  // Pages: the current one, and any still un-growing on their way out.
+  const [pages, setPages] = React.useState([]); // [{ slug, id, leaving, at }]
+  const [readySlug, setReadySlug] = React.useState(null); // the page last ready, while any is up
+  const seq = React.useRef(0);
+  const leavePages = React.useCallback((keep) => {
+    setPages((ps) => ps.map((pg) => (pg.leaving || pg.slug === keep ? pg : { ...pg, leaving: true, at: performance.now() })));
+  }, []);
+  const pageReady = React.useCallback((s) => {
+    if (s !== now.current.slug) return;
+    setReadySlug(s);
+    leavePages(s);
+    retractField();
+  }, [leavePages, retractField]);
+  React.useEffect(() => {
+    if (project) {
+      const s = project.slug;
+      setPages((ps) => (ps.some((pg) => pg.slug === s && !pg.leaving) ? ps : [...ps, { slug: s, id: ++seq.current, leaving: false }]));
+      const t = setTimeout(() => pageReady(s), FALLBACK_MS);
+      return () => clearTimeout(t);
+    }
+    setReadySlug(null);
+    // Back to the field: go now, as it regrows. Back to Works: when it's
+    // ready (worksReady), or after a bit.
+    if (!now.current.worksOpen) { leavePages(null); return; }
+    const t = setTimeout(() => leavePages(null), FALLBACK_MS);
+    return () => clearTimeout(t);
+  }, [project, pageReady, leavePages]);
+  React.useEffect(() => {
+    const out = pages.filter((pg) => pg.leaving);
+    if (!out.length) return;
+    const due = Math.max(0, Math.min(...out.map((pg) => pg.at + GONE_MS)) - performance.now());
+    const t = setTimeout(() => setPages((ps) => ps.filter((pg) => !pg.leaving || pg.at + GONE_MS > performance.now())), due + 20);
+    return () => clearTimeout(t);
+  }, [pages]);
+
+  // Works: up while its fold is open, except under a page (it stays until
+  // the first page is ready, then un-grows). It stays mounted a moment
+  // after, to un-grow; each time it comes back it grows afresh.
+  const worksWanted = worksOpen && (!project || !readySlug);
+  const [worksMounted, setWorksMounted] = React.useState(false);
+  const [worksVisit, setWorksVisit] = React.useState(0);
+  const wasWanted = React.useRef(false);
+  const worksReady = React.useCallback(() => {
+    retractField();
+    if (!now.current.slug) leavePages(null);
+  }, [retractField, leavePages]);
+  React.useEffect(() => {
+    if (worksWanted) {
+      setWorksVisit((v) => v + 1);
+      setWorksMounted(true);
+      wasWanted.current = true;
+      return;
+    }
+    if (!wasWanted.current) return;
+    wasWanted.current = false;
     const t = setTimeout(() => setWorksMounted(false), 1000);
     return () => clearTimeout(t);
-  }, [worksOpen]);
+  }, [worksWanted]);
+  React.useEffect(() => { if (!worksOpen) setHovered(null); }, [worksOpen]);
 
-  // Escape closes Works (an open sheet handles Escape itself, first).
+  // Escape closes Works (an open page handles Escape itself, first).
   React.useEffect(() => {
     if (!worksOpen || project) return;
     const onKey = (e) => { if (e.key === "Escape") setOpen(null); };
@@ -86,7 +145,7 @@ export default function App() {
 
   return (
     <>
-      <Field ref={fieldRef} dimmed={!!project} />
+      <Field ref={fieldRef} />
       {worksMounted && (
         <Works
           key={worksVisit}
@@ -95,12 +154,24 @@ export default function App() {
           hovered={hovered}
           onHover={setHovered}
           onClose={closeWorks}
-          dimmed={!!project}
-          leaving={!worksOpen}
+          leaving={!worksWanted}
         />
       )}
-      <Overlay open={open} setOpen={setOpen} onReset={reset} projects={PROJECTS} hovered={hovered} onHover={setHovered} />
-      {project && <ProjectSheet project={project} next={next !== project ? next : null} onClose={close} />}
+      {pages.map((pg) => {
+        const i = PROJECTS.findIndex((p) => p.slug === pg.slug);
+        const next = PROJECTS[(i + 1) % PROJECTS.length];
+        return (
+          <ProjectPage
+            key={pg.id}
+            project={PROJECTS[i]}
+            next={next.slug !== pg.slug ? next : null}
+            leaving={pg.leaving}
+            onReady={pageReady}
+            onClose={close}
+          />
+        );
+      })}
+      <Overlay open={open} setOpen={setOpen} onReset={reset} projects={PROJECTS} hovered={hovered} onHover={setHovered} current={project?.slug ?? null} />
     </>
   );
 }

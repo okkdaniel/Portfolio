@@ -7,6 +7,9 @@ updated: 2026-10-05
 
 Newest first. Commit hashes are on `redesign`. See [[Home]].
 
+## 2026-10-08
+- Project pages rebuilt (Daniel: "full creative freedom"): the page is the paper itself, a specimen plate. The figure large in its own growth, its parts labelled on hairline leaders that follow them (hover a label to show that part; numbers + key on phones), the title as the caption, then the write-up open and set in serif. Works/field/pages hand over by the grow-as-the-other-retracts rule. Old sheet (ProjectSheet, Specimen) removed. See [[Project sheets]].
+
 ## 2026-10-07
 - Stand: unfolding dropped for a turntable (pointer turns it round, a little up and down; same size, stays on the ground). Daniel wanted the interaction reworked from the ground up.
 - Rival figure now isometric (az −45°, el 35.26°), was dimetric.

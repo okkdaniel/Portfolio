@@ -9,7 +9,7 @@
 // floor in front, REST is as modelled, 1 is the elevator out and the wrist
 // tipped out forward, as far as reaches furthest. Shown in isometric view,
 // drawn a little smaller than the others (it reads large otherwise).
-import { spring, THREE } from "./lines.js";
+import { spring, pin, THREE } from "./lines.js";
 
 const IN = 0.0254;
 const URL = "/assets/projects/rival-2025c-lines.glb";
@@ -49,6 +49,14 @@ export async function make(view) {
   view.scene.updateMatrixWorld(true);
   view.aim(new THREE.Box3().setFromObject(view.scene).getCenter(new THREE.Vector3()));
 
+  // The parts its page labels (from the CAD), and the pose that shows each.
+  // The front faces -y; the camera looks from the front right.
+  const notes = [
+    { id: "drive", label: "Mecanum drive", obj: b.static, at: pin(view, b.static, [1, 0.02, 0.08]), cycle: REST },
+    { id: "elevator", label: "Elevator, two stages", sub: "leaning 33° forward", obj: b.stage, at: pin(view, b.stage, [0.5, 0.5, 1]), cycle: 1 },
+    { id: "wrist", label: "Intake, on a wrist", obj: b.wrist, at: pin(view, b.wrist, [0.5, 0, 0.5]), cycle: 0 },
+  ];
+
   const deg = THREE.MathUtils.degToRad;
   const pose = (e) => {
     const up = ease((e - REST) / (1 - REST));
@@ -84,5 +92,7 @@ export async function make(view) {
     hover(on) { cycle.t = on ? HOVER : REST; },
     point(_px, py) { cycle.t = cycleAt(py); return read(cycle.t); },
     leave() { cycle.t = REST; return "rest"; },
+    notes,
+    show(id) { const n = notes.find((m) => m.id === id); if (n) cycle.t = n.cycle; return read(cycle.t); },
   };
 }

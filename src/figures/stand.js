@@ -13,7 +13,7 @@
 // The unfolding it used to do (sheet metal unrolled along the neutral
 // surface, matching the CAD flat pattern) is in git history before this
 // note; see vault/CAD figures.md.
-import { THREE } from "./lines.js";
+import { pin, THREE } from "./lines.js";
 
 const URL = "/assets/projects/monitor-stand-lines.glb";
 export const config = { az: -38, el: 24, sil: [0.0012, 0.0035], url: URL };
@@ -64,6 +64,15 @@ export async function make(view) {
     group.quaternion.copy(tip).multiply(spin);
   };
 
+  // The parts its page labels (from the CAD and Daniel's write-up), and the
+  // view that shows each. It stands with its walls at either end along x,
+  // the camera looking from the +x, -y side.
+  const notes = [
+    { id: "tab", label: "Mounting tab", sub: "lines up with a standard monitor", obj: root, at: pin(view, root, new THREE.Vector3(0.03, -0.01, 0.062)), view: [-30, 8] },
+    { id: "pockets", label: "Weight reduction pockets", obj: root, at: pin(view, root, new THREE.Vector3(0.06, 0.03, 0.035)), view: [28, 0] },
+    { id: "sheet", label: "One sheet, 1/8 in", sub: "bent with a 1/16 in inside radius", obj: root, at: pin(view, root, [0.5, 0.15, 0]), view: [10, 14] },
+  ];
+
   const turn = settle(0), rise = settle(0);
   const dims = `${(size.x / IN).toFixed(1)} × ${(size.y / IN).toFixed(1)} × ${(size.z / IN).toFixed(1)} in`;
 
@@ -90,5 +99,7 @@ export async function make(view) {
       return dims;
     },
     leave() { turn.t = rise.t = 0; return "rest"; },
+    notes,
+    show(id) { const n = notes.find((m) => m.id === id); if (n) [turn.t, rise.t] = n.view; return dims; },
   };
 }

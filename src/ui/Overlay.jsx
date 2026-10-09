@@ -12,8 +12,11 @@ export const PROFESSIONAL_URL = "https://old.danielkaliko.com";
  * Overlay — the only text on the piece. A name and three folds
  * (Works / About / Contact) in the top-left; a reset control and hint in the
  * bottom-left; the clock in the bottom-right. Only one fold is open at a time.
+ * While a project's page is up (`current`), its entry in Works is marked, the
+ * reset control goes (there's no field to clear), and on phones the head
+ * gives way to the page.
  */
-export function Overlay({ open, setOpen, onReset, projects, hovered, onHover }) {
+export function Overlay({ open, setOpen, onReset, projects, hovered, onHover, current = null }) {
   const isTouch = useMediaQuery("(hover: none)");
   const toggle = (key) => setOpen(open === key ? null : key);
   // Reaching for Works starts making its figures (fetching their models,
@@ -32,7 +35,7 @@ export function Overlay({ open, setOpen, onReset, projects, hovered, onHover }) 
   }, [warmWorks]);
 
   return (
-    <div className="overlay">
+    <div className={`overlay${current ? " overlay--page" : ""}`}>
       <header className="ov-head" data-keepout>
         <div className="ov-top">
           <h1 className="ov-name">Daniel Kaliko</h1>
@@ -40,7 +43,7 @@ export function Overlay({ open, setOpen, onReset, projects, hovered, onHover }) 
 
         <Fold id="works" label="Works" open={open === "works"} onToggle={toggle} onIntent={warmWorks}>
           <ol className="works">
-            {projects.map((p) => <WorkItem key={p.slug} project={p} hot={hovered === p.slug} onHover={onHover} />)}
+            {projects.map((p) => <WorkItem key={p.slug} project={p} hot={hovered === p.slug} current={current === p.slug} onHover={onHover} />)}
           </ol>
         </Fold>
 
@@ -107,13 +110,14 @@ function Fold({ id, label, open, onToggle, onIntent, children }) {
   );
 }
 
-function WorkItem({ project: p, hot, onHover }) {
+function WorkItem({ project: p, hot, current, onHover }) {
   const preload = usePreloadProject(p);
   return (
     <li>
       <a
         href={`#work/${p.slug}`}
-        className={hot ? "is-hot" : undefined}
+        className={[hot && "is-hot", current && "is-current"].filter(Boolean).join(" ") || undefined}
+        aria-current={current ? "page" : undefined}
         onMouseEnter={() => { preload(); onHover?.(p.slug); }}
         onMouseLeave={() => onHover?.(null)}
         onFocus={() => { preload(); onHover?.(p.slug); }}

@@ -147,239 +147,320 @@
   .clock__place { display: none; }
 }
 
-/* ---- project sheet ------------------------------------------------------ */
+/* ---- project page ------------------------------------------------------- */
+/* A project, on the paper itself (ProjectPage.jsx): a scrolling layer over
+   the field (taken back to bare paper meanwhile), under the head, which
+   keeps its column on the left. Its growth comes and goes by itself; its
+   text fades. */
 
-.sheet-backdrop {
+@keyframes fade-in { from { opacity: 0; } }
+
+.overlay a.is-current .works__n { color: var(--accent); }
+.overlay a.is-current { color: var(--ink); }
+.overlay--page .ov-foot--left { display: none; }
+
+.page {
+  --page-left: calc(var(--gutter) + 320px + 72px);
+  --page-right: 56px;
   position: fixed;
   inset: 0;
-  z-index: 10;
-}
-
-.sheet {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 11;
-  width: min(700px, 100vw);
+  z-index: 2;
+  overflow-x: hidden;
   overflow-y: auto;
-  --sheet-pad: 44px;
-  padding: 0 var(--sheet-pad) 96px;
-  background: var(--paper);
-  border-left: 1px solid var(--hair);
-  animation: slide-in 0.6s var(--ease);
+  padding: 0 var(--page-right) 140px var(--page-left);
   scrollbar-width: thin;
   scrollbar-color: var(--faint) transparent;
 }
 
-@keyframes fade-in { from { opacity: 0; } }
-@keyframes slide-in { from { transform: translateX(40px); opacity: 0; } }
+/* The text comes in a beat after the growth starts, and goes first. */
+.page__bar,
+.page__note,
+.page__leaders,
+.page__key,
+.page__foot,
+.write,
+.page__next {
+  opacity: 0;
+  transition: opacity 0.7s var(--ease) 0.35s;
+}
+.page--shown :is(.page__bar, .page__note, .page__leaders, .page__key, .page__foot, .write, .page__next) { opacity: 1; }
+.page--leaving { pointer-events: none; }
+.page--leaving :is(.page__bar, .page__note, .page__leaders, .page__key, .page__foot, .write, .page__next) {
+  opacity: 0;
+  transition: opacity 0.35s var(--ease);
+}
 
-.sheet__bar {
+.page__bar {
   position: sticky;
   top: 0;
   z-index: 5;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 22px 0 14px;
-  margin-bottom: 22px;
-  background: var(--paper);
+  padding: 24px 0 16px;
+  transition: background-color 0.3s var(--ease), opacity 0.7s var(--ease) 0.35s;
 }
-
-.sheet__meta {
+/* Clear at the top, so a figure reaching up shows through; paper once the
+   page scrolls under it. */
+.page--scrolled .page__bar { background: var(--paper); }
+.page__meta {
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--dim);
 }
+.page__close { color: var(--dim); transition: color 0.25s; }
+.page__close:hover { color: var(--accent); }
 
-.sheet__close { color: var(--dim); transition: color 0.25s; }
-.sheet__close:hover { color: var(--accent); }
-
-.sheet__title {
-  margin: 0 0 14px;
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-size: clamp(34px, 5vw, 52px);
-  line-height: 1.02;
-  letter-spacing: -0.015em;
-}
-
-.sheet__lede {
-  margin: 0 0 30px;
-  max-width: 46ch;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 20px;
-  line-height: 1.4;
-  color: var(--dim);
-}
-
-/* Wireframes are dark lines on transparency: they sit on the paper as ink. */
-.drawing {
-  display: block;
-  width: 100%;
-  cursor: zoom-in;
-}
-.drawing img {
-  display: block;
-  width: 100%;
-  opacity: 0.85;
-}
-.drawing--still { cursor: default; margin-top: 40px; opacity: 0.5; }
-
-/* Renders are cut out, so they sit straight on the paper, in their own patch
-   of growth (art/Specimen.jsx). The growth's canvas reaches out to the
-   sheet's edges and a little above and below the render, behind everything:
-   the sheet is its own stacking context, so z-index -1 lands above the
-   sheet's paper but under its content. */
-.plate { position: relative; }
-
-.plate__ink {
+/* The plate: the object in its growth, labelled, captioned. */
+.page__plate { position: relative; }
+.page__ink {
   position: absolute;
-  z-index: -1;
-  top: -24px;
-  left: calc(-1 * var(--sheet-pad));
-  width: calc(100% + 2 * var(--sheet-pad));
-  height: calc(100% + 24px + 96px);
+  z-index: 0;
+  top: 0;
+  left: calc(-1 * var(--page-left));
+  width: calc(100% + var(--page-left) + var(--page-right));
+  height: 100%;
   pointer-events: none;
   transition: opacity 0.6s var(--ease);
 }
-
-.object {
-  position: relative;
-  width: min(80%, 460px);
-  margin-left: auto;
-}
-
-/* The figure: the object drawn as lines from its CAD (src/figures). It sits
-   at the foot of the object column; its paper covers the growth behind it. */
-.figure {
-  display: flex;
-  justify-content: flex-end;
+.page__stage { position: relative; z-index: 1; }
+.page__fig {
+  position: absolute;
   touch-action: none; /* a drag drives the figure */
   transition: opacity 0.5s var(--ease);
 }
-.figure__canvas { display: block; }
-/* What the figure is showing ("L3", "90°"), under it, on the right. */
-.plate__read {
-  margin: 6px 0 34px auto;
-  width: min(80%, 460px);
-  text-align: right;
+.page__canvas { display: block; }
+.page__model { position: absolute; z-index: 2; animation: fade-in 0.6s var(--ease); }
+.page--lifted .page__fig,
+.page--lifted .page__leaders,
+.page--lifted .page__note { opacity: 0; pointer-events: none; }
+.page--lifted .page__ink { opacity: 0.22; }
+
+/* Leaders: hairlines from each label to its part, a dot on the part. */
+.page__leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.page__leaders path { fill: none; stroke: var(--ink); stroke-width: 0.75; opacity: 0.5; transition: stroke 0.25s, opacity 0.25s; }
+.page__leaders [data-dot] { fill: var(--ink); transition: fill 0.25s; }
+.page__leaders .is-on path { stroke: var(--accent); opacity: 1; }
+.page__leaders .is-on [data-dot] { fill: var(--accent); }
+/* On narrow screens, numbers on the parts instead. */
+.page__leaders [data-mark] circle { fill: var(--paper); stroke: var(--ink); stroke-width: 0.75; transition: stroke 0.25s; }
+.page__leaders [data-mark] text { font: 10px var(--font-mono); fill: var(--ink); text-anchor: middle; }
+.page__leaders [data-mark].is-on circle { stroke: var(--accent); }
+.page__leaders [data-mark].is-on text { fill: var(--accent); }
+
+.page__note {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  cursor: default;
+}
+.page__note--left { text-align: right; }
+.page__note--right { text-align: left; }
+.page__note-label { display: block; transition: color 0.25s; }
+.page__note-sub { display: block; margin-top: 2px; font-size: 10.5px; color: var(--faint); }
+.page__note.is-on .page__note-label,
+.page__note:focus-visible .page__note-label { color: var(--accent); }
+
+.page__key {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.page__key button {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  text-align: left;
+  font-size: 12px;
+  color: var(--ink);
+}
+.page__key .page__note-sub { display: inline; margin: 0 0 0 10px; }
+.page__key-n {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border: 0.75px solid var(--ink);
+  border-radius: 50%;
+  font-size: 10px;
+  transition: color 0.25s, border-color 0.25s;
+}
+.page__key button.is-on, .page__key button.is-on .page__key-n { color: var(--accent); border-color: var(--accent); }
+
+/* The caption under it, and on the right what it's showing, the 3D model,
+   the facts. */
+.page__foot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 48px;
+  padding-top: 30px;
+}
+.page__caption { max-width: 620px; }
+.page__title {
+  margin: 0 0 14px;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(38px, 4.2vw, 62px);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+.page__lede {
+  margin: 0;
+  max-width: 44ch;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 21px;
+  line-height: 1.4;
+  color: var(--dim);
+}
+.page__side { flex: none; width: 300px; }
+.page__read {
+  margin: 0 0 8px;
   font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--faint);
 }
-.plate--model + .plate__read { margin-bottom: 8px; }
-
-/* Picked up: the render gives way to the 3D model in the same box, and the
-   growth fades back so the object stands alone. */
-.object__model {
-  position: absolute;
-  inset: 0;
-  animation: fade-in 0.6s var(--ease);
-}
-.plate--lifted .plate__ink { opacity: 0.22; }
-.plate--lifted .figure { opacity: 0; pointer-events: none; }
-
-.plate__lift {
+.page__lift {
   display: block;
-  margin: 0 0 38px;
+  margin: 0 0 22px;
   color: var(--dim);
   letter-spacing: 0.04em;
   transition: color 0.25s;
 }
-.plate__lift:hover { color: var(--accent); }
-/* Always laid out, so the growth's clearing around the control fits it. */
-.plate__hint {
-  visibility: hidden;
-  margin-left: 14px;
-  color: var(--faint);
-}
-.plate__lift[aria-pressed="true"] .plate__hint { visibility: visible; }
+.page__lift:hover { color: var(--accent); }
+.page__hint { margin-left: 14px; color: var(--faint); }
 
-.sheet__facts {
+.page__facts { display: grid; gap: 6px; margin: 0; }
+.page__facts > div {
   display: grid;
-  gap: 6px;
-  margin: 0 0 30px;
-}
-.sheet__facts > div {
-  display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 110px 1fr;
   gap: 12px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--hair);
 }
-.sheet__facts dt {
+.page__facts dt {
+  padding-top: 2px;
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--faint);
-  padding-top: 2px;
 }
-.sheet__facts dd { margin: 0; color: var(--ink); }
-.sheet__facts--tight { margin: 0; }
+.page__facts dd { margin: 0; font-size: 12px; color: var(--ink); }
 
-.sheet__notes-toggle {
-  color: var(--dim);
-  letter-spacing: 0.04em;
-  transition: color 0.25s;
-}
-.sheet__notes-toggle:hover { color: var(--accent); }
-
-.notes {
-  margin-top: 26px;
-  max-width: 60ch;
-  color: #3d423b;
-  font-size: 12.5px;
-  line-height: 1.8;
-  animation: fade-in 0.6s var(--ease);
-}
-.notes p { margin: 0 0 12px; }
-.notes ul { margin: 0; padding-left: 16px; }
-.notes__summary {
+/* The write-up: a label column, and the text, set to read. */
+.write { max-width: 940px; margin-top: 150px; }
+.write__summary {
+  max-width: 30em;
+  margin: 0 0 96px;
   font-family: var(--font-serif);
-  font-size: 18px;
-  line-height: 1.5;
+  font-size: clamp(24px, 2.3vw, 31px);
+  line-height: 1.32;
   color: var(--ink);
 }
-.notes__block { margin-top: 30px; }
-.notes__block h3 {
-  margin: 0 0 10px;
+.write__part {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 32px;
+  margin-bottom: 64px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hair);
+}
+.write__part h3 {
+  margin: 0;
+  padding-top: 7px;
   font-size: 10px;
   font-weight: 400;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--accent);
 }
-.notes__challenge h4 { margin: 0 0 4px; font-weight: 500; color: var(--ink); }
-
-.sheet__next {
-  display: block;
-  margin-top: 60px;
-  padding-top: 18px;
-  border-top: 1px solid var(--hair);
+.write__body {
+  max-width: 62ch;
   font-family: var(--font-serif);
-  font-size: 22px;
+  font-size: 21px;
+  line-height: 1.5;
+  color: #2c302a;
+}
+.write__body p { margin: 0 0 14px; }
+.write__body p:last-child { margin-bottom: 0; }
+.write__goals { margin: 0; padding: 0; list-style: none; }
+.write__goals li { padding: 7px 0; border-bottom: 1px solid var(--hair); }
+.write__goals li:first-child { padding-top: 0; }
+.write__challenges { display: grid; gap: 30px; margin: 0; padding: 0; list-style: none; }
+.write__challenges li { display: grid; grid-template-columns: 38px minmax(0, 1fr); }
+.write__n { grid-row: span 2; padding-top: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--faint); }
+.write__challenges h4 { margin: 0 0 4px; font-weight: 500; font-size: 23px; line-height: 1.25; color: var(--ink); }
+.write__challenges p { grid-column: 2; }
+.write__body .page__facts dd { font-size: 13px; }
+.write__body .link { font-family: var(--font-mono); font-size: 13px; }
+.write__render { display: block; width: min(100%, 640px); }
+
+.page__next {
+  display: grid;
+  grid-template-columns: 180px auto minmax(0, 1fr);
+  gap: 32px;
+  align-items: baseline;
+  max-width: 940px;
+  margin-top: 110px;
+  padding-top: 22px;
+  border-top: 1px solid var(--hair);
   transition: color 0.25s;
 }
-.sheet__next span {
-  margin-right: 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.sheet__next:hover { color: var(--accent); }
+.page__next-label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
+.page__next-n { margin-right: -18px; font-size: 11px; color: var(--faint); }
+.page__next-title { font-family: var(--font-serif); font-size: 32px; line-height: 1.1; }
+.page__next:hover { color: var(--accent); }
+
+/* Not room for the labels beside it: numbers on it, a key under it, the
+   caption over the facts. */
+.page__plate--compact .page__foot { flex-direction: column; align-items: stretch; gap: 26px; }
+.page__plate--compact .page__side { width: auto; }
 
 @media (max-width: 768px) {
-  .sheet { --sheet-pad: var(--gutter); padding: 0 var(--sheet-pad) 80px; border-left: 0; }
-  .sheet__facts > div { grid-template-columns: 100px 1fr; }
-  .object { width: 90%; }
+  .page {
+    --page-left: var(--gutter);
+    --page-right: var(--gutter);
+    z-index: 4;
+    padding-bottom: 100px;
+  }
+  .overlay--page .ov-head,
+  .overlay--page .ov-foot { visibility: hidden; }
+  .page__bar { padding: 18px 0 12px; }
+  .page__title { font-size: 36px; }
+  .page__lede { font-size: 19px; }
+  .write { margin-top: 90px; }
+  .write__summary { margin-bottom: 60px; font-size: 23px; }
+  .write__part { grid-template-columns: 1fr; gap: 10px; margin-bottom: 44px; }
+  .write__body { font-size: 19px; }
+  .page__next { grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; margin-top: 70px; }
+  .page__next-label { grid-column: 1 / -1; }
+  .page__next-n { margin: 0; }
+  .page__next-title { font-size: 26px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sheet, .notes, .object__model { animation: none; }
+  .page__model { animation: none; }
+  .page__bar, .page__note, .page__leaders, .page__key, .page__foot, .write, .page__next { transition: none; }
 }

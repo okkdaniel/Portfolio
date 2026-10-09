@@ -15,6 +15,10 @@
 //              from the ground up in the site's dots; created hidden.
 //   point(px, py) / leave()  a project page: px, py are 0..1 across and up
 //              the canvas; each returns the read-out text.
+//   notes      [{ id, label, sub }]: the parts its page labels.
+//   show(id)   poses it to show that part; returns the read-out text.
+//   anchors()  [{ id, x, y }]: where each labelled part is now, in canvas px.
+//   onFrame(fn)  calls fn after every frame drawn; returns a function to stop.
 //   destroy()
 import * as frc987 from "./frc987.js";
 import * as stand from "./stand.js";
@@ -48,6 +52,8 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     new THREE.Vector3(out(boxes.all.max.x, rc.x), out(boxes.all.max.y, rc.y), boxes.all.max.z));
 
   let raf = 0, last = 0, alive = true;
+  const watchers = new Set();
+  const drawn = () => { for (const fn of watchers) fn(); };
   // The reveal: an ease from `from` to `to`, `delay` seconds after `start`
   // (when it was asked for), over `dur`. Timed by the clock, not by frames,
   // so a busy first frame (a model decoding) can't hold it back.
@@ -100,6 +106,7 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     acc = 0;
     const growing = stepReveal(), zooming = stepZoom();
     view.draw();
+    drawn();
     if (moving || growing || zooming) raf = requestAnimationFrame(loop);
   };
   // Woken, the first frame draws at once; then 20fps.
@@ -120,6 +127,7 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
       base = { ...view.frame };
       frameZoom(zm.x);
       fig.step(0); view.draw();
+      drawn();
     },
     /** The figure's shape as it stands, at no zoom (for the growth to plant round). */
     silhouette: () => { fig.step(0); frameZoom(0); const m = view.silhouette(); frameZoom(zm.x); return m; },
@@ -133,6 +141,16 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     },
     point(px, py) { const r = fig.point(px, py); zoom(true); wake(); return r; },
     leave() { const r = fig.leave(); zoom(false); wake(); return r; },
+    notes: (fig.notes ?? []).map(({ id, label, sub }) => ({ id, label, sub })),
+    show(id) { const r = fig.show?.(id) ?? ""; zoom(true); wake(); return r; },
+    anchors() {
+      const w = canvas.clientWidth, h = canvas.clientHeight, v = new THREE.Vector3();
+      return (fig.notes ?? []).map(({ id, obj, at }) => {
+        obj.localToWorld(v.copy(at)).project(view.camera);
+        return { id, x: ((v.x + 1) / 2) * w, y: ((1 - v.y) / 2) * h };
+      });
+    },
+    onFrame(fn) { watchers.add(fn); return () => watchers.delete(fn); },
     destroy() { alive = false; cancelAnimationFrame(raf); view.dispose(); },
   };
 }

@@ -6,7 +6,7 @@
 //
 // One number poses it all, the cycle: 0 is the intake out on the floor, REST
 // is everything stowed, 1 is the elevator out and the arm at its angle.
-import { spring, THREE } from "./lines.js";
+import { spring, pin, THREE } from "./lines.js";
 
 const IN = 0.0254;
 const URL = "/assets/projects/frc-987-lines.glb";
@@ -55,6 +55,15 @@ export async function make(view) {
   // it came out 7" short and slid down the stage.)
   const carriageRun = STAGE_RUN;
 
+  // The parts its page labels (from Daniel's write-up and his numbers), and
+  // the pose that shows each.
+  const notes = [
+    { id: "intake", label: "Ground intake", sub: "swings 144° out to the floor", obj: b.intake, at: pin(view, b.intake, [0.5, 0.5, 0.5]), cycle: 0 },
+    { id: "elevator", label: "Elevator, belt driven", sub: "38.5 to 65 in", obj: b.stage, at: pin(view, b.stage, [0.5, 0.5, 0.92]), cycle: 0.75 },
+    { id: "arm", label: "Scoring arm, carbon fiber", sub: "the gripper's belt runs through it", obj: b.arm, at: pin(view, b.arm, [0.5, 0.5, 0.5]), cycle: 1 },
+  ];
+  const level = (c) => (c < REST - 0.001 ? "intake" : c <= REST + 0.001 ? "rest" : `L${Math.min(4, Math.max(1, Math.ceil(((c - REST) / (1 - REST)) * 4)))}`);
+
   const pose = (e) => {
     const run = ease((e - 0.24) / 0.76);
     b.stage.position.z = STAGE_RUN * run;
@@ -90,5 +99,7 @@ export async function make(view) {
       return py < INTAKE_ZONE ? "intake" : `L${Math.min(4, Math.max(1, Math.ceil(((py - INTAKE_ZONE) / (0.95 - INTAKE_ZONE)) * 4)))}`;
     },
     leave() { cycle.t = REST; return "rest"; },
+    notes,
+    show(id) { const n = notes.find((m) => m.id === id); if (n) cycle.t = n.cycle; return level(cycle.t); },
   };
 }

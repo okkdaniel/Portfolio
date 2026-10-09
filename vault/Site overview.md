@@ -5,7 +5,7 @@ updated: 2026-10-05
 
 # Site overview
 
-React 18 + Vite 5 single page. Hash routing only: `#work/<slug>` opens a project sheet; anything else is the field. See [[Home]].
+React 18 + Vite 5 single page. Hash routing only: `#work/<slug>` opens a project page; anything else is the field. See [[Home]].
 
 ## What's on screen
 
@@ -15,13 +15,13 @@ React 18 + Vite 5 single page. Hash routing only: `#work/<slug>` opens a project
   - *About*: UNR, Las Vegas, Sloan Canyon Robotics, FRC Team 987, link to old.danielkaliko.com.
   - *Contact*: email (stored encrypted, `src/utils/email.js`), GitHub @okkdaniel, LinkedIn /in/daniel-kaliko, résumé PDF.
 - Bottom-left: ↻ (clear the paper) and "(click to grow)". Bottom-right: live Las Vegas clock.
-- **Project sheet** (`src/ui/ProjectSheet.jsx`): slides in from the right. See [[Project sheets]].
+- **Project page** (`src/ui/ProjectPage.jsx`): the paper itself, as a specimen plate, then the write-up. See [[Project sheets]].
 
 ## Code map
 
 ```
 src/
-  App.jsx              field + overlay; '#work/<slug>' opens a sheet
+  App.jsx              field, Works, pages, overlay; hands over between them
   styles.css           tokens + base (imports art/art.css, ui/ui.css)
   data.js              project records (title, renders, glb, plant, case study)
   art/
@@ -31,9 +31,8 @@ src/
     growth.js          inkLayer (scratch + multiply flush), createGrowth
                        (record, ease, 12fps playback, timeline for offline)
     Field.jsx          the window canvas: frog, input, keep-outs/veil, resize
-    Specimen.jsx       a sheet's render in its growth; 3D lift
     Works.jsx          projects as silhouettes in the paper while Works is open
-  ui/                  Overlay, Clock, ProjectSheet, ui.css
+  ui/                  Overlay, Clock, ProjectPage, ui.css
   components/media/    ModelPlate (3D, model-viewer), ImageLightbox
 tools/frog-reveal/     video renderer (dev only, not deployed)
 media/frog-reveal/     rendered videos (committed)

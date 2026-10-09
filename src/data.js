@@ -8,7 +8,7 @@
 // into an interactive, orbitable 3D viewer; `preview` is still required as its
 // instant poster/fallback. Paths are absolute against /public.
 //
-// `plant` is what grows beside the render on the sheet (see art/Specimen.jsx):
+// `plant` is what grows round the figure on its page (see ui/ProjectPage.jsx):
 // "conifer", "cedar" or "fern". `seed` optionally picks a different (but
 // still repeatable) version of that growth; it defaults to the slug.
 //

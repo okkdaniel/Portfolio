@@ -266,4 +266,36 @@ export function spring(x) {
   };
 }
 
+/**
+ * A point on an object, for a label to point at: of its vertices near
+ * `want` as seen from the camera, the one nearest the camera (so it's on the
+ * side you see). `want` is a world point, or [fx, fy, fz]: fractions across
+ * the object's box. Returned in the object's own coordinates, so it moves
+ * with it; take it as the object stands as modelled.
+ */
+export function pin(view, obj, want) {
+  view.scene.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(obj);
+  const w = Array.isArray(want)
+    ? new THREE.Vector3(...want.map((f, i) => box.min.getComponent(i) + f * (box.max.getComponent(i) - box.min.getComponent(i))))
+    : want.clone();
+  const inv = view.camera.matrixWorldInverse, cw = w.clone().applyMatrix4(inv);
+  const reach = box.getSize(new THREE.Vector3()).length() * 0.03;
+  const v = new THREE.Vector3(), c = new THREE.Vector3();
+  let near = null, nd = Infinity, front = null, fz = -Infinity;
+  obj.traverse((o) => {
+    if (!o.isMesh) return;
+    const pos = o.geometry.getAttribute("position");
+    const step = Math.max(1, Math.floor(pos.count / 80000));
+    for (let i = 0; i < pos.count; i += step) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+      c.copy(v).applyMatrix4(inv);
+      const d = Math.hypot(c.x - cw.x, c.y - cw.y);
+      if (d < nd) { nd = d; near = v.clone(); }
+      if (d < reach && c.z > fz) { fz = c.z; front = v.clone(); }
+    }
+  });
+  return obj.worldToLocal(front ?? near ?? w);
+}
+
 export { THREE };

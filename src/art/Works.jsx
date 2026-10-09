@@ -393,7 +393,7 @@ function between(ea, eb, random) {
 }
 
 /** Points along the edge of a mask (page px), every few px. */
-function edgePoints(m, step = 3) {
+export function edgePoints(m, step = 3) {
   const out = [];
   const on = (x, y) => x >= 0 && y >= 0 && x < m.w && y < m.h && m.a[y * m.w + x] > 127;
   for (let y = 0; y < m.h; y += step) {

@@ -47,6 +47,12 @@ Daniel: "the growth will retract, then midway through the retraction it snaps to
 
 Daniel, after the fixes above: "it still snaps to the page… the growth doesnt happen on the page its opening, only the retraction" and the back-and-forth wasn't intuitive. A screencast showed why: Works' figures vanished in ~150 ms (the reveal eased out, front-loading it), and the page's big caption, labels and facts faded in as one block by ~0.75 s, before its growth showed. Now: reveal out eases in-out; Works' and pages' retractions run 1 s like the field's; the page's bar/caption fade in from 0.9 s over 1 s and its labels from 1.9 s. See the motion rule in [[Rules]].
 
+## The real snap: narrow windows (2026-10-08)
+
+Daniel: "it still just like snaps in and doesnt do the growth thing" in **Dia** (his main browser), though Edge was fine. Found with Claude in Chrome in Dia (window ~1270×840, stage < 820px, so the compact layout): the page measured its caption before the compact class applied (caption beside the facts, 212px), started growing, then the class applied (caption over the facts, 394px), the plate re-laid, and the second lay-out drew the growth complete. Big windows never switch layout, so headless tests at 1440×900 missed it. Fixed: whether it's narrow is known (a layout effect on the stage's width) before the first measurement; and a re-lay-out within 4 s of starting grows again instead of drawing complete (only a later one, a real resize, draws complete). Measured in Dia afterwards: Works drains over ~1 s while the page grows over ~3 s; back, the page drains as Works regrows.
+
+**Test at the window sizes Daniel uses**, in his browser when possible (Claude in Chrome in Dia), not just headless at 1440×900.
+
 ## Notes
 
 - The layout waits for `document.fonts.ready` (the caption's height sets the stage's) and re-lays on resize; any lay-out after the first draws the growth complete.

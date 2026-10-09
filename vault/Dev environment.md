@@ -28,3 +28,7 @@ Daniel's machine and how the work gets checked. See [[Home]].
 
 - `ffmpeg-static` has no Windows ARM build. Install with `npm_config_arch=x64`, then run `node node_modules/ffmpeg-static/install.js` with the same variable if the binary is missing (npm's allow-scripts blocks the install script). The x64 binary runs under emulation. Pass it to the renderer as `FFMPEG=<path>`.
 - No system font path is used in filters (drawtext was avoided).
+
+## Daniel's browser
+
+Daniel's main browser is **Dia** (Chromium 155, Windows on ARM, Qualcomm Adreno GPU, 1x, window ~1270x840 or narrower). Claude in Chrome connects to it; test motion there (sample canvases with javascript_tool, read logs with read_console_messages). Headless Edge at 1440x900 missed a bug that only showed at his window size (2026-10-08).

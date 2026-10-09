@@ -38,7 +38,11 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
   const leadersRef = React.useRef(null);
   const closeRef = React.useRef(null);
   const retractRef = React.useRef(() => {});
-  const grown = React.useRef(false); // grown once: any later lay-out draws complete
+  // started: it has begun growing (and said it's ready); grownAt: when its
+  // growth will have finished. A lay-out after that (a resize) draws
+  // complete; one before it grows again, so it never jumps to the end.
+  const started = React.useRef(false);
+  const grownAt = React.useRef(Infinity);
   const readyRef = React.useRef(onReady);
   readyRef.current = onReady;
   const [fig, setFig] = React.useState(null);
@@ -85,12 +89,24 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
   React.useEffect(() => { if (next && fig) whenIdle(() => preparePageFigure(next.slug)); }, [next, fig]);
 
   const notes = fig?.notes ?? [];
-  const compact = isPhone || (layout?.compact ?? false);
+  // Narrow: numbers on the parts and the caption over the facts. Known
+  // before anything is measured (from the stage's width, as soon as it's in
+  // the page), so the first lay-out is measured as it will stay.
+  const [narrow, setNarrow] = React.useState(null);
+  React.useLayoutEffect(() => {
+    const el = stageRef.current;
+    const check = () => setNarrow(el.clientWidth < 820);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const compact = isPhone || !!narrow;
 
   // Lay the plate out for the window as it is, then grow its plot. `now`
   // draws the growth complete (a resize) instead of growing it.
   React.useEffect(() => {
-    if (!fig) return;
+    if (!fig || narrow === null) return;
     const canvas = figRef.current.querySelector("canvas");
     const ink = inkRef.current, stage = stageRef.current, plate = plateRef.current;
     const layer = inkLayer(ink, isPhone ? 2.2 : 3);
@@ -106,7 +122,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
     // optical size, sitting on the stage's floor.
     const place = () => {
       const W = stage.clientWidth;
-      const compactNow = isPhone || W < 820;
+      const compactNow = compact;
       const foot = plate.querySelector(".page__foot")?.offsetHeight ?? 0;
       const bar = plate.parentElement.querySelector(".page__bar")?.offsetHeight ?? 0;
       const roomW = compactNow ? W : W - 2 * (LABEL_W + LABEL_GAP);
@@ -203,14 +219,15 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
         } finally {
           setRandom(null);
         }
-        const again = grown.current;
-        grown.current = true;
-        growth.plant(gens, { random, now: now || again, pace: 1.6, ease: 2 });
-        if (!again) {
+        const done = performance.now() > grownAt.current;
+        growth.plant(gens, { random, now: now || done, pace: 1.6, ease: 2 });
+        if (!started.current) {
+          started.current = true;
+          grownAt.current = performance.now() + (now ? 0 : 4000);
           fig.reveal(1, now ? {} : { delay: 0.6, duration: 2.6 });
           setShown(true);
           readyRef.current?.(p.slug);
-        } else fig.reveal(1);
+        } else if (done) fig.reveal(1);
       }));
       void box; void labels;
     };
@@ -244,7 +261,7 @@ export function ProjectPage({ project: p, next, leaving = false, onReady, onBack
       window.removeEventListener("resize", relay);
       growth.clear();
     };
-  }, [fig, isPhone, reducedMotion, p.slug, p.plant, p.seed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fig, compact, isPhone, narrow === null, reducedMotion, p.slug, p.plant, p.seed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => { if (leaving) retractRef.current(); }, [leaving]);
 

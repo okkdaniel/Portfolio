@@ -11,6 +11,9 @@
 //              Hovered (or under the pointer), a figure also zooms in a little:
 //              the camera closes in, so the halo stays its size round it.
 //              It all draws at 20fps.
+//   arrive({ hold, settle })  comes in moving: starts in its hover pose, zoomed
+//              in, holds there `hold` s, then eases back to rest and zooms out
+//              over about `settle` s. Any hover or pointer takes over at once.
 //   reveal(to, { duration, delay })  grows the figure in (to 1) or out (to 0),
 //              from the ground up in the site's dots; created hidden.
 //   point(px, py) / leave()  a project page: px, py are 0..1 across and up
@@ -73,7 +76,7 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
   // The zoom: eases (by the clock) to 1 when hovered, back to 0 after, by
   // closing the camera in on the rest pose's centre. The halo is drawn after,
   // at its own size, from the figure as it now is.
-  const zm = { x: 0, from: 0, to: 0, start: 0 };
+  const zm = { x: 0, from: 0, to: 0, start: 0, dur: 0.6 };
   let base = null; // the frame at no zoom
   const frameZoom = (x) => {
     if (!base) return;
@@ -83,16 +86,34 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
   };
   const stepZoom = () => {
     if (zm.x === zm.to) return false;
-    const u = Math.min(1, (performance.now() - zm.start) / 1000 / 0.6);
+    const u = Math.min(1, (performance.now() - zm.start) / 1000 / zm.dur);
     zm.x = u >= 1 ? zm.to : zm.from + (zm.to - zm.from) * (1 - Math.pow(1 - u, 3));
     frameZoom(zm.x);
     return zm.x !== zm.to;
   };
-  const zoom = (on) => {
+  const zoom = (on, dur = 0.6) => {
     const to = on ? 1 : 0;
     if (zm.to === to) return;
-    Object.assign(zm, { from: zm.x, to, start: performance.now() });
+    Object.assign(zm, { from: zm.x, to, start: performance.now(), dur });
     if (reducedMotion) zm.start = -1e9;
+  };
+
+  // Arriving (see arrive): held in its hover pose until `release`, then
+  // let go with its springs run slow (`pace`), so it eases back rather than
+  // snapping; back to full speed once it has settled.
+  let arriving = null, pace = 1;
+  const endArrival = () => { arriving = null; pace = 1; };
+  const stepArrival = (moving) => {
+    if (!arriving) return false;
+    if (!arriving.let && performance.now() >= arriving.release) {
+      arriving.let = true;
+      pace = 0.38;
+      fig.hover(false);
+      zoom(false, arriving.settle);
+      return true;
+    }
+    if (arriving.let && !moving && zm.x === zm.to) { endArrival(); return false; }
+    return true;
   };
 
   // Frames come at 20fps; between them the springs step in small steps.
@@ -105,12 +126,12 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     if (acc < FRAME) { raf = requestAnimationFrame(loop); return; }
     let moving = false;
     if (reducedMotion) { fig.jump(); fig.step(0); }
-    else for (let n = Math.ceil(acc / SUB), i = 0; i < n; i++) moving = fig.step(acc / n);
+    else for (let n = Math.ceil(acc / SUB), i = 0; i < n; i++) moving = fig.step((acc / n) * pace);
     acc = 0;
-    const growing = stepReveal(), zooming = stepZoom();
+    const growing = stepReveal(), zooming = stepZoom(), coming = stepArrival(moving);
     view.draw();
     drawn();
-    if (moving || growing || zooming) raf = requestAnimationFrame(loop);
+    if (moving || growing || zooming || coming) raf = requestAnimationFrame(loop);
   };
   // Woken, the first frame draws at once; then 20fps.
   const wake = () => { if (!raf && alive) { last = performance.now(); acc = FRAME; raf = requestAnimationFrame(loop); } };
@@ -136,14 +157,26 @@ export async function createFigure(slug, canvas, { reducedMotion = false } = {})
     silhouette: () => { fig.step(0); frameZoom(0); const m = view.silhouette(); frameZoom(zm.x); return m; },
     /** Gets the model onto the GPU now, so the first real draw is quick. */
     prime() { view.prime(); },
-    hover(on) { fig.hover(on); zoom(on); wake(); },
+    hover(on) {
+      // Arriving, it settles by itself; only a real hover takes over.
+      if (arriving && !on) return;
+      endArrival(); fig.hover(on); zoom(on); wake();
+    },
+    arrive({ hold = 1, settle = 1.8 } = {}) {
+      if (reducedMotion) return;
+      fig.hover(true); fig.jump(); fig.step(0);
+      Object.assign(zm, { x: 1, from: 1, to: 1 }); frameZoom(1);
+      arriving = { release: performance.now() + hold * 1000, settle, let: false };
+      pace = 1;
+      wake();
+    },
     reveal(to, { duration = 0, delay = 0 } = {}) {
       if (reducedMotion) duration = delay = 0;
       Object.assign(rv, { from: rv.x, to, start: performance.now(), delay, dur: duration });
       wake();
     },
-    point(px, py) { const r = fig.point(px, py); zoom(true); wake(); return r; },
-    leave() { const r = fig.leave(); zoom(false); wake(); return r; },
+    point(px, py) { endArrival(); const r = fig.point(px, py); zoom(true); wake(); return r; },
+    leave() { endArrival(); const r = fig.leave(); zoom(false); wake(); return r; },
     notes: (fig.notes ?? []).map(({ id, label, sub }) => ({ id, label, sub })),
     show(id) { const r = fig.show?.(id) ?? ""; zoom(true); wake(); return r; },
     anchors() {

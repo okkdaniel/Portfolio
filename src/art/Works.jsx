@@ -156,7 +156,13 @@ export function Works({ projects, hovered, onHover, onClose, onReady, dimmed = f
       growth.plant(vines, { random, ...tempo });
       // The figures grow in with their growth, a beat after it starts (at
       // once when re-laid for a resize).
-      placed.forEach((s) => figs[projects.indexOf(s.p)]?.reveal(1, now ? {} : { delay: 0.6, duration: 2.6 }));
+      // Each comes in moving: in its hover pose and zoomed in a little,
+      // easing back to rest and zooming out as it grows in.
+      placed.forEach((s) => {
+        const f = figs[projects.indexOf(s.p)];
+        f?.reveal(1, now ? {} : { delay: 0.6, duration: 2.6 });
+        if (!now) f?.arrive({ hold: 1.1, settle: 1.9 });
+      });
       setSpots(placed.map(({ p, box, label, text }) => ({ slug: p.slug, title: p.title, box, label, text })));
     };
 
